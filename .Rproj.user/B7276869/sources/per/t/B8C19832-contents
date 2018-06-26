@@ -1,0 +1,379 @@
+#
+# This is a Shiny web application. You can run the application by clicking
+# the 'Run App' button above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+
+library(shiny)
+library(shinyAce)
+library(shinydashboard)
+library(ggplot2)
+library(FactoMineR)
+library(factoextra)
+library(reshape)
+library(PCAmixdata)
+library(corrplot)
+library(dendextend)
+
+ui <- dashboardPage( 
+  dashboardHeader(title = "PROMiDAT"),
+  dashboardSidebar(
+    sidebarMenu(
+      tags$a(href="http://promidat.com", img(src="Logo.png", height=120, width="100%", style="padding-top:10px; padding-bottom:10px;
+                                             padding-left:5px; padding-right:5px")),
+      menuItem("Cargar Datos", tabName = "cargar", icon = icon("dashboard")),
+      menuItem("Analisis Exploratorio", tabName = "parte1", icon = icon("th"),
+               menuSubItem("Resumen Númerico", tabName = "resumen", icon = icon("th")),
+               menuItem("Distribuciones", tabName = "distribucion", icon = icon("th")),
+               menuItem("Correlación", tabName = "correlacion", icon = icon("th"))),
+      menuItem("ACP", tabName = "acp", icon = icon("th")),
+      menuItem("Clusterización", tabName = "agrupacion", icon = icon("th")),
+      menuItem("K-Medias", tabName = "kmedias", icon = icon("th"),
+               menuSubItem("ACP", tabName = "kmediasacp", icon = icon("th")),
+               menuItem("Clusterización", tabName = "kmediascluster", icon = icon("th"))),
+      
+    hr(),
+    radioButtons('formato', 'Formato del documento:', c('HTML', 'PDF', 'Word'), inline = TRUE),
+    downloadButton("reporte", "Generar Reporte", style="position:absolute; left:20%")
+    )
+  ),
+  
+  dashboardBody(
+    tags$head(
+      tags$link(rel = "stylesheet", type = "text/css", href = "style_promidat.css")
+    ),
+    
+    tabItems(
+      
+      #Carga de Datos
+      tabItem(tabName = "cargar",
+              column(width = 4,
+                     box(
+                       title = "Carga de datos",
+                       width = 12,
+                       solidHeader = FALSE,
+                       collapsible = FALSE,
+                       collapsed = FALSE,
+                       checkboxInput('header', 'Header', TRUE),
+                       checkboxInput('columname', 'Incluir nombre de filas', TRUE),
+                       radioButtons('sep', 'Seperador', c(Coma=',', 'Punto y Coma'=';', Tab='\t'), selected = 'Coma'),
+                       radioButtons('dec', 'Separador Decimal', c('Punto'='.', 'Coma'=","), selected = 'Punto'),
+                       fileInput('file1', 'Cargar Archivo',
+                          accept = c('text/csv', 'text/comma-separated-values, text/plain', '.csv'), buttonLabel = "Subir",
+                          placeholder = "")
+                     )
+              ),
+              fluidRow(
+                column(width = 7,
+                       box(
+                         title = "Datos",
+                         status = "primary",
+                         width = 12,
+                         solidHeader = TRUE,
+                         collapsible = TRUE,
+                         dataTableOutput('contents')
+                  )))
+      ),
+      
+      #Resumen Númerico
+      tabItem(tabName = "resumen",
+              column(width = 12,
+                     box(
+                       title = "Resumen Númerico",
+                       status = "primary",
+                       width = 12,
+                       solidHeader = TRUE,
+                       collapsible = TRUE,
+                       selectInput(inputId = "sel.resumen", label = h4("Seleccionar Cluster:"), choices =  ""),
+                       fluidRow(
+                         uiOutput("resumen")
+                       )
+                     )
+              )
+      ),
+      
+      #PCA
+      tabItem(tabName = "acp",
+              column(width = 9,
+                  tabBox(id = "tabPCA", title = NULL, width = NULL,
+                    tabPanel(title = 'Variables', value = "variables"),#, plotOutput('plot.pca', height = "80vh")),
+                    tabPanel(title = 'Individuos', value = "individuos"),#, plotOutput('plot.pca', height = "80vh")),
+                    tabPanel(title = 'Sobreposición', value = "sobreposicion")#, plotOutput('plot.pca', height = "80vh"))
+                  ), plotOutput('plot.pca', height = "80vh")
+                ),
+              column(width = 3,
+                     tabBox(title = NULL, width = NULL,
+                            tabPanel(title = 'Opciones', 
+                                     checkboxInput('pca.num', 'Incluir todas las variables', TRUE)),
+                            tabPanel(title = 'Código', aceEditor("fieldCodePCA", mode = "r", theme = "monokai", value = ""), 
+                                     tags$div(style = "text-align:center", actionButton("ButtonPCA", "Actualizar")))
+                     ))
+       ),
+      
+      #Distribuciones
+      tabItem(tabName = "distribucion",
+              column(width = 12,
+                     box(
+                       title = "Distribuciones y atipicidades",
+                       status = "primary",
+                       width = 12,
+                       solidHeader = TRUE,
+                       collapsible = TRUE,
+                       selectInput(inputId = "sel.distribucion", label = h4("Seleccionar Variables:"), choices =  ""),
+                       plotOutput('distribuciones', height = "70vh")
+                     )
+              )
+      ),
+      
+      #Agrupaciones
+      tabItem(tabName = "agrupacion",
+              column(width = 12,
+                     box(
+                       title = "Clusterización",
+                       status = "primary",
+                       width = 12,
+                       solidHeader = TRUE,
+                       collapsible = TRUE,
+                       selectInput(inputId = "cant.cluster", label = h4("Cantidad de Clusters:"), choices =  c(2:10)),
+                       tabBox(
+                         title = NULL, width = NULL,
+                         tabPanel(title = 'Diagrama', plotOutput('agrupacion', height = "60vh")),
+                         tabPanel(title = 'Mapa', plotOutput('agrupacionMapa', height = "60vh")),
+                         tabPanel(title = 'Horizontal', selectInput(inputId = "sel.cluster", label = h4("Seleccionar Cluster:"), choices =  ""), 
+                                  plotOutput('horizontal', height = "50vh")),
+                         tabPanel(title = 'Vertical', selectInput(inputId = "sel.verticales", label = h4("Seleccionar Variable:"), choices =  ""), 
+                                  plotOutput('vertical', height = "50vh")),
+                         tabPanel(title = 'Radar', plotOutput('radar', height = "60vh"))
+                       )
+                     )
+              )
+      ),
+      
+      #Correlaciones
+      tabItem(tabName = "correlacion",
+              column(width = 9, plotOutput('plot.cor', height = "80vh")), 
+              column(width = 3,
+                     tabBox(title = NULL, width = NULL,
+                            tabPanel(title = 'Opciones'),
+                            tabPanel(title = 'Código', aceEditor("fieldCodeCor", mode = "r", theme = "monokai", value = ""), 
+                                     tags$div(style = "text-align:center", actionButton("ButtonCor", "Actualizar")))
+                     ))
+      ),
+      
+      #K-means-ACP
+      tabItem(tabName = "kmediasacp",
+              box(
+                title = "ACP",
+                status = "primary",
+                width = 12,
+                solidHeader = TRUE,
+                collapsible = TRUE,
+                plotOutput('pcakmedias', height = "80vh")
+              )
+      ),
+      
+      tabItem(tabName = "kmediascluster",
+              column(width = 12,
+                     box(
+                       title = "Clusterización",
+                       status = "primary",
+                       width = 12,
+                       solidHeader = TRUE,
+                       collapsible = TRUE,
+                       selectInput(inputId = "cant.kmeans.cluster", label = h4("Cantidad de Clusters:"), choices =  c(2:10)),
+                       tabBox(
+                         title = NULL, width = NULL,
+                         tabPanel(title = 'Inercia', uiOutput('resumen.kmedias')),
+                         tabPanel(title = 'Horizontal', selectInput(inputId = "sel.kmeans.cluster", label = h4("Seleccionar Cluster:"), choices =  ""), 
+                                  plotOutput('horizontal.kmedias', height = "50vh")),
+                         tabPanel(title = 'Vertical', selectInput(inputId = "sel.kmeans.verticales", 
+                                                                  label = h4("Seleccionar Variable:"), choices =  ""), 
+                                  plotOutput('vertical.kmedias', height = "50vh"))
+                         #tabPanel(title = 'Radar', plotOutput('radar', height = "60vh"))
+                       )
+                     )
+              )
+      )
+      
+    ) #tabItems
+  ) #dashboardBody
+) #UI
+
+server <- function(input, output, session) { 
+    source('global.R', local = T)
+    options(shiny.maxRequestSize=200*1024^2)
+
+    datos <- reactive({
+      inFile <- input$file1
+      if (is.null(inFile))
+        return(NULL)
+      tryCatch ({
+        ifelse(input$columname, res <- read.csv(inFile$datapath, header=input$header, sep=input$sep, dec = input$dec, row.names = 1), 
+               res <- read.csv(inFile$datapath, header=input$header, sep=input$sep, dec = input$dec))
+        res <- na.omit(res)
+        return(res)
+      }, error = function(e) {
+        return(NULL)
+      })
+    })
+    
+    datos.cuan <- reactive({
+      if (is.null(datos()))
+        return(NULL)
+      tryCatch ({
+        cualitativas <- splitmix(datos())$X.quali
+        cuantitativas <- splitmix(datos())$X.quanti
+        for (variable in colnames(cualitativas)) {
+          for (categoria in unique(datos()[, variable])) {
+            nueva.var <- as.numeric(cualitativas[, variable] == categoria)
+            cuantitativas <- cbind(cuantitativas, nueva.var)
+            colnames(cuantitativas)[length(colnames(cuantitativas))] <- paste0(variable, ".", categoria)
+          }
+        }
+        return(cuantitativas)
+      }, error = function(e) {
+        return(NULL)
+      })
+    })
+    
+    output$contents = renderDataTable({
+      datos()
+    }, options = list(aLengthMenu = c(10, 30, 50), iDisplayLength = 10, scrollX = TRUE))
+    
+    output$resumen = renderUI({
+      if(input$sel.resumen %in% colnames(datos.cuan())){
+        HTML(resumen.numerico(datos.cuan(), input$sel.resumen))
+      } else {
+        HTML(resumen.categorico(datos(), input$sel.resumen))
+      }
+    })
+    
+    output$plot.pca = renderPlot({
+        print(obj.pca())
+    })
+    
+    output$distribuciones = renderPlot({
+      if (is.null(input$sel.distribucion))
+        return(NULL)
+      
+      var <- datos()[, input$sel.distribucion]
+      if(class(var) == "numeric" || class(var) == "integer"){
+        return(distribucion.numerico(var,  input$sel.distribucion))
+      } else{
+        return(distribucion.categorico(var))
+      }
+    })
+    
+    output$agrupacion = renderPlot({
+      cant <- as.numeric(input$cant.cluster)
+      colores <- sapply(c(1:cant), function(i) rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 180, maxColorValue = 255))
+      modelo <- hclust(dist(datos.cuan()), method = "complete")
+      modelo <- color_branches(modelo, k = cant, col = colores)
+      modelo <- color_labels(modelo, k = cant, col = colores)
+      plot(modelo)
+    })
+      
+    output$agrupacionMapa = renderPlot({
+      cluster.mapa(datos.cuan(), as.numeric(input$cant.cluster))
+    })
+    
+    output$horizontal = renderPlot({
+      if(input$sel.cluster == "Todos"){
+        centros.horizontal.todos(datos.cuan(), input$cant.cluster)
+      } else{
+        centros <- calc.centros(datos.cuan(), input$cant.cluster, T)
+        centros <- as.data.frame(t(centros))
+        plot.centros(centros, as.numeric(input$sel.cluster), "Variables")
+      }
+    })
+    
+    output$vertical = renderPlot({
+      if(input$sel.verticales == "Todos"){
+        centros.vertical.todos(datos.cuan(), input$cant.cluster)
+      } else{
+        centros <- calc.centros(datos.cuan(), input$cant.cluster)
+        plot.centros(centros, input$sel.verticales, "Clúster")
+      }
+    })
+    
+    output$radar = renderPlot({
+      centros.radar(splitmix(datos())$X.quanti)
+    })
+    
+    output$plot.cor = renderPlot({
+      print(obj.cor())
+    })
+    
+    output$pcakmedias = renderPlot({
+      pca.kmedias(datos.cuan())
+    })
+    
+    output$resumen.kmedias = renderUI({
+      kmedias <- kmeans(datos.cuan(), as.numeric(input$cant.kmeans.cluster), iter.max = 200, nstart = 300) 
+      HTML(resumen.kmeans(kmedias))
+    })
+    
+    output$vertical.kmedias = renderPlot({
+      kmedias <- kmeans(datos.cuan(), as.numeric(input$cant.kmeans.cluster), iter.max = 200, nstart = 300) 
+      plot.centros(as.data.frame(kmedias$centers), input$sel.kmeans.verticales, "Clúster")
+    })
+    
+    output$horizontal.kmedias = renderPlot({
+      kmedias <- kmeans(datos.cuan(), as.numeric(input$cant.kmeans.cluster), iter.max = 200, nstart = 300) 
+      plot.centros(as.data.frame(t(kmedias$centers)), as.numeric(input$sel.kmeans.cluster), "Variables")
+    })
+    
+    output$reporte <- downloadHandler(
+      filename = function() {
+        paste('reporte', sep = '.', switch(input$formato, HTML = 'html', PDF = 'pdf', Word = 'docx'))
+      },
+      
+      content = function(file) {
+        src <- normalizePath('report.Rmd')
+        owd <- setwd(tempdir())
+        on.exit(setwd(owd))
+        file.copy(src, 'report.Rmd', overwrite = TRUE)
+        
+        parametros <- list(n = 50)
+        
+        library(rmarkdown)
+        out <- render(src,  params = parametros, 
+                      switch(input$formato, HTML = html_document(), PDF = pdf_document(), Word = word_document()))
+        file.rename(out, file)
+      }
+    )
+    
+    obj.cor <- reactive({
+      plotNo <- c(input$file1, input$ButtonCor)
+      cod.cor <<- input$fieldCodeCor
+      isolate(eval(parse(text = gsub("\\n", "", cod.cor))))
+    })
+    
+    obj.pca <- reactive({
+      plotNo <- c(input$file1, input$pca.num, input$ButtonPCA)
+      cod.pca[[input$tabPCA]] <<- input$fieldCodePCA
+      isolate(eval(parse(text = gsub("\\n", "", cod.pca[[input$tabPCA]]))))
+    })
+    
+    observe({
+      #print(input$tabPCA)
+      updateSelectInput(session, "sel.resumen", choices = colnames(datos()))
+      updateSelectInput(session, "sel.distribucion", choices = colnames(datos()))
+      updateSelectInput(session, "sel.verticales", choices = c("Todos", colnames(datos.cuan())))
+      updateSelectInput(session, "sel.cluster", choices = c("Todos", 1:input$cant.cluster))
+      updateSelectInput(session, "sel.kmeans.verticales", choices = colnames(datos.cuan()))
+      updateSelectInput(session, "sel.kmeans.cluster", choices = 1:input$cant.kmeans.cluster)
+      updateAceEditor(session, "fieldCodePCA", value = cod.pca[[input$tabPCA]])
+      updateAceEditor(session, "fieldCodeCor", value = cod.cor)
+    })
+    
+    #observeEvent(input$tabPCA,{
+    #  print(input$tabPCA)
+    #})
+}
+
+shinyApp(ui = ui, server = server)
+

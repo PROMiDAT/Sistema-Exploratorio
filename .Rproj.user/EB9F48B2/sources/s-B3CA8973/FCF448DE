@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1529706012606.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "FCF448DE",
+    "lastKnownWriteTime" : 1530049262,
+    "last_content_update" : 1530049262257,
+    "path" : "~/Desktop/PROMIDAT-EXPLORATORIO-SHINY/server.R",
+    "project_path" : "server.R",
+    "properties" : {
+        "cursorPosition" : "20,3",
+        "scrollLine" : "5"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

@@ -1,0 +1,198 @@
+calc.centros <- function(data, cant.cluster, porcentaje = FALSE) {
+  modelo <- hclust(dist(data), method = "complete")
+  clusters <- cutree(modelo, k=cant.cluster)
+  res <- vector(length = length(unique(clusters)), mode = "list")
+  for (i in unique(clusters)) {
+    ind <- (clusters == i)
+    res[[i]] <- colMeans(data[ind,])
+  }
+  res <- as.data.frame(do.call("rbind", res))
+  if(porcentaje){
+    for (name in colnames(res)) {
+      res[, name] <- as.integer(res[, name] / max(res[, name]) * 100)
+    }
+  }
+  return(res)
+}
+
+coord_radar <- function (theta = "x", start = 0, direction = 1) {
+  theta <- match.arg(theta, c("x", "y"))
+  r <- if (theta == "x") "y" else "x"
+  ggproto("CordRadar", CoordPolar, theta = theta, r = r, start = start, direction = sign(direction), is_linear = function(coord) TRUE)
+}
+
+centros.radar <- function(datos){
+  centros <- calc.centros(datos, input$cant.cluster, TRUE)
+  res <- melt(t(centros), varnames = c("variables", "clusteres"))
+  res <- res[order(res$variables, decreasing=F), ]
+  res$clusteres <- as.character(res$clusteres)
+  ggplot(res, aes(x = variables, y = value)) +
+    geom_polygon(aes(group = clusteres, color = clusteres, fill = clusteres), alpha=0.3, size = 1, show.legend = FALSE) +
+    geom_point(aes(group = clusteres, color = clusteres), size = 3) + 
+    theme( panel.background = element_rect(fill = "transparent"), 
+           plot.background = element_rect(fill = "transparent"),
+           panel.grid.major = element_line(size = 0.5, linetype = 'solid', colour = "#dddddd"),
+           axis.text.x = element_text(size = rel(1.2)),
+           axis.text.y = element_blank(),
+           axis.ticks = element_blank()) +
+    scale_y_continuous(limits=c(min(res$value), max(res$value))) + 
+    ggtitle("Comparación de Clustéres") + xlab("") + ylab("") +
+    geom_text(aes(x = 0.5, y = min(value), label = "0%"), size = 3.5, colour = "black", family = "Arial") + 
+    #geom_text(aes(x = 0.5, y = median(value), label = median(value)), size = 3.5, colour = "black", family = "Arial") + 
+    geom_text(aes(x = 0.5, y = max(value), label = "100%"), size = 3.5, colour = "black", family = "Arial") + 
+    coord_radar()
+}
+
+distribucion.numerico <- function(var, nombre.var){
+  color <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 140, maxColorValue = 255)
+  nf <- layout(mat = matrix(c(1, 2), 2, 1, byrow=TRUE),  height = c(3,1))
+  par(mar=c(3.1, 3.1, 1.1, 2.1))
+  hist(var, col = color, border=F, main = paste0("Distribución y atipicidad de la variable ", nombre.var), axes=F)
+  axis(1, col=par("bg"), col.ticks="grey81", lwd.ticks=1, tck=-0.025)
+  axis(2, col=par("bg"), col.ticks="grey81", lwd.ticks=1, tck=-0.025)
+  boxplot(var, col = color, boxcol = color, boxlty = 1, boxlwd = 3, boxwex = 1.5,
+          medcol = color, medlty = 1, medlwd = 8, whiskcol = color, whisklty = 3, whisklwd = 2.5,
+          staplecol = color, staplelty = 1, staplelwd = 3, horizontal=TRUE, outline=TRUE, frame=F,
+          outpch = 20, outcex = 1.5, outcol = "red", axes=F)
+  axis(1, col=par("bg"), col.ticks="grey81", lwd.ticks=1, tck=-0.15)
+}
+
+distribucion.categorico <- function(var){
+  colores <- sapply(c(1:length(levels(var))), function(i) rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 180, maxColorValue = 255))
+  data <- data.frame(label = levels(var), value = summary(var))
+  ggplot(data, aes(label, value)) + 
+    geom_bar(stat = "identity", fill = colores) +
+    geom_text(aes(label = value, y = value), vjust = -0.5, size = 4) +
+    theme_minimal() + 
+    labs(title = "Distribución", y = "Cantidad de casos", x = "Categorias")
+}
+
+cluster.mapa <- function(data, cant){
+  colores <- sapply(c(1:cant), function(i) rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 140, maxColorValue = 255))
+  res  <- PCA(data, scale.unit=TRUE, ncp = 5, graph = FALSE)
+  res.hcpc <- HCPC(res, nb.clust = -1, consol = TRUE, min = cant, max = cant, graph = FALSE)
+  fviz_cluster(res.hcpc, show.clust.cent = TRUE, palette = "jco", main = "Factor map", geom = "text", select.ind = list(cos2 = 0.1))
+}
+
+centros.vertical.todos <- function(data, cant){
+  cluster <- c(1:cant)
+  centros <- calc.centros(data, cant, T)
+  centros <- cbind(centros, cluster)
+  centros <- melt(centros, id.vars = "cluster")
+  ggplot(centros, aes(x=variable, y=value, fill=factor(cluster))) + geom_bar(stat="identity", position="dodge") +
+    scale_fill_discrete(name="Clúster") + labs(x = "", y = "")
+}
+
+centros.horizontal.todos <- function(data, cant){
+  centros <- calc.centros(data, cant, T)
+  centros <- as.data.frame(t(centros))
+  colnames(centros) <- sapply(c(1:cant), function(i) paste0("Cluster ", i))
+  var <- row.names(centros)
+  centros <- cbind(centros, var)
+  centros <- melt(centros, id.vars = "var")
+  ggplot(centros, aes(x=variable, y=value, fill=factor(var))) + geom_bar(stat="identity", position="dodge") +
+    scale_fill_discrete(name="Variable") + labs(x = "", y = "")
+}
+
+plot.centros <- function(centros, cluster, nombre){
+  ggplot(data = centros, aes(x = row.names(centros), y = centros[, cluster], fill = row.names(centros))) +
+    geom_bar(stat = "identity") + scale_fill_discrete(name = nombre) + labs(x = "", y = "")
+}
+
+resumen.numerico <- function(data, variable){
+  salida <- ""
+  datos.numericos <- list(Q1 = list(id = "q1", Label = "Primer Cuartil", Value = formatC(quantile(data[, variable], .25)), 
+                                    icon = "glyphicon glyphicon-gbp", color = "green"),
+                          Mediana = list(id = "mediana", Label = "Mediana", Value = formatC(median(data[, variable])), 
+                                         icon = "glyphicon glyphicon-gbp", color = "orange"),
+                          Q3 = list(id = "q3", Label = "Tercer Cuartil", Value = formatC(quantile(data[, variable], .75)),
+                                    icon = "glyphicon glyphicon-gbp", color = "maroon"),
+                          Minimo = list(id = "minimo", Label = "Mínimo", Value = formatC(min(data[, variable])), 
+                                        icon = "glyphicon glyphicon-gbp", color = "red"),
+                          Promedio = list(id = "promedio", Label = "Promedio", Value = formatC(mean(data[, variable])), 
+                                          icon = "glyphicon glyphicon-gbp", color = "blue"),
+                          Maximo = list(id = "maximo", Label = "Máximo", Value = formatC(max(data[, variable])), 
+                                        icon = "glyphicon glyphicon-gbp", color = "purple"))
+  
+  for (calculo in datos.numericos) {
+    salida <- paste0(salida, "<div class='shiny-html-output col-sm-4 shiny-bound-output' id='", calculo$id, 
+                     "'> <div class='small-box bg-", calculo$color,"'> <div class='inner'>",
+                     "<h3>", calculo$Value, "</h3> <p>", calculo$Label, "</p></div> <div class='icon-large'> <i class='",
+                     calculo$icon, "'></i></div></div></div>")
+  }
+  return(salida)
+}
+
+resumen.categorico <- function(data, variable){
+  salida <- ""
+  color <- c("red","yellow","aqua","navy","teal","olive","purple","maroon","black","blue","lime","orange","light-blue","green","fuchsia")
+  datos.categoricos <- summary(data[, variable])
+  for (i in 1:length(datos.categoricos)) {
+    salida <- paste0(salida, "<div class='shiny-html-output col-sm-4 shiny-bound-output' id='", variable, i, 
+                     "'> <div class='small-box bg-", sample(color, 1), "'> <div class='inner'>",
+                     "<h3>", datos.categoricos[i], "</h3> <p>", levels(data[, variable])[i], 
+                     "</p></div> <div class='icon-large'> <i class=''></i></div></div></div>")
+  }
+  return(salida)
+}
+
+resumen.kmeans <- function(kmedias){
+  salida <- ""
+  datos.numericos <- list(WP = list(id = "WP", Label = "Inercia Intra-Clases", Value = formatC(kmedias$tot.withinss), 
+                                    icon = "glyphicon glyphicon-gbp", color = "red"),
+                          BP = list(id = "BP", Label = "Inercia Inter-Clases", Value = formatC(kmedias$betweenss), 
+                                         icon = "glyphicon glyphicon-gbp", color = "green"),
+                          total = list(id = "total", Label = "Inercia Total", Value = formatC(kmedias$totss),
+                                    icon = "glyphicon glyphicon-gbp", color = "blue"))
+  
+  for (calculo in datos.numericos) {
+    salida <- paste0(salida, "<div class='shiny-html-output col-sm-4 shiny-bound-output' id='", calculo$id, 
+                     "'> <div class='small-box bg-", calculo$color,"'> <div class='inner'>",
+                     "<h3>", calculo$Value, "</h3> <p>", calculo$Label, "</p></div> <div class='icon-large'> <i class='",
+                     calculo$icon, "'></i></div></div></div>")
+  }
+  return(salida)
+}
+
+pca.kmedias <- function(datos){
+  datos.acp <- princomp(datos, cor=TRUE, scores=TRUE)
+  biplot(datos.acp)
+}
+
+pca.individuos <- function(){
+  #ifelse(input$pca.num, data.nombre <- "datos.cuan()", data.nombre <- "splitmix(datos())$X.quanti")
+  data.nombre <- "datos.cuan()"
+  return(paste0("modelo <- prcomp(", data.nombre, ", scale. = TRUE, center = TRUE);
+fviz_pca_ind(modelo, pointsize = 5, pointshape = 21, fill = '#E7B800')"))
+}
+
+pca.variables <- function(){
+  #ifelse(input$pca.num, data.nombre <- "datos.cuan()", data.nombre <- "splitmix(datos())$X.quanti")
+  data.nombre <- "datos.cuan()"
+  return(paste0("modelo <- prcomp(", data.nombre, ", scale. = TRUE, center = TRUE);
+fviz_pca_var(modelo, col.var='steelblue')"))
+  #par(bg = 'transparent')
+  #fviz_pca_var(modelo, col.var="steelblue", select.var = list(cos2 = 0.92))
+}
+
+pca.sobreposicion <- function(){
+  #par(bg = 'transparent')
+  #ifelse(input$pca.num, data.nombre <- "datos.cuan()", data.nombre <- "splitmix(datos())$X.quanti")
+  data.nombre <- "datos.cuan()"
+  return(paste0("modelo <- prcomp(", data.nombre, ", scale. = TRUE, center = TRUE);
+fviz_pca_biplot(modelo, col.var = '#2E9FDF', col.ind = '#696969')"))
+}
+
+correlaciones <- function(){
+  return(paste0("correlacion <- cor(splitmix(datos())$X.quanti);
+corrplot(correlacion, method='shade', shade.col=NA, tl.col='black', tl.srt=45, addCoef.col='black', order='AOE')"))
+}
+
+cod.pca <- list("variables" = pca.variables(), "individuos" = pca.individuos(), "sobreposicion" = pca.sobreposicion())
+cod.cor <- correlaciones()
+
+
+
+
+
+

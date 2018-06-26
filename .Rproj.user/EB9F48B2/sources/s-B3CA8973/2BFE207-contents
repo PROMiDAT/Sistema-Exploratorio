@@ -1,0 +1,10 @@
+---
+title: ""
+output: html_document
+---
+
+A plot of `params$n` random points.
+
+```{r}
+plot(rnorm(50), rnorm(50))
+```
