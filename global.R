@@ -1,43 +1,49 @@
-datos <<- NULL
+datos.originales <<- NULL
+datos.modificados <<- NULL
+centros <<- NULL
 
 var.numericas <- function(data){
   if(is.null(data)) return(NULL)
-  res <- subset(data, select = sapply(data, class) %in% c("numeric", "integer"))
+  res <- base::subset(data, select = sapply(data, class) %in% c('numeric', 'integer'))
   return(res)
 }
 
 var.categoricas <- function(data){
   if(is.null(data)) return(NULL)
-  res <- base::subset(data, select = !sapply(data, class) %in% c("numeric", "integer"))
+  res <- base::subset(data, select = !sapply(data, class) %in% c('numeric', 'integer'))
   return(res)
 }
 
-datos.disyuntivos <- function(data){
+datos.disyuntivos <- function(data, vars){
   if(is.null(data)) return(NULL)
-  cualitativas <- var.categoricas(data)
-  cuantitativas <- var.numericas(data)
+  cualitativas <- base::subset(data, select = colnames(data) %in% c(vars))
+  data <- data[, !colnames(data) %in% vars]
   for (variable in colnames(cualitativas)) {
-    for (categoria in unique(data[, variable])) {
+    for (categoria in unique(cualitativas[, variable])) {
       nueva.var <- as.numeric(cualitativas[, variable] == categoria)
-      cuantitativas <- cbind(cuantitativas, nueva.var)
-      colnames(cuantitativas)[length(colnames(cuantitativas))] <- paste0(variable, ".", categoria)
+      data <- cbind(data, nueva.var)
+      colnames(data)[length(colnames(data))] <- paste0(variable, '.', categoria)
     }
   }
-  return(cuantitativas)
+  return(data)
 }
 
 code.carga <- function(nombre.columnas = T, ruta = NULL, separador = ";", sep.decimal = ",", encabezado = "T"){
   if(nombre.columnas){
-    return(paste0("datos <<- read.csv('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal, "', row.names = 1)"))
+    return(paste0("datos.originales <<- read.csv('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal, "', row.names = 1)"))
   } else {
-    return(paste0("datos <<- read.csv('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal, "')"))
+    return(paste0("datos.originales <<- read.csv('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal, "')"))
   }
 }
 
 code.trans <- function(variables, nuevo.tipo){
   res <- ""
-  for (variable in variables) {
-    res <- paste0(res, "datos[, '", variable, "'] <<- ", ifelse(nuevo.tipo == "Categorico", "as.factor", "as.numeric"), "(datos[, '", variable, "']) \n")
+  if(nuevo.tipo == "Categorico"){
+    for (variable in variables) {
+      res <- paste0(res, "datos.originales[, '", variable, "'] <<- as.factor(datos.originales[, '", variable, "']) \n")
+    }
+  } else {
+    res <- paste0("datos.modificados <<- datos.disyuntivos(datos.originales, '", variables,"')")
   }
   return(res)
 }
@@ -94,49 +100,50 @@ default.disp <- function(vars = NULL){
     return(NULL)
   } else if(length(vars) == 1){
     return(paste0("color <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 140, maxColorValue = 255)
-hist(datos[, '", vars, "'], col = color, border=F, main = paste0('Test de normalidad de la variable ','", vars,"'), axes=F, freq = F)
+hist(datos.originales[, '", vars, "'], col = color, border=F, main = paste0('Test de normalidad de la variable ','", vars,"'), axes=F, freq = F)
 axis(1, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
 axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
-curve(dnorm(x, mean = mean(datos[, '", vars, "']), sd = sd(datos[, '", vars, "'])), add=T, col='blue', lwd=2)
+curve(dnorm(x, mean = mean(datos.originales[, '", vars, "']), sd = sd(datos.originales[, '", vars, "'])), add=T, col='blue', lwd=2)
 legend('bottom', legend = 'Curva Normal', col = 'blue', lty=1, cex=1.5)"))
   } else if(length(vars) == 2){
     return(paste0("color <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 255, maxColorValue = 255) 
-ggplot(data = datos, aes(x = ", vars[1], ", y = ", vars[2], ", label = rownames(datos))) +
-                  geom_point(color = color, size = 3) + geom_text(vjust = -0.7)"))
+ggplot(data = datos.originales, aes(x = ", vars[1], ", y = ", vars[2], ", label = rownames(datos.originales))) +
+       geom_point(color = color, size = 3) + geom_text(vjust = -0.7)"))
   } else{
     return(paste0("colores <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 255, maxColorValue = 255)
-scatterplot3d(datos[, '", vars[1], "'], datos[, '", vars[2], "'], datos[, '", vars[3], "'], pch = 16, color = colores)"))
+scatterplot3d(datos.originales[, '", vars[1], "'], datos.originales[, '", vars[2], "'], datos.originales[, '", vars[3], "'], pch = 16, color = colores)"))
   }
 }
 
-def.pca.model <- function(){
-  return("pca.modelo <<- PCA(datos.disyuntivos(datos))")
+def.pca.model <- function(data = "datos.originales"){
+  return(paste0("pca.modelo <<- PCA(var.numericas(", data, "))"))
 }
 
-def.model <- function(dist.method = "euclidean", hc.method = "complete"){
-  return(paste0("hc.modelo <- hclust(dist(datos.disyuntivos(datos), method = '", dist.method, "'), method = '", hc.method, "')"))
+def.model <- function(data = "datos.originales", cant = "as.numeric(input$cant.cluster)", dist.method = "euclidean", hc.method = "complete"){
+  return(paste0("hc.modelo <<- hclust(dist(var.numericas(", data, "), method = '", dist.method, "'), method = '", hc.method, "')
+centros <<- calc.centros(var.numericas(", data, "), hc.modelo, ", cant, ")"))
 }
 
-def.k.model <- function(cant = "as.numeric(input$cant.kmeans.cluster)", iter.max = 200, nstart = 300){
-  return(paste0("k.modelo <<- kmeans(datos.disyuntivos(datos), ", cant,", iter.max = ", iter.max,", nstart = ", nstart,")"))
+def.k.model <- function(data = "datos.originales", cant = "as.numeric(input$cant.kmeans.cluster)", iter.max = 200, nstart = 300){
+  return(paste0("k.modelo <<- kmeans(var.numericas(", data, "), ", cant,", iter.max = ", iter.max,", nstart = ", nstart,")"))
 }
 
-pca.individuos <- function(ind.cos = 0){
-  return(paste0("fviz_pca_ind(pca.modelo, pointsize = 5, pointshape = 21, fill = '#E7B800', 
-             select.ind = list(cos2 = ", ind.cos, "))"))
+pca.individuos <- function(ind.cos = 0, color = '#696969'){
+  return(paste0("fviz_pca_ind(pca.modelo, pointsize = 2, pointshape = 16,
+             col.ind = '", color, "', select.ind = list(cos2 = ", ind.cos, "))"))
 }
 
-pca.variables <- function(var.cos = 0){
-  return(paste0("fviz_pca_var(pca.modelo, col.var='steelblue', select.var = list(cos2 = ", var.cos, "))"))
+pca.variables <- function(var.cos = 0, color = 'steelblue'){
+  return(paste0("fviz_pca_var(pca.modelo, col.var= '", color, "', select.var = list(cos2 = ", var.cos, "))"))
 }
 
-pca.sobreposicion <- function(ind.cos = 0, var.cos = 0){
-  return(paste0("fviz_pca_biplot(pca.modelo, col.var = '#2E9FDF', col.ind = '#696969', 
-                select.ind = list(cos2 = ", ind.cos, ") , select.var = list(cos2 = ", var.cos, "))"))
+pca.sobreposicion <- function(ind.cos = 0, var.cos = 0, col.ind = '#696969', col.var = 'steelblue'){
+  return(paste0("fviz_pca_biplot(pca.modelo, pointsize = 2, pointshape = 16, col.var = '", col.var, "', 
+                 col.ind = '", col.ind, "', select.ind = list(cos2 = ", ind.cos, ") , select.var = list(cos2 = ", var.cos, "))"))
 }
 
-modelo.cor <- function(){
-  return("correlacion <<- cor(var.numericas(datos))")
+modelo.cor <- function(data = "datos.originales"){
+  return(paste0("correlacion <<- cor(var.numericas(", data, "))"))
 }
 
 correlaciones <- function(metodo = 'circle'){
@@ -144,17 +151,16 @@ correlaciones <- function(metodo = 'circle'){
                    tl.srt=45, addCoef.col='black', order='AOE')"))
 }
 
-def.code.num <- function(variable = "input$sel.distribucion"){
-  return(paste0("distribucion.numerico(datos[, ", variable, "], ", variable, ")"))
+def.code.num <- function(variable = "input$sel.distribucion", color = 'input$col.dist'){
+  return(paste0("distribucion.numerico(datos.originales[, ", variable, "], ", variable, ", color = ", color,")"))
 }
 
-def.code.cat <- function(variable = "input$sel.distribucion"){
-  return(paste0("distribucion.categorico(datos[, ", variable,"])"))
+def.code.cat <- function(variable = "input$sel.distribucion", color = 'input$col.dist'){
+  return(paste0("distribucion.categorico(datos.originales[, ", variable,"], color = ", color, ")"))
 }
 
 default.func.num <- function(){
-  return(paste0("distribucion.numerico <<- function(var, nombre.var){
-  color <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 140, maxColorValue = 255)
+  return(paste0("distribucion.numerico <<- function(var, nombre.var, color){
   nf <- graphics::layout(mat = matrix(c(1, 2), 2, 1, byrow=TRUE),  height = c(3,1))
   par(mar=c(3.1, 3.1, 1.1, 2.1))
   hist(var, col = color, border=F, main = paste0('Distribución y atipicidad de la variable ', nombre.var), axes=F)
@@ -168,7 +174,7 @@ default.func.num <- function(){
 }
 
 default.func.cat <- function(){
-  return(paste0("distribucion.categorico <<- function(var){
+  return(paste0("distribucion.categorico <<- function(var, color = 'input$col.dist'){
   colores <- sapply(c(1:length(levels(var))), function(i) rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 180, maxColorValue = 255))
   data <- data.frame(label = levels(var), value = summary(var))
   ggplot(data, aes(label, value)) +
@@ -180,14 +186,13 @@ default.func.cat <- function(){
 }
 
 diagrama <- function(cant = "as.numeric(input$cant.cluster)"){
-  return(paste0("modelo <- hclust(dist(datos.disyuntivos(datos), method = 'euclidean'), method = 'complete')
-modelo <- color_branches(modelo, k = ", cant, ", col = )
-modelo <- color_labels(modelo, k = ", cant, ", col = )
+  return(paste0("modelo <- color_branches(hc.modelo, k = ", cant, ", col = )
+modelo <- color_labels(hc.modelo, k = ", cant, ", col = )
 plot(modelo)"))
 } 
 
-def.code.jambu <- function(){
-  return(paste0("codo.jambu(data. = datos.disyuntivos(datos), k. = 2:10)"))
+def.code.jambu <- function(data = "datos.originales"){
+  return(paste0("codo.jambu(data. = var.numericas(", data, "), k. = 2:10)"))
 } 
 
 def.func.jambu <- function(){
@@ -216,32 +221,26 @@ codo.jambu <<- function(data. = NULL, k. = NA_integer_, nstart. = 200, iter.max.
 }
 
 cluster.mapa <- function(cant = "as.numeric(input$cant.cluster)"){
-  return(paste0("res  <- PCA(datos.disyuntivos(datos), scale.unit=TRUE, ncp = 5, graph = FALSE)
-res.hcpc <- HCPC(res, nb.clust = -1, consol = TRUE, min = ", cant, ", max = ", cant, ", graph = FALSE)
-fviz_pca_biplot(res, col.ind = res.hcpc$data.clust$clust, palette = 'jco', addEllipses = T,
+  return(paste0("res.hcpc <- HCPC(pca.modelo, nb.clust = -1, consol = TRUE, min = ", cant, ", max = ", cant, ", graph = FALSE)
+fviz_pca_biplot(pca.modelo, col.ind = res.hcpc$data.clust$clust, palette = 'jco', addEllipses = T,
                 label = 'var', col.var = 'steelblue', repel = TRUE, legend.title = 'Clúster')"))
 }
 
 cluster.kmapa <- function(){
-  return(paste0("res <- PCA(datos.disyuntivos(datos), scale.unit=TRUE, ncp = 5, graph = FALSE)
-fviz_pca_biplot(res, col.ind = as.factor(k.modelo$cluster), palette = 'jco', addEllipses = T,
+  return(paste0("fviz_pca_biplot(pca.modelo, col.ind = as.factor(k.modelo$cluster), palette = 'jco', addEllipses = T,
                 label = 'var', col.var = 'steelblue', repel = TRUE, legend.title = 'Clúster')"))
 }
 
 default.centros <- function(){
-  return(paste0("calc.centros <<- function(data, cant.cluster, porcentaje = FALSE, metodo = 'complete') {
-  modelo <- hclust(dist(data), method = metodo)
+  return(paste0("calc.centros <<- function(data, modelo = NULL, cant.cluster, metodo = 'complete') {
+  if(is.null(modelo)) return(NULL)
   clusters <- cutree(modelo, k=cant.cluster)
-  res <- vector(length = length(unique(clusters)), mode = 'list')
-  for (i in unique(clusters)){ 
-    res[[i]] <- colMeans(data[clusters == i, ])
-  }
-  res <- as.data.frame(do.call('rbind', res))
-  if(porcentaje){
-      res <- apply(res, 2, function(i) scales::rescale(i, to = c(0, 100)))
-      res <- as.data.frame(res)
-  }
-  return(res)
+  real <- lapply(unique(clusters), function(i) colMeans(data[clusters == i, ]))
+  real <- as.data.frame(do.call('rbind', real))
+                
+  porcentual <- apply(real, 2, function(i) scales::rescale(i, to = c(0, 100)))
+  porcentual <- as.data.frame(porcentual)
+  return(list(real = real, porcentual = porcentual))
 }"))
 }
 
@@ -267,13 +266,12 @@ default.vert <- function(){
 }"))
 }
 
-cluster.horiz <- function(cant = "input$cant.cluster", sel = "input$sel.cluster"){
-  return(paste0("centros <- calc.centros(datos.disyuntivos(datos), ", cant, ", F)
-centros <- as.data.frame(t(centros))
+cluster.horiz <- function(sel = "input$sel.cluster"){
+  return(paste0("t.centros <- as.data.frame(t(centros$real))
 if(", sel, " == 'Todos'){
-    centros.horizontal.todos(centros)
+    centros.horizontal.todos(t.centros)
 } else {
-    ggplot(data = centros, aes(x = row.names(centros), y = centros[, as.numeric(", sel, ")])) +
+    ggplot(data = t.centros, aes(x = row.names(t.centros), y = t.centros[, as.numeric(", sel, ")])) +
        geom_bar(stat = 'identity', fill = 'steelblue') + scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') + 
        coord_flip() + theme_minimal()
 }"))
@@ -290,18 +288,18 @@ if(", sel, " == 'Todos'){
 }"))
 }
 
-cluster.vert <- function(cant = "input$cant.cluster", sel = "input$sel.verticales"){
-  return(paste0("centros <- calc.centros(datos.disyuntivos(datos), ", cant, ")
+cluster.vert <- function(sel = "input$sel.verticales"){
+  return(paste0("real <- centros$real
 if(", sel, " == 'Todos'){
-  centros.vertical.todos(centros)
+  centros.vertical.todos(real)
 } else{
-  ggplot(data = centros, aes(x = row.names(centros), y = centros[, ", sel, "], fill = row.names(centros))) +
+  ggplot(data = real, aes(x = row.names(real), y = real[, ", sel, "], fill = row.names(real))) +
          geom_bar(stat = 'identity') + scale_fill_discrete(name = 'Clúster') + labs(x = '', y = '')
 }"))
 }
 
 cluster.kvert <- function(sel = "input$sel.kmeans.verticales"){
-  return(paste0("centros <- as.data.frame((k.modelo$centers))
+  return(paste0("centros <- as.data.frame(k.modelo$centers)
 if(", sel, " == 'Todos'){
     centros.vertical.todos(centros)
 } else{
@@ -311,16 +309,15 @@ if(", sel, " == 'Todos'){
 }
 
 cluster.cat <- function(var = "input$sel.kcat.var", cant = "input$cant.cluster"){
-  return(paste0("hc.model <- hclust(dist(datos.disyuntivos(datos)))
-hc.clusters <- cutree(hc.model, k=", cant, ")
-NDatos <- cbind(datos, grupo = hc.clusters)
+  return(paste0("hc.clusters <- cutree(hc.modelo, k=", cant, ")
+NDatos <- cbind(datos.originales, grupo = hc.clusters)
                 ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + 
                 facet_wrap(~grupo) + theme(text = element_text(size = 10), axis.text.x = element_blank()) +
                 scale_fill_discrete(name='Variable') + labs(x = '', y = '')"))
 }
 
 cluster.kcat <- function(var = "input$sel.kcat.var"){
-  return(paste0("NDatos <- cbind(datos, grupo = k.modelo$cluster)
+  return(paste0("NDatos <- cbind(datos.originales, grupo = k.modelo$cluster)
 ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + 
   facet_wrap(~grupo) + theme(text = element_text(size = 10), axis.text.x = element_blank()) +
   scale_fill_discrete(name='Variable') + labs(x = '', y = '')"))
@@ -357,9 +354,8 @@ centros.radar <<- function(centros){
 }"))
 }
 
-def.radar <- function(cant = "input$cant.cluster"){
-  return(paste0("centros <- calc.centros(var.numericas(datos), ", cant, ", TRUE)
-centros.radar(centros)"))
+def.radar <- function(){
+  return(paste0("centros.radar(centros$porcentual)"))
 }
 
 def.kradar <- function(){
@@ -399,28 +395,28 @@ library(stringr)
 ```{r}
 var.numericas <- function(data){
   if(is.null(data)) return(NULL)
-                res <- subset(data, select = sapply(data, class) %in% c('numeric', 'integer'))
-                return(res)
+  res <- subset(data, select = sapply(data, class) %in% c('numeric', 'integer'))
+  return(res)
 }
 
 var.categoricas <- function(data){
-if(is.null(data)) return(NULL)
-res <- base::subset(data, select = !sapply(data, class) %in% c('numeric', 'integer'))
-return(res)
+  if(is.null(data)) return(NULL)
+  res <- base::subset(data, select = !sapply(data, class) %in% c('numeric', 'integer'))
+  return(res)
 }
 
-datos.disyuntivos <- function(data){
+datos.disyuntivos <- function(data, vars){
   if(is.null(data)) return(NULL)
-  cualitativas <- var.categoricas(data)
-  cuantitativas <- var.numericas(data)
+  cualitativas <- base::subset(data, select = colnames(data) %in% c(vars))
+  data <- data[, !colnames(data) %in% vars]
   for (variable in colnames(cualitativas)) {
-    for (categoria in unique(data[, variable])) {
+    for (categoria in unique(cualitativas[, variable])) {
       nueva.var <- as.numeric(cualitativas[, variable] == categoria)
-      cuantitativas <- cbind(cuantitativas, nueva.var)
-      colnames(cuantitativas)[length(colnames(cuantitativas))] <- paste0(variable, '.', categoria)
+      data <- cbind(data, nueva.var)
+      colnames(data)[length(colnames(data))] <- paste0(variable, '.', categoria)
     }
   }
-  return(cuantitativas)
+  return(data)
 }
 
 ", default.func.num(), "
@@ -439,7 +435,7 @@ datos.disyuntivos <- function(data){
 ```"))
 }
 
-cod.resum <- "summary(datos)" 
+cod.resum <- "summary(datos.originales)" 
 cod.disp <- default.disp()
 cod.pca <- list("variables" = pca.variables(), "individuos" = pca.individuos(), "sobreposicion" = pca.sobreposicion())
 
@@ -470,3 +466,13 @@ func.kvert <- default.vert()
 func.kradar <- cluster.radar()
 code.kradar <- def.kradar()
 code.kcat <- cluster.kcat()
+
+# aux <- datos.disyuntivos(iris, "Species")
+# k.modelo <<- kmeans(var.numericas(aux), 3, iter.max = 200, nstart = 300)
+# 
+# NDatos <- cbind(aux, grupo = k.modelo$cluster)
+# NDatos <- cbind(NDatos, Species = iris$Species) 
+# ggplot(NDatos, aes(Species)) + geom_bar(aes(fill = Species)) + 
+#   facet_wrap(~grupo) + theme(text = element_text(size = 10), axis.text.x = element_blank()) +
+#   scale_fill_discrete(name='Variable') + labs(x = '', y = '')
+

@@ -12,7 +12,8 @@ library(shinyAce)
 library(shinydashboard)
 library(shinycssloaders)
 library(shinyWidgets)
-library(shinyFiles)
+library(colourpicker)
+library(shinyjs)
 library(knitr)
 library(DT)
 library(promises)
@@ -44,23 +45,58 @@ shinyUI(dashboardPage(
                 menuItem("Generar Reporte", tabName = "reporte", icon = icon("th")),
                 
                 hr(),
-                conditionalPanel(
-                  condition = "input.principal == 'dispersion'"
+                
+                radioGroupButtons(
+                  inputId = "sel.datos",
+                  label = "Seleccionar Datos",
+                  choices = c("Original" = "datos.originales", "Modificada" = "datos.modificados"),
+                  status = "primary",
+                  checkIcon = list(
+                    yes = icon("ok", lib = "glyphicon"),
+                    no = icon("remove", lib = "glyphicon"))
                 ),
                 conditionalPanel(
-                  condition = "input.principal == 'distribucion'"
+                  condition = "input.principal == 'dispersion'",
+                  selectizeInput("select.var", "Seleccionar variables", multiple = T, choices = c(""), options = list(maxItems = 3))
                 ),
                 conditionalPanel(
-                  condition = "input.principal == 'correlacion'"
+                  condition = "input.principal == 'distribucion'",
+                  conditionalPanel(
+                    condition = "input.tabDyA == 'numericas'",
+                    selectInput(inputId = "sel.distribucion.num", label = "Seleccionar Variable", choices =  "", selectize = T)
+                  ),
+                  conditionalPanel(
+                    condition = "input.tabDyA == 'categoricas'",
+                    selectInput(inputId = "sel.distribucion.cat", label = "Seleccionar Variable", choices =  "", selectize = T)
+                  )
                 ),
                 conditionalPanel(
-                  condition = "input.principal == 'acp'"
+                  condition = "input.principal == 'agrupacion'",
+                  selectInput(inputId = "cant.cluster", label = "Cantidad de Clusters:", choices =  c(2:10)),
+                  conditionalPanel(
+                    condition = "input.tabjerar == 'Horizontal'",
+                    selectInput(inputId = "sel.cluster", label = "Seleccionar Cluster:", choices =  "")),
+                  conditionalPanel(
+                    condition = "input.tabjerar == 'Vertical'",
+                    selectInput(inputId = "sel.verticales", label = "Seleccionar Variable:", choices =  "")),
+                  conditionalPanel(
+                    condition = "input.tabjerar == 'Barras'",
+                    selectInput(inputId = "sel.cat.var", label = "Seleccionar Variable:", choices =  "")
+                  )
                 ),
                 conditionalPanel(
-                  condition = "input.principal == 'agrupacion'"
-                ),
-                conditionalPanel(
-                  condition = "input.principal == 'kmedias'"
+                  condition = "input.principal == 'kmedias'",
+                  selectInput(inputId = "cant.kmeans.cluster", label = "Cantidad de Clusters:", choices =  c(2:10)),
+                  conditionalPanel(
+                    condition = "input.tabkmedias== 'Horizontal'",
+                    selectInput(inputId = "sel.kmeans.cluster", label = "Seleccionar Cluster:", choices =  "")),
+                  conditionalPanel(
+                    condition = "input.tabkmedias == 'Vertical'",
+                    selectInput(inputId = "sel.kmeans.verticales", label = "Seleccionar Variable:", choices =  "")),
+                  conditionalPanel(
+                    condition = "input.tabkmedias == 'Barras'",
+                    selectInput(inputId = "sel.kcat.var", label = "Seleccionar Variable:", choices =  "")
+                  )
                 )
     )
   ),
@@ -85,15 +121,14 @@ shinyUI(dashboardPage(
                                  accept = c('text/csv', 'text/comma-separated-values, text/plain', '.csv'), buttonLabel = "Subir",
                                  placeholder = ""),
                        hr(),
-                       #shinyFilesButton('file', 'File select', 'Please select a file', FALSE),
-                       aceEditor("fieldCodeData", mode = "r", theme = "textmate", value = "", height = "15vh", readOnly = T)
+                       aceEditor("fieldCodeData", mode = "r", theme = "monokai", value = "", height = "15vh", readOnly = T)
                      ),
                      tabPanel(title = "Transformar", width = 12, solidHeader = FALSE, collapsible = FALSE, collapsed = FALSE,
                        selectizeInput("trans.var", "Seleccionar variables", multiple = T, choices = c(""), width = "100%"),
                        selectInput(inputId = "tipo.var", label = "Nuevo Tipo:", choices =  c("Numérico", "Categorico"), width = "100%"),
                        actionButton("transButton", "Transformar", width = "100%"),
                        hr(),
-                       aceEditor("fieldCodeTrans", mode = "r", theme = "textmate", value = "", height = "20vh",  readOnly = T)
+                       aceEditor("fieldCodeTrans", mode = "r", theme = "monokai", value = "", height = "20vh",  readOnly = T)
                      )
               )),
               column(width = 8,
@@ -107,7 +142,7 @@ shinyUI(dashboardPage(
               column(width = 7,
                      box(title = "Resumen Numérico", status = "primary",
                          width = 12, solidHeader = TRUE, collapsible = TRUE, shiny::dataTableOutput("resumen.completo"),
-                         aceEditor("fieldCodeResum", mode = "r", theme = "textmate", value = "", height = "8vh", autoComplete = "enabled")
+                         aceEditor("fieldCodeResum", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
                      )
               ),
               column(width = 5,
@@ -123,13 +158,10 @@ shinyUI(dashboardPage(
       tabItem(tabName = "dispersion",
               column(width = 4, 
                      dropdownButton(h4("Opciones"),
-                                    selectizeInput("select.var", "Seleccionar variables", 
-                                                   multiple = T, choices = c(""), options = list(maxItems = 3)),
                                     circle = F, status = "danger", icon = icon("gear"), width = "100%",
-                                    tooltip = tooltipOptions(title = "Clic para ver opciones")
-                     )),
+                                    tooltip = tooltipOptions(title = "Clic para ver opciones"))),
               plotOutput('plot.disp', height = "82vh"),
-              aceEditor("fieldCodeDisp", mode = "r", theme = "textmate", value = "", height = "8vh", autoComplete = "enabled")
+              aceEditor("fieldCodeDisp", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
       ),
       
       #Correlaciones
@@ -147,17 +179,31 @@ shinyUI(dashboardPage(
               plotOutput('plot.cor', height = "80vh"),
               fluidRow(
                 column(width = 4, 
-                       aceEditor("fieldModelCor", mode = "r", theme = "textmate", value = "", height = "6vh", autoComplete = "enabled")),
+                       aceEditor("fieldModelCor", mode = "r", theme = "monokai", value = "", height = "6vh", autoComplete = "enabled")),
                 column(width = 8, 
-                       aceEditor("fieldCodeCor", mode = "r", theme = "textmate", value = "", height = "6vh", autoComplete = "enabled")))
+                       aceEditor("fieldCodeCor", mode = "r", theme = "monokai", value = "", height = "6vh", autoComplete = "enabled")))
       ),
       
       #PCA
       tabItem(tabName = "acp",
               column(width = 12,
                      tabBox(id = "tabPCA", title = dropdownButton(h4("Opciones"),
-                                                                  sliderInput("ind.cos", "Coseno de los Individuos: ", min = 0, max = 100, value = 0),
-                                                                  sliderInput("var.cos", "Coseno de las Variables: ", min = 0, max = 100, value = 0),
+                                                                  conditionalPanel(
+                                                                    condition = "input.tabPCA == 'individuos' || input.tabPCA == 'sobreposicion'",
+                                                                    colourpicker::colourInput("col.pca.ind", "Seleccionar Color (Individuos):", 
+                                                                                              value = "#696969", allowTransparent = T)),
+                                                                  conditionalPanel(
+                                                                    condition = "input.tabPCA == 'variables' || input.tabPCA == 'sobreposicion'",
+                                                                    colourpicker::colourInput("col.pca.var", "Seleccionar Color (Variables):", 
+                                                                                              value = "steelblue", allowTransparent = T)),
+                                                                  conditionalPanel(
+                                                                    condition = "input.tabPCA == 'individuos' || input.tabPCA == 'sobreposicion'",
+                                                                    sliderInput("ind.cos", "Coseno de los Individuos: ", min = 0, max = 100, value = 0)
+                                                                  ),
+                                                                  conditionalPanel(
+                                                                    condition = "input.tabPCA == 'variables' || input.tabPCA == 'sobreposicion'",
+                                                                    sliderInput("var.cos", "Coseno de las Variables: ", min = 0, max = 100, value = 0)
+                                                                  ),
                                                                   circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                                                   tooltip = tooltipOptions(title = "Clic para ver opciones")), width = NULL,
                             tabPanel(title = 'Individuos', value = "individuos", plotOutput('plot.ind', height = "76vh")),
@@ -165,19 +211,19 @@ shinyUI(dashboardPage(
                             tabPanel(title = 'Sobreposición', value = "sobreposicion", plotOutput('plot.biplot', height = "76vh"))
                      ),
                      column(width = 5, 
-                            aceEditor("fieldCodePCAModelo", mode = "r", theme = "textmate", value = "", height = "5vh", readOnly = T, autoComplete = "enabled")),
+                            aceEditor("fieldCodePCAModelo", mode = "r", theme = "monokai", value = "", height = "5vh", readOnly = T, autoComplete = "enabled")),
                      column(width = 7, 
                             conditionalPanel(
                               condition = "input.tabPCA == 'individuos'",
-                              aceEditor("fieldCodeInd", mode = "r", theme = "textmate", value = "", height = "5vh", autoComplete = "enabled")
+                              aceEditor("fieldCodeInd", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")
                             ),
                             conditionalPanel(
                               condition = "input.tabPCA == 'variables'",
-                              aceEditor("fieldCodeVar", mode = "r", theme = "textmate", value = "", height = "5vh", autoComplete = "enabled")
+                              aceEditor("fieldCodeVar", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")
                             ),
                             conditionalPanel(
                               condition = "input.tabPCA == 'sobreposicion'",
-                              aceEditor("fieldCodeBi", mode = "r", theme = "textmate", value = "", height = "5vh", autoComplete = "enabled")
+                              aceEditor("fieldCodeBi", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")
                             )
                      )
               )
@@ -187,32 +233,28 @@ shinyUI(dashboardPage(
       tabItem(tabName = "distribucion",
               column(width = 12,
                      tabBox(id = "tabDyA", 
-                            title = dropdownButton(h4("Opciones"),
-                                                   conditionalPanel(
-                                                     condition = "input.tabDyA == 'numericas'",
-                                                     selectInput(inputId = "sel.distribucion.num", label = "Seleccionar Variable", choices =  "", selectize = T)
-                                                   ),
-                                                   conditionalPanel(
-                                                     condition = "input.tabDyA == 'categoricas'",
-                                                     selectInput(inputId = "sel.distribucion.cat", label = "Seleccionar Variable", choices =  "", selectize = T)
-                                                   ), circle = F, status = "danger", icon = icon("gear"), width = "100%", right = T,
-                                                   tooltip = tooltipOptions(title = "Clic para ver opciones")),
-                            width = 12,
-                            tabPanel(title = 'Numéricas', value = "numericas", 
-                                     plotOutput('plot.num', height = "71vh"),
-                                     fluidRow(
+                            title = fluidRow(
+                              column(width = 6, 
+                                     dropdownButton(h4("Codigo"),
+                                                    h5("Grafico de la Distribución (Numéricas)"),
+                                                    aceEditor("fieldFuncNum", mode = "r", theme = "monokai", value = "", height = "20vh", autoComplete = "enabled"),
+                                                    h5("Grafico de la Distribución (Categoricas)"),
+                                                    aceEditor("fieldFuncCat", mode = "r", theme = "monokai", value = "", height = "20vh", autoComplete = "enabled"),
+                                                    circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
+                                                    tooltip = tooltipOptions(title = "Clic para ver el codigo"))),
+                              column(width = 5, 
+                                     dropdownButton(h4("Opciones"),
+                                                    colourpicker::colourInput("col.dist", "Seleccionar Color:", value = "#0D00FFAA", allowTransparent = T),
+                                                    circle = F, status = "danger", icon = icon("gear"), width = "100%", right = T,
+                                                   tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
+                            tabPanel(title = 'Numéricas', value = "numericas", plotOutput('plot.num', height = "65vh"),
+                                     fluidRow(column(width = 6,
+                                              aceEditor("fieldCodeNum", mode = "r", theme = "monokai", value = "", height = "15vh", autoComplete = "enabled")),
                                        column(width = 6,
-                                              aceEditor("fieldCodeNum", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")),
-                                       column(width = 6, 
-                                              aceEditor("fieldFuncNum", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")))
+                                              DT::dataTableOutput("mostrar.atipicos")))
                             ),
-                            tabPanel(title = 'Categoricas', value = "categoricas", 
-                                     plotOutput('plot.cat', height = "71vh"),
-                                     fluidRow(
-                                       column(width = 6,
-                                              aceEditor("fieldCodeCat", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")),
-                                       column(width = 6, 
-                                              aceEditor("fieldFuncCat", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")))
+                            tabPanel(title = 'Categoricas', value = "categoricas", plotOutput('plot.cat', height = "76vh"),
+                                     aceEditor("fieldCodeCat", mode = "r", theme = "monokai", value = "", height = "6vh", autoComplete = "enabled")
                             )
                      )
               )
@@ -221,67 +263,65 @@ shinyUI(dashboardPage(
       #Agrupaciones
       tabItem(tabName = "agrupacion",
               column(width = 12,
-                     #aceEditor("fieldCodeModelo", mode = "r", theme = "textmate", value = "", height = "3vh", readOnly = T, autoComplete = "enabled"),
                      tabBox(id = "tabjerar", title = 
                               fluidRow(
                                 column(width = 6, 
                                        dropdownButton(h4("Codigo"),
                                             h5("Calculo de los centros"),
-                                            aceEditor("fieldCodeCentr", mode = "r", theme = "textmate", value = "", height = "25vh", autoComplete = "enabled"),
+                                            aceEditor("fieldCodeCentr", mode = "r", theme = "monokai", value = "", height = "25vh", autoComplete = "enabled"),
                                             conditionalPanel(
                                               condition = "input.tabjerar == 'Horizontal'",
                                               h5("Grafica todas las variables en Horizontal"),
-                                              aceEditor("fieldFuncHoriz", mode = "r", theme = "textmate", value = "", height = "20vh", autoComplete = "enabled")),
+                                              aceEditor("fieldFuncHoriz", mode = "r", theme = "monokai", value = "", height = "20vh", autoComplete = "enabled")),
                                             conditionalPanel(
                                               condition = "input.tabjerar == 'Vertical'",
                                               h5("Grafica todas las variables en Vertical"),
-                                              aceEditor("fieldFuncVert", mode = "r", theme = "textmate", value = "", height = "18vh", autoComplete = "enabled")),
+                                              aceEditor("fieldFuncVert", mode = "r", theme = "monokai", value = "", height = "18vh", autoComplete = "enabled")),
                                             conditionalPanel(
                                               condition = "input.tabjerar == 'Radar'",
                                               h5("Grafica todas las variables en Radar"),
-                                              aceEditor("fieldFuncRadar", mode = "r", theme = "textmate", value = "", height = "30vh", autoComplete = "enabled")),
+                                              aceEditor("fieldFuncRadar", mode = "r", theme = "monokai", value = "", height = "30vh", autoComplete = "enabled")),
                                             circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
                                             tooltip = tooltipOptions(title = "Clic para ver el codigo"))),
                                 
                                 column(width = 5, dropdownButton(h4("Opciones"),
-                                             selectInput(inputId = "cant.cluster", label = "Cantidad de Clusters:", choices =  c(2:10)),
-                                             conditionalPanel(
-                                               condition = "input.tabjerar == 'Horizontal'",
-                                               selectInput(inputId = "sel.cluster", label = "Seleccionar Cluster:", choices =  "")),
-                                             conditionalPanel(
-                                               condition = "input.tabjerar == 'Vertical'",
-                                               selectInput(inputId = "sel.verticales", label = "Seleccionar Variable:", choices =  "")),
-                                             conditionalPanel(
-                                               condition = "input.tabjerar == 'Barras'",
-                                               selectInput(inputId = "sel.cat.var", label = "Seleccionar Variable:", choices =  "")
-                                             ), circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
+                                             circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                              tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
-                            tabPanel(title = 'Diagrama', plotOutput('plot.diag', height = "71vh"), 
-                                     aceEditor("fieldCodeDiag", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")),
-                            tabPanel(title = 'Mapa', plotOutput('plot.mapa', height = "71vh"),
-                                     aceEditor("fieldCodeMapa", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")),
-                            tabPanel(title = 'Horizontal', 
-                                     plotOutput('plot.horiz', height = "71vh"),
-                                     fluidRow(column(width = 12,
-                                                     aceEditor("fieldCodeHoriz", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")))
-                            ),
-                            tabPanel(title = 'Vertical', 
-                                     plotOutput('plot.vert', height = "71vh"),
-                                     fluidRow(column(width = 12,
-                                                     aceEditor("fieldCodeVert", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")))
-                            ),
-                            tabPanel(title = 'Radar', plotOutput('plot.radar', height = "75vh"),
-                                     fluidRow(column(width = 12,
-                                                     aceEditor("fieldCodeRadar", mode = "r", theme = "textmate", value = "", height = "6vh", autoComplete = "enabled")))
-                            ),
-                            tabPanel(title = 'Barras', plotOutput('plot.bar.cat', height = "71vh"),
-                                     fluidRow(column(width = 12,
-                                                     aceEditor("fieldCodeBarras", mode = "r", theme = "textmate", value = "", height = "6vh", autoComplete = "enabled")))
-                            )
-                     )
+                            tabPanel(title = 'Diagrama', plotOutput('plot.diag', height = "71vh")),
+                            tabPanel(title = 'Mapa', plotOutput('plot.mapa', height = "71vh")),
+                            tabPanel(title = 'Horizontal', plotOutput('plot.horiz', height = "71vh")),
+                            tabPanel(title = 'Vertical', plotOutput('plot.vert', height = "71vh")),
+                            tabPanel(title = 'Radar', plotOutput('plot.radar', height = "71vh")),
+                            tabPanel(title = 'Barras', plotOutput('plot.bar.cat', height = "71vh"))
+                     ), 
+                     fluidRow(
+                       column(width = 6, 
+                              aceEditor("fieldCodeModelo", mode = "r", theme = "monokai", value = "", height = "11vh", readOnly = T, autoComplete = "enabled")
+                       ),
+                       column(width = 6, 
+                              conditionalPanel(
+                                condition = "input.tabjerar == 'Diagrama'",
+                                aceEditor("fieldCodeDiag", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                              conditionalPanel(
+                                condition = "input.tabjerar == 'Mapa'",
+                                aceEditor("fieldCodeMapa", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                              conditionalPanel(
+                                condition = "input.tabjerar == 'Horizontal'",
+                                aceEditor("fieldCodeHoriz", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                              conditionalPanel(
+                                condition = "input.tabjerar == 'Vertical'",
+                                aceEditor("fieldCodeVert", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                              conditionalPanel(
+                                condition = "input.tabjerar == 'Radar'",
+                                aceEditor("fieldCodeRadar", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                              conditionalPanel(
+                                condition = "input.tabjerar == 'Barras'",
+                                aceEditor("fieldCodeBarras", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled"))
+                       ))
               )
       ),
       
+      #K-means
       tabItem(tabName = "kmedias",
               column(width = 12,
                      tabBox(id = "tabkmedias", title = 
@@ -291,38 +331,28 @@ shinyUI(dashboardPage(
                                                       conditionalPanel(
                                                         condition = "input.tabkmedias == 'codoJambu'",
                                                         h5("Calculo del Codo de Jambu"),
-                                                        aceEditor("fieldFuncJambu", mode = "r", theme = "textmate", value = "", height = "40vh", autoComplete = "enabled")),
+                                                        aceEditor("fieldFuncJambu", mode = "r", theme = "monokai", value = "", height = "40vh", autoComplete = "enabled")),
                                                       conditionalPanel(
                                                         condition = "input.tabkmedias == 'Horizontal'",
                                                         h5("Grafica todas las variables en Horizontal"),
-                                                        aceEditor("fieldFuncKhoriz", mode = "r", theme = "textmate", value = "", height = "25vh", autoComplete = "enabled")),
+                                                        aceEditor("fieldFuncKhoriz", mode = "r", theme = "monokai", value = "", height = "25vh", autoComplete = "enabled")),
                                                       conditionalPanel(
                                                         condition = "input.tabkmedias == 'Vertical'",
                                                         h5("Grafica todas las variables en Vertical"),
-                                                        aceEditor("fieldFuncKvert", mode = "r", theme = "textmate", value = "", height = "25vh", autoComplete = "enabled")),
+                                                        aceEditor("fieldFuncKvert", mode = "r", theme = "monokai", value = "", height = "25vh", autoComplete = "enabled")),
                                                       conditionalPanel(
                                                         condition = "input.tabkmedias == 'Radar'",
                                                         h5("Grafica todas las variables en Radar"),
-                                                        aceEditor("fieldFuncKradar", mode = "r", theme = "textmate", value = "", height = "40vh", autoComplete = "enabled")),
+                                                        aceEditor("fieldFuncKradar", mode = "r", theme = "monokai", value = "", height = "40vh", autoComplete = "enabled")),
                                                       circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
                                                       tooltip = tooltipOptions(title = "Clic para ver el codigo"))),
                                 
                                 column(width = 5, dropdownButton(h4("Opciones"),
-                                                      selectInput(inputId = "cant.kmeans.cluster", label = "Cantidad de Clusters:", choices =  c(2:10)),
-                                                      conditionalPanel(
-                                                        condition = "input.tabkmedias== 'Horizontal'",
-                                                        selectInput(inputId = "sel.kmeans.cluster", label = "Seleccionar Cluster:", choices =  "")),
-                                                      conditionalPanel(
-                                                        condition = "input.tabkmedias == 'Vertical'",
-                                                        selectInput(inputId = "sel.kmeans.verticales", label = "Seleccionar Variable:", choices =  "")),
-                                                      conditionalPanel(
-                                                        condition = "input.tabkmedias == 'Barras'",
-                                                        selectInput(inputId = "sel.kcat.var", label = "Seleccionar Variable:", choices =  "")
-                                                      ), circle = F, status = "danger", icon = icon("gear"), width = "100%", right = T,
+                                                      circle = F, status = "danger", icon = icon("gear"), width = "100%", right = T,
                                                       tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
                             
                             tabPanel(title = 'Inercia', fluidRow(uiOutput('resumen.kmedias'))),
-                            tabPanel(title = 'Codo Jambu', value = "codoJambu", plotOutput('plot.jambu', height = "70vh")),
+                            tabPanel(title = 'Codo Jambu', value = "codoJambu", plotOutput('plot.jambu', height = "71vh")),
                             tabPanel(title = 'Mapa', plotOutput('plot.kmapa', height = "71vh")),
                             tabPanel(title = 'Horizontal', plotOutput('plot.khoriz', height = "71vh")),
                             tabPanel(title = 'Vertical', plotOutput('plot.kvert', height = "71vh")),
@@ -331,40 +361,40 @@ shinyUI(dashboardPage(
                      ), 
                      fluidRow(
                        column(width = 6, 
-                              aceEditor("fieldCodeKModelo", mode = "r", theme = "textmate", value = "", height = "11vh", readOnly = T, autoComplete = "enabled")),
+                              aceEditor("fieldCodeKModelo", mode = "r", theme = "monokai", value = "", height = "11vh", readOnly = T, autoComplete = "enabled")),
                        column(width = 6, 
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'codoJambu'",
-                                aceEditor("fieldCodeJambu", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")),
+                                aceEditor("fieldCodeJambu", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'Mapa'",
-                                aceEditor("fieldCodeKmapa", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")),
+                                aceEditor("fieldCodeKmapa", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'Horizontal'",
-                                aceEditor("fieldCodeKhoriz", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")),
+                                aceEditor("fieldCodeKhoriz", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'Vertical'",
-                                aceEditor("fieldCodeKvert", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")),
+                                aceEditor("fieldCodeKvert", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'Radar'",
-                                aceEditor("fieldCodeKradar", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled")),
+                                aceEditor("fieldCodeKradar", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'Barras'",
-                                aceEditor("fieldCodeKbarras", mode = "r", theme = "textmate", value = "", height = "11vh", autoComplete = "enabled"))
+                                aceEditor("fieldCodeKbarras", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled"))
                      ))
               )
       ),
       
       #Generar Reporte
       tabItem(tabName = "reporte", 
-              column(width = 5, box(width = 12, title = "Generar Reporte"), 
-                     aceEditor("fieldCodeReport", mode="markdown", value=''), 
-                     actionButton("eval", "Actualizar"), 
-                     downloadButton("descargar", "Descargar")),
+              column(width = 5, 
+                     tabBox(width = 12, id = "tabReporte", 
+                            tabPanel(title = "Reporte", width = 12), 
+                            tabPanel(title = "Codigo", width = 12, aceEditor("fieldCodeReport", mode="markdown", value=''))), 
+                     downloadButton("descargar", "Descargar", style = "position: relative; left: 40%")),
               column(width = 7, 
                      box(title = "Vista Previa", width = 12, height = "90vh", status = "primary", solidHeader = TRUE,
-                         collapsible = TRUE, div(style = 'overflow-x: scroll;overflow-y: scroll;height: 80vh;', htmlOutput("knitDoc")))))
-      
+                         collapsible = TRUE, div(style = 'overflow-x: scroll; overflow-y: scroll; height: 80vh;', htmlOutput("knitDoc")))))
     ) #tabItems
   ) #dashboardBody
 )) #UI
