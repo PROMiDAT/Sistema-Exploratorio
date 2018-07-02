@@ -26,6 +26,28 @@ library(dendextend)
 library(scatterplot3d)
 library(stringr)
 
+codigo.color <- '<div class="colourpicker-input-container">
+	<input id="col.pca.ind" class="form-control shiny-colour-input colourpicker-input shiny-bound-input" data-init-value="#696969" 
+         data-show-colour="both" data-palette="square" data-allow-alpha="true" spellcheck="false" 
+         size="7" style="color: rgb(221, 221, 221); background-color: rgb(105, 105, 105);" type="text">
+  <div class="colourpicker-panel" style="display: none;">
+      <div class="colourpicker-slider colourpicker-sprite">
+          <div class="colourpicker-slider-picker" style="top: 150px;"></div>
+      </div>
+      <div class="colourpicker-alpha-slider">
+         <div class="colourpicker-alpha-inner-slider" 
+            style="background: rgba(0, 0, 0, 0) linear-gradient(rgb(105, 105, 105) 0px, rgba(105, 105, 105, 0) 100%) repeat scroll 0% 0%;"></div>
+         <div class="colourpicker-slider-picker" style="top: 0px;"></div>
+      </div>
+      <div class="colourpicker-grid">
+          <div class="colourpicker-grid-inner colourpicker-sprite" style="background-color: rgb(255, 0, 0);">
+              <div class="colourpicker-grid-inner-2"></div>
+          </div>
+          <div class="colourpicker-picker" style="top: 88px; left: 0px;"></div>
+      </div>
+  </div>
+</div>'
+
 # Define UI for application that draws a histogram
 shinyUI(dashboardPage( 
   dashboardHeader(title = tags$a(href="http://promidat.com", 
@@ -72,7 +94,7 @@ shinyUI(dashboardPage(
                 ),
                 conditionalPanel(
                   condition = "input.principal == 'agrupacion'",
-                  selectInput(inputId = "cant.cluster", label = "Cantidad de Clusters:", choices =  c(2:10)),
+                  sliderInput(inputId = "cant.cluster", label = "Cantidad de Clusters:", min = 2, max = 10, value = 2),
                   conditionalPanel(
                     condition = "input.tabjerar == 'Horizontal'",
                     selectInput(inputId = "sel.cluster", label = "Seleccionar Cluster:", choices =  "")),
@@ -86,7 +108,7 @@ shinyUI(dashboardPage(
                 ),
                 conditionalPanel(
                   condition = "input.principal == 'kmedias'",
-                  selectInput(inputId = "cant.kmeans.cluster", label = "Cantidad de Clusters:", choices =  c(2:10)),
+                  sliderInput(inputId = "cant.kmeans.cluster", label = "Cantidad de Clusters:", min = 2, max = 10, value = 2),
                   conditionalPanel(
                     condition = "input.tabkmedias== 'Horizontal'",
                     selectInput(inputId = "sel.kmeans.cluster", label = "Seleccionar Cluster:", choices =  "")),
@@ -98,6 +120,13 @@ shinyUI(dashboardPage(
                     selectInput(inputId = "sel.kcat.var", label = "Seleccionar Variable:", choices =  "")
                   )
                 )
+                #tags$div(style = (""),
+                #tags$div(style = ("float:left; width: 40px; padding-left:5px;"), HTML(codigo.color)),
+                #tags$div(style = ("float:left; width: 40px; padding-left:5px;"), HTML(codigo.color)),
+                #tags$div(style = ("float:left; width: 40px; padding-left:5px;"), HTML(codigo.color)),
+                #tags$div(style = ("float:left; width: 40px; padding-left:5px;"), HTML(codigo.color)),
+                #tags$div(style = ("float:left; width: 40px; padding-left:5px;"), HTML(codigo.color))
+                #)
     )
   ),
   
@@ -172,6 +201,7 @@ shinyUI(dashboardPage(
                          h4("Opciones"),
                          selectInput(inputId = "cor.metodo", label = "Seleccionar Método", 
                                      choices =  c("circle", "square", "ellipse", "number", "shade", "color", "pie")),
+                         selectInput(inputId = "cor.tipo", label = "Seleccionar Tipo", choices =  c("lower", "upper", "full")),
                          circle = F, status = "danger", icon = icon("gear"), width = "300px",
                          tooltip = tooltipOptions(title = "Clic para ver opciones")
               ))),
@@ -187,44 +217,44 @@ shinyUI(dashboardPage(
       #PCA
       tabItem(tabName = "acp",
               column(width = 12,
-                     tabBox(id = "tabPCA", title = dropdownButton(h4("Opciones"),
-                                                                  conditionalPanel(
-                                                                    condition = "input.tabPCA == 'individuos' || input.tabPCA == 'sobreposicion'",
-                                                                    colourpicker::colourInput("col.pca.ind", "Seleccionar Color (Individuos):", 
-                                                                                              value = "#696969", allowTransparent = T)),
-                                                                  conditionalPanel(
-                                                                    condition = "input.tabPCA == 'variables' || input.tabPCA == 'sobreposicion'",
-                                                                    colourpicker::colourInput("col.pca.var", "Seleccionar Color (Variables):", 
-                                                                                              value = "steelblue", allowTransparent = T)),
-                                                                  conditionalPanel(
-                                                                    condition = "input.tabPCA == 'individuos' || input.tabPCA == 'sobreposicion'",
-                                                                    sliderInput("ind.cos", "Coseno de los Individuos: ", min = 0, max = 100, value = 0)
-                                                                  ),
-                                                                  conditionalPanel(
-                                                                    condition = "input.tabPCA == 'variables' || input.tabPCA == 'sobreposicion'",
-                                                                    sliderInput("var.cos", "Coseno de las Variables: ", min = 0, max = 100, value = 0)
-                                                                  ),
-                                                                  circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
-                                                                  tooltip = tooltipOptions(title = "Clic para ver opciones")), width = NULL,
+                     tabBox(id = "tabPCA", title = 
+                              dropdownButton(h4("Opciones"),
+                                             switchInput(inputId = "switch.scale", onStatus = "success", offStatus = "danger", value = T,
+                                                         label = "Centrar y Reducir", onLabel = "SI", offLabel = "NO", labelWidth = "100%"),
+                                             sliderInput("slider.npc", "Número de Dimensiones: ", min = 2, max = 10, value = 5),
+                                             conditionalPanel(condition = "input.tabPCA == 'individuos' || input.tabPCA == 'sobreposicion'",
+                                               colourpicker::colourInput("col.pca.ind", "Seleccionar Color (Individuos):",
+                                                                         value = "#696969", allowTransparent = T)
+                                             ),
+                                             conditionalPanel(condition = "input.tabPCA == 'variables' || input.tabPCA == 'sobreposicion'",
+                                               colourpicker::colourInput("col.pca.var", "Seleccionar Color (Variables):",
+                                                                         value = "steelblue", allowTransparent = T)
+                                             ),
+                                             conditionalPanel(condition = "input.tabPCA == 'individuos' || input.tabPCA == 'sobreposicion'",
+                                               sliderInput("ind.cos", "Coseno de los Individuos: ", min = 0, max = 100, value = 0)
+                                             ),
+                                             conditionalPanel(condition = "input.tabPCA == 'variables' || input.tabPCA == 'sobreposicion'",
+                                               sliderInput("var.cos", "Coseno de las Variables: ", min = 0, max = 100, value = 0)
+                                             ),
+                                             circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
+                                             tooltip = tooltipOptions(title = "Clic para ver opciones")), width = NULL,
                             tabPanel(title = 'Individuos', value = "individuos", plotOutput('plot.ind', height = "76vh")),
                             tabPanel(title = 'Variables', value = "variables", plotOutput('plot.var', height = "76vh")),
                             tabPanel(title = 'Sobreposición', value = "sobreposicion", plotOutput('plot.biplot', height = "76vh"))
                      ),
                      column(width = 5, 
-                            aceEditor("fieldCodePCAModelo", mode = "r", theme = "monokai", value = "", height = "5vh", readOnly = T, autoComplete = "enabled")),
+                            aceEditor("fieldCodePCAModelo", mode = "r", theme = "monokai", value = "", 
+                                      height = "5vh", readOnly = T, autoComplete = "enabled")),
                      column(width = 7, 
                             conditionalPanel(
                               condition = "input.tabPCA == 'individuos'",
-                              aceEditor("fieldCodeInd", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")
-                            ),
+                              aceEditor("fieldCodeInd", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")),
                             conditionalPanel(
                               condition = "input.tabPCA == 'variables'",
-                              aceEditor("fieldCodeVar", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")
-                            ),
+                              aceEditor("fieldCodeVar", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")),
                             conditionalPanel(
                               condition = "input.tabPCA == 'sobreposicion'",
-                              aceEditor("fieldCodeBi", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")
-                            )
+                              aceEditor("fieldCodeBi", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled"))
                      )
               )
       ),
@@ -237,19 +267,23 @@ shinyUI(dashboardPage(
                               column(width = 6, 
                                      dropdownButton(h4("Codigo"),
                                                     h5("Grafico de la Distribución (Numéricas)"),
-                                                    aceEditor("fieldFuncNum", mode = "r", theme = "monokai", value = "", height = "20vh", autoComplete = "enabled"),
+                                                    aceEditor("fieldFuncNum", mode = "r", theme = "monokai", value = "",
+                                                              height = "20vh", autoComplete = "enabled"),
                                                     h5("Grafico de la Distribución (Categoricas)"),
-                                                    aceEditor("fieldFuncCat", mode = "r", theme = "monokai", value = "", height = "20vh", autoComplete = "enabled"),
+                                                    aceEditor("fieldFuncCat", mode = "r", theme = "monokai", value = "", 
+                                                              height = "20vh", autoComplete = "enabled"),
                                                     circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
                                                     tooltip = tooltipOptions(title = "Clic para ver el codigo"))),
                               column(width = 5, 
                                      dropdownButton(h4("Opciones"),
-                                                    colourpicker::colourInput("col.dist", "Seleccionar Color:", value = "#0D00FFAA", allowTransparent = T),
+                                                    colourpicker::colourInput("col.dist", "Seleccionar Color:", 
+                                                                              value = "#0D00FFAA", allowTransparent = T),
                                                     circle = F, status = "danger", icon = icon("gear"), width = "100%", right = T,
                                                    tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
                             tabPanel(title = 'Numéricas', value = "numericas", plotOutput('plot.num', height = "65vh"),
                                      fluidRow(column(width = 6,
-                                              aceEditor("fieldCodeNum", mode = "r", theme = "monokai", value = "", height = "15vh", autoComplete = "enabled")),
+                                              aceEditor("fieldCodeNum", mode = "r", theme = "monokai", 
+                                                        value = "", height = "15vh", autoComplete = "enabled")),
                                        column(width = 6,
                                               DT::dataTableOutput("mostrar.atipicos")))
                             ),
@@ -268,25 +302,34 @@ shinyUI(dashboardPage(
                                 column(width = 6, 
                                        dropdownButton(h4("Codigo"),
                                             h5("Calculo de los centros"),
-                                            aceEditor("fieldCodeCentr", mode = "r", theme = "monokai", value = "", height = "25vh", autoComplete = "enabled"),
+                                            aceEditor("fieldCodeCentr", mode = "r", theme = "monokai", 
+                                                      value = "", height = "25vh", autoComplete = "enabled"),
                                             conditionalPanel(
                                               condition = "input.tabjerar == 'Horizontal'",
                                               h5("Grafica todas las variables en Horizontal"),
-                                              aceEditor("fieldFuncHoriz", mode = "r", theme = "monokai", value = "", height = "20vh", autoComplete = "enabled")),
+                                              aceEditor("fieldFuncHoriz", mode = "r", theme = "monokai", 
+                                                        value = "", height = "20vh", autoComplete = "enabled")),
                                             conditionalPanel(
                                               condition = "input.tabjerar == 'Vertical'",
                                               h5("Grafica todas las variables en Vertical"),
-                                              aceEditor("fieldFuncVert", mode = "r", theme = "monokai", value = "", height = "18vh", autoComplete = "enabled")),
+                                              aceEditor("fieldFuncVert", mode = "r", theme = "monokai", 
+                                                        value = "", height = "18vh", autoComplete = "enabled")),
                                             conditionalPanel(
                                               condition = "input.tabjerar == 'Radar'",
                                               h5("Grafica todas las variables en Radar"),
-                                              aceEditor("fieldFuncRadar", mode = "r", theme = "monokai", value = "", height = "30vh", autoComplete = "enabled")),
+                                              aceEditor("fieldFuncRadar", mode = "r", theme = "monokai", 
+                                                        value = "", height = "30vh", autoComplete = "enabled")),
                                             circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
                                             tooltip = tooltipOptions(title = "Clic para ver el codigo"))),
                                 
-                                column(width = 5, dropdownButton(h4("Opciones"),
-                                             circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
-                                             tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
+                                column(width = 5, 
+                                       dropdownButton(h4("Opciones"),
+                                            selectInput(inputId = "sel.hc.method", label = "Método Jerarquico", selectize = T, 
+                                                        choices =  c("ward.D2", "single", "complete", "average")),
+                                            selectInput(inputId = "sel.dist.method", label = "Método para la Distancia", selectize = T, 
+                                                        choices =  c("euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski")), 
+                                            circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
+                                            tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
                             tabPanel(title = 'Diagrama', plotOutput('plot.diag', height = "71vh")),
                             tabPanel(title = 'Mapa', plotOutput('plot.mapa', height = "71vh")),
                             tabPanel(title = 'Horizontal', plotOutput('plot.horiz', height = "71vh")),
@@ -296,7 +339,8 @@ shinyUI(dashboardPage(
                      ), 
                      fluidRow(
                        column(width = 6, 
-                              aceEditor("fieldCodeModelo", mode = "r", theme = "monokai", value = "", height = "11vh", readOnly = T, autoComplete = "enabled")
+                              aceEditor("fieldCodeModelo", mode = "r", theme = "monokai", 
+                                        value = "", height = "11vh", readOnly = T, autoComplete = "enabled")
                        ),
                        column(width = 6, 
                               conditionalPanel(
@@ -331,24 +375,32 @@ shinyUI(dashboardPage(
                                                       conditionalPanel(
                                                         condition = "input.tabkmedias == 'codoJambu'",
                                                         h5("Calculo del Codo de Jambu"),
-                                                        aceEditor("fieldFuncJambu", mode = "r", theme = "monokai", value = "", height = "40vh", autoComplete = "enabled")),
+                                                        aceEditor("fieldFuncJambu", mode = "r", theme = "monokai", 
+                                                                  value = "", height = "40vh", autoComplete = "enabled")),
                                                       conditionalPanel(
                                                         condition = "input.tabkmedias == 'Horizontal'",
                                                         h5("Grafica todas las variables en Horizontal"),
-                                                        aceEditor("fieldFuncKhoriz", mode = "r", theme = "monokai", value = "", height = "25vh", autoComplete = "enabled")),
+                                                        aceEditor("fieldFuncKhoriz", mode = "r", theme = "monokai", 
+                                                                  value = "", height = "25vh", autoComplete = "enabled")),
                                                       conditionalPanel(
                                                         condition = "input.tabkmedias == 'Vertical'",
                                                         h5("Grafica todas las variables en Vertical"),
-                                                        aceEditor("fieldFuncKvert", mode = "r", theme = "monokai", value = "", height = "25vh", autoComplete = "enabled")),
+                                                        aceEditor("fieldFuncKvert", mode = "r", theme = "monokai", 
+                                                                  value = "", height = "25vh", autoComplete = "enabled")),
                                                       conditionalPanel(
                                                         condition = "input.tabkmedias == 'Radar'",
                                                         h5("Grafica todas las variables en Radar"),
-                                                        aceEditor("fieldFuncKradar", mode = "r", theme = "monokai", value = "", height = "40vh", autoComplete = "enabled")),
+                                                        aceEditor("fieldFuncKradar", mode = "r", theme = "monokai", 
+                                                                  value = "", height = "40vh", autoComplete = "enabled")),
                                                       circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
                                                       tooltip = tooltipOptions(title = "Clic para ver el codigo"))),
                                 
-                                column(width = 5, dropdownButton(h4("Opciones"),
-                                                      circle = F, status = "danger", icon = icon("gear"), width = "100%", right = T,
+                                column(width = 5, 
+                                       dropdownButton(h4("Opciones"), 
+                                                      sliderInput("slider.nstart", "Cantidad de Centros al azar", min = 10, max = 100, 
+                                                                  value = 100, step = 10),
+                                                      numericInput("num.iter", label = "Número de Iteraciones", step = 100, value = 100),
+                                                      circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                                       tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
                             
                             tabPanel(title = 'Inercia', fluidRow(uiOutput('resumen.kmedias'))),
@@ -361,7 +413,8 @@ shinyUI(dashboardPage(
                      ), 
                      fluidRow(
                        column(width = 6, 
-                              aceEditor("fieldCodeKModelo", mode = "r", theme = "monokai", value = "", height = "11vh", readOnly = T, autoComplete = "enabled")),
+                              aceEditor("fieldCodeKModelo", mode = "r", theme = "monokai", 
+                                        value = "", height = "11vh", readOnly = T, autoComplete = "enabled")),
                        column(width = 6, 
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'codoJambu'",

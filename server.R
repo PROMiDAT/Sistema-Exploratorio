@@ -40,16 +40,25 @@ shinyServer(function(input, output, session) {
     updateSelectInput(session, "sel.cat.var", choices = colnames(var.categoricas(datos.originales)))
     
     updateAceEditor(session, "fieldModelCor", value = modelo.cor())
-    updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model())
+    updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
     updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
     updateAceEditor(session, "fieldCodeJambu", value = def.code.jambu())
     
     tryCatch({
       isolate(eval(parse(text = default.centros())))
       isolate(eval(parse(text = modelo.cor())))
-      isolate(eval(parse(text = def.pca.model())))
+      isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
     }, error = function(e) {
       return(datos.originales <- NULL)
+    })
+  })
+  
+  observeEvent(c(input$switch.scale, input$slider.npc), {
+    tryCatch({
+      updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
+      isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
+    }, error = function(e) {
+      return(NULL)
     })
   })
   
@@ -60,14 +69,18 @@ shinyServer(function(input, output, session) {
       
       isolate(eval(parse(text = modelo.cor(data = input$sel.datos))))
       isolate(eval(parse(text = def.pca.model(data = input$sel.datos))))
-      isolate(eval(parse(text = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster))))
-      isolate(eval(parse(text = def.model(data = input$sel.datos))))
+      isolate(eval(parse(text = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster,
+                                            iter.max = input$num.iter, nstart = input$slider.nstart))))
+      isolate(eval(parse(text = def.model(data = input$sel.datos, cant = input$cant.cluster, 
+                                          dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))))
       
-      updateAceEditor(session, "fieldCodeModelo", value = def.model(data = input$sel.datos))
+      updateAceEditor(session, "fieldCodeModelo", value = def.model(data = input$sel.datos, cant = input$cant.cluster, 
+                                                                    dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))
       updateAceEditor(session, "fieldModelCor", value = modelo.cor(data = input$sel.datos))
       updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(data = input$sel.datos))
       updateAceEditor(session, "fieldCodeJambu", value = def.code.jambu(data = input$sel.datos))
-      updateAceEditor(session, "fieldCodeKModelo", value = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster))
+      updateAceEditor(session, "fieldCodeKModelo", value = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster,
+                                                                       iter.max = input$num.iter, nstart = input$slider.nstart))
     }, error = function(e) {
       print(e)
       return(NULL)
@@ -202,19 +215,19 @@ shinyServer(function(input, output, session) {
   })
   
   obj.ind <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$pca.num, input$fieldModelCor)
+    plotNo <- c(input$file1, input$transButton, input$pca.num, input$fieldModelCor, input$fieldCodePCAModelo)
     cod.pca[["individuos"]] <<- input$fieldCodeInd
     isolate(eval(parse(text = cod.pca[["individuos"]])))
   })
   
   obj.var <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$pca.num, input$fieldModelCor)
+    plotNo <- c(input$file1, input$transButton, input$pca.num, input$fieldModelCor, input$fieldCodePCAModelo)
     cod.pca[["variables"]] <<- input$fieldCodeVar
     isolate(eval(parse(text = cod.pca[["variables"]])))
   })
   
   obj.biplot <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$pca.num, input$fieldModelCor)
+    plotNo <- c(input$file1, input$transButton, input$pca.num, input$fieldModelCor, input$fieldCodePCAModelo)
     cod.pca[["sobreposicion"]] <<- input$fieldCodeBi
     isolate(eval(parse(text = cod.pca[["sobreposicion"]])))
   })
@@ -242,7 +255,7 @@ shinyServer(function(input, output, session) {
   })
   
   obj.mapa <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeMapa, input$fieldCodeModelo)
+    plotNo <- c(input$file1, input$transButton, input$fieldCodeMapa, input$fieldCodeModelo, input$fieldCodePCAModelo)
     code.mapa <<- input$fieldCodeMapa
     isolate(eval(parse(text = code.mapa)))
   })
@@ -290,7 +303,7 @@ shinyServer(function(input, output, session) {
   })
   
   obj.kmapa <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeKmapa, input$fieldCodeKModelo)
+    plotNo <- c(input$file1, input$transButton, input$fieldCodeKmapa, input$fieldCodeKModelo, input$fieldCodePCAModelo)
     code.kmapa <<- input$fieldCodeKmapa
     isolate(eval(parse(text = code.kmapa)))
   })
@@ -361,15 +374,17 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
   })
   
-  observeEvent(input$cor.metodo, {
-    cod.cor <<- correlaciones(metodo = input$cor.metodo)
+  observeEvent(c(input$cor.metodo, input$cor.tipo), {
+    cod.cor <<- correlaciones(metodo = input$cor.metodo, tipo = input$cor.tipo)
     updateAceEditor(session, "fieldCodeCor", value = cod.cor)
   })
   
-  observeEvent(c(input$file1, input$cant.cluster, input$transButton), {
+  observeEvent(c(input$file1, input$cant.cluster, input$transButton, input$sel.dist.method, input$sel.hc.method), {
     tryCatch ({
-      isolate(eval(parse(text = def.model(data = input$sel.datos, cant = input$cant.cluster))))
-      updateAceEditor(session, "fieldCodeModelo", value = def.model(data = input$sel.datos, cant = input$cant.cluster))
+      isolate(eval(parse(text = def.model(data = input$sel.datos, cant = input$cant.cluster, 
+                                          dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))))
+      updateAceEditor(session, "fieldCodeModelo", value = def.model(data = input$sel.datos, cant = input$cant.cluster, 
+                                                                    dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))
     }, error = function(e) {
       print(e)
       return(NULL)
@@ -404,10 +419,12 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldCodeBarras", value = code.cat)
   })
   
-  observeEvent(c(input$file1, input$cant.kmeans.cluster, input$transButton), {
+  observeEvent(c(input$file1, input$cant.kmeans.cluster, input$transButton, input$num.iter, input$slider.nstart), {
     tryCatch ({
-      isolate(eval(parse(text = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster))))
-      updateAceEditor(session, "fieldCodeKModelo", value = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster))
+      isolate(eval(parse(text = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster,
+                                            iter.max = input$num.iter, nstart = input$slider.nstart))))
+      updateAceEditor(session, "fieldCodeKModelo", value = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster,
+                                                                       iter.max = input$num.iter, nstart = input$slider.nstart))
     }, error = function(e) {
       return(NULL)
     })

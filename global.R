@@ -30,7 +30,8 @@ datos.disyuntivos <- function(data, vars){
 
 code.carga <- function(nombre.columnas = T, ruta = NULL, separador = ";", sep.decimal = ",", encabezado = "T"){
   if(nombre.columnas){
-    return(paste0("datos.originales <<- read.csv('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal, "', row.names = 1)"))
+    return(paste0("datos.originales <<- read.csv('", ruta, "', header=", 
+                  encabezado, ", sep='", separador, "', dec = '", sep.decimal, "', row.names = 1)"))
   } else {
     return(paste0("datos.originales <<- read.csv('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal, "')"))
   }
@@ -111,12 +112,13 @@ ggplot(data = datos.originales, aes(x = ", vars[1], ", y = ", vars[2], ", label 
        geom_point(color = color, size = 3) + geom_text(vjust = -0.7)"))
   } else{
     return(paste0("colores <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 255, maxColorValue = 255)
-scatterplot3d(datos.originales[, '", vars[1], "'], datos.originales[, '", vars[2], "'], datos.originales[, '", vars[3], "'], pch = 16, color = colores)"))
+scatterplot3d(datos.originales[, '", vars[1], "'], datos.originales[, '", 
+                  vars[2], "'], datos.originales[, '", vars[3], "'], pch = 16, color = colores)"))
   }
 }
 
-def.pca.model <- function(data = "datos.originales"){
-  return(paste0("pca.modelo <<- PCA(var.numericas(", data, "))"))
+def.pca.model <- function(data = "datos.originales", scale.unit = T, npc = 5){
+  return(paste0("pca.modelo <<- PCA(var.numericas(", data, "), scale.unit = ", scale.unit, ", ncp = ", npc, ", graph = FALSE)"))
 }
 
 def.model <- function(data = "datos.originales", cant = "as.numeric(input$cant.cluster)", dist.method = "euclidean", hc.method = "complete"){
@@ -125,7 +127,7 @@ centros <<- calc.centros(var.numericas(", data, "), hc.modelo, ", cant, ")"))
 }
 
 def.k.model <- function(data = "datos.originales", cant = "as.numeric(input$cant.kmeans.cluster)", iter.max = 200, nstart = 300){
-  return(paste0("k.modelo <<- kmeans(var.numericas(", data, "), ", cant,", iter.max = ", iter.max,", nstart = ", nstart,")"))
+  return(paste0("k.modelo <<- kmeans(var.numericas(", data, "), centers = ", cant,", iter.max = ", iter.max,", nstart = ", nstart,")"))
 }
 
 pca.individuos <- function(ind.cos = 0, color = '#696969'){
@@ -146,9 +148,9 @@ modelo.cor <- function(data = "datos.originales"){
   return(paste0("correlacion <<- cor(var.numericas(", data, "))"))
 }
 
-correlaciones <- function(metodo = 'circle'){
+correlaciones <- function(metodo = 'circle', tipo = "lower"){
   return(paste0("corrplot(correlacion, method='", metodo,"', shade.col=NA, tl.col='black', 
-                   tl.srt=45, addCoef.col='black', order='AOE')"))
+         tl.srt=20, addCoef.col='black', order='AOE', type = '", tipo, "')"))
 }
 
 def.code.num <- function(variable = "input$sel.distribucion", color = 'input$col.dist'){
