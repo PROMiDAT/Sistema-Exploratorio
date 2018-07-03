@@ -79,7 +79,8 @@ shinyUI(dashboardPage(
                 ),
                 conditionalPanel(
                   condition = "input.principal == 'dispersion'",
-                  selectizeInput("select.var", "Seleccionar variables", multiple = T, choices = c(""), options = list(maxItems = 3))
+                  selectizeInput("select.var", "Seleccionar variables", multiple = T, choices = c(""), 
+                                 options = list(maxItems = 3, placeholder = "Seleccione la(s) variable(s)"))
                 ),
                 conditionalPanel(
                   condition = "input.principal == 'distribucion'",
@@ -132,7 +133,8 @@ shinyUI(dashboardPage(
   
   dashboardBody(
     tags$head(
-      tags$link(rel = "stylesheet", type = "text/css", href = "style_promidat.css")
+      tags$link(rel = "stylesheet", type = "text/css", href = "style_promidat.css"),
+      useShinyjs()
     ),
     
     tabItems(
@@ -335,13 +337,12 @@ shinyUI(dashboardPage(
                             tabPanel(title = 'Horizontal', plotOutput('plot.horiz', height = "71vh")),
                             tabPanel(title = 'Vertical', plotOutput('plot.vert', height = "71vh")),
                             tabPanel(title = 'Radar', plotOutput('plot.radar', height = "71vh")),
-                            tabPanel(title = 'Barras', plotOutput('plot.bar.cat', height = "71vh"))
+                            tabPanel(title = 'Barras', value = "hcbarras", plotOutput('plot.bar.cat', height = "71vh"))
                      ), 
                      fluidRow(
                        column(width = 6, 
                               aceEditor("fieldCodeModelo", mode = "r", theme = "monokai", 
-                                        value = "", height = "11vh", readOnly = T, autoComplete = "enabled")
-                       ),
+                                        value = "", height = "11vh", readOnly = T, autoComplete = "enabled")),
                        column(width = 6, 
                               conditionalPanel(
                                 condition = "input.tabjerar == 'Diagrama'",
@@ -409,7 +410,7 @@ shinyUI(dashboardPage(
                             tabPanel(title = 'Horizontal', plotOutput('plot.khoriz', height = "71vh")),
                             tabPanel(title = 'Vertical', plotOutput('plot.kvert', height = "71vh")),
                             tabPanel(title = 'Radar', plotOutput('plot.kradar', height = "71vh")),
-                            tabPanel(title = 'Barras', plotOutput('plot.kcat', height = "71vh"))
+                            tabPanel(title = 'Barras', value = "kbarras", plotOutput('plot.kcat', height = "71vh"))
                      ), 
                      fluidRow(
                        column(width = 6, 

@@ -14,7 +14,7 @@ shinyServer(function(input, output, session) {
   options(shiny.maxRequestSize=200*1024^2)
   options(DT.options = list(aLengthMenu = c(10, 30, 50), iDisplayLength = 10, scrollX = TRUE))
 
-  observeEvent(c(input$file1, input$transButton), {
+  observeEvent(c(input$file1, input$transButton, input$header, input$columname, input$sep, input$dec), {
     codigo <- code.carga(nombre.columnas = input$columname, ruta = input$file1$datapath, 
                          separador = input$sep, sep.decimal = input$dec, encabezado = input$header)
     updateAceEditor(session, "fieldCodeData", value = codigo)
@@ -26,13 +26,15 @@ shinyServer(function(input, output, session) {
         isolate(eval(parse(text = codigo2)))
       }
     }, error = function(e) {
-      return(datos.originales <- NULL)
+      datos.originales <<- NULL
+      datos.modificados <<- NULL
+      return(NULL)
     })
     
     updateSelectizeInput(session, "select.var", choices = colnames(var.numericas(datos.originales)))
     updateSelectInput(session, "sel.distribucion.num", choices = colnames(var.numericas(datos.originales)))
     updateSelectInput(session, "sel.distribucion.cat", choices = colnames(var.categoricas(datos.originales)))
-    updateSelectInput(session, "sel.resumen", choices = colnames(datos.originales))
+    updateSelectInput(session, "sel.resumen", choices = colnames(eval(parse(text = input$sel.datos))))
     updateSelectInput(session, "trans.var", choices = colnames(datos.originales))
     updateSelectInput(session, "sel.verticales", choices = c("Todos", colnames(var.numericas(datos.originales))))
     updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(datos.originales))))
@@ -63,7 +65,12 @@ shinyServer(function(input, output, session) {
   })
   
   observeEvent(input$sel.datos, {
+    toggle(condition = (input$sel.datos == "datos.modificados"), selector = "#tabjerar li a[data-value=hcbarras]")
     tryCatch ({
+      updateSelectizeInput(session, "select.var", choices = colnames(var.numericas(eval(parse(text = input$sel.datos)))))
+      updateSelectInput(session, "sel.distribucion.num", choices = colnames(var.numericas(eval(parse(text = input$sel.datos)))))
+      updateSelectInput(session, "sel.distribucion.cat", choices = colnames(var.categoricas(eval(parse(text = input$sel.datos)))))
+      updateSelectInput(session, "sel.resumen", choices = colnames(eval(parse(text = input$sel.datos))))
       updateSelectInput(session, "sel.verticales", choices = c("Todos", colnames(var.numericas(eval(parse(text = input$sel.datos))))))
       updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(eval(parse(text = input$sel.datos))))))
       
@@ -74,6 +81,7 @@ shinyServer(function(input, output, session) {
       isolate(eval(parse(text = def.model(data = input$sel.datos, cant = input$cant.cluster, 
                                           dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))))
       
+      updateAceEditor(session, "fieldCodeResum", value = cod.resum(data = input$sel.datos))
       updateAceEditor(session, "fieldCodeModelo", value = def.model(data = input$sel.datos, cant = input$cant.cluster, 
                                                                     dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))
       updateAceEditor(session, "fieldModelCor", value = modelo.cor(data = input$sel.datos))
@@ -88,28 +96,29 @@ shinyServer(function(input, output, session) {
   })
   
   update <- reactive({
-    inFile <- c(input$file1, input$transButton)
-    return(datos.originales)
+    inFile <- c(input$file1, input$transButton, input$sel.datos, input$header, input$columname, input$sep, input$dec)
+    return(isolate(eval(parse(text = input$sel.datos))))
   })
-  
   output$contents = DT::renderDT(update(), selection = 'none', server = FALSE, editable = TRUE)
   
+  output$resumen.completo = shiny::renderDataTable({
+    return(obj.resum())
+  }, options = list(dom = 'ft', scrollX = TRUE))
+  
   output$resumen = renderUI({
-    if(input$sel.resumen %in% colnames(var.numericas(datos.originales))){
-      HTML(resumen.numerico(var.numericas(datos.originales), input$sel.resumen))
+    if(input$sel.resumen %in% colnames(var.numericas(eval(parse(text = input$sel.datos))))){
+      HTML(resumen.numerico(var.numericas(eval(parse(text = input$sel.datos))), input$sel.resumen))
     } else {
-      HTML(resumen.categorico(datos.originales, input$sel.resumen))
+      HTML(resumen.categorico(eval(parse(text = input$sel.datos)), input$sel.resumen))
     }
   })
   
   output$mostrar.atipicos = DT::renderDataTable({
-    atipicos <- boxplot.stats(datos.originales[, input$sel.distribucion.num]) 
-    return(base::subset(datos.originales, datos.originales[, input$sel.distribucion.num] %in% atipicos$out, select = input$sel.distribucion.num))
+    data <- eval(parse(text = input$sel.datos))
+    atipicos <- boxplot.stats(data[, input$sel.distribucion.num]) 
+    data <- data[data[, input$sel.distribucion.num] %in% atipicos$out, input$sel.distribucion.num, drop = F]
+    return(data[order(data[, input$sel.distribucion.num]), , drop = F])
   }, options = list(dom = 't', scrollX = TRUE, scrollY = "10vh"))
-  
-  output$resumen.completo = shiny::renderDataTable({
-    return(obj.resum())
-  }, options = list(aLengthMenu = c(10), iDisplayLength = 10, scrollX = TRUE))
   
   output$plot.disp = renderPlot({
     return(obj.disp())
@@ -197,43 +206,46 @@ shinyServer(function(input, output, session) {
   })
   
   obj.resum <- reactive({
-    plotNo <- c(input$file1, input$transButton)
-    cod.resum <<- input$fieldCodeResum
-    isolate(eval(parse(text = cod.resum)))
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, input$dec, input$fieldCodeResum)
+    isolate(eval(parse(text = input$fieldCodeResum)))
   })
   
   obj.disp <- reactive({
-    plotNo <- c(input$file1, input$transButton)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, input$dec)
     cod.disp <<- input$fieldCodeDisp
     isolate(eval(parse(text = cod.disp)))
   })
   
   obj.cor <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldModelCor)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, input$dec, input$fieldModelCor)
     cod.cor <<- input$fieldCodeCor
     return(isolate(eval(parse(text = cod.cor))))
   })
   
   obj.ind <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$pca.num, input$fieldModelCor, input$fieldCodePCAModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, 
+                input$dec,input$pca.num, input$fieldModelCor, input$fieldCodePCAModelo)
     cod.pca[["individuos"]] <<- input$fieldCodeInd
     isolate(eval(parse(text = cod.pca[["individuos"]])))
   })
   
   obj.var <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$pca.num, input$fieldModelCor, input$fieldCodePCAModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, 
+                input$dec, input$pca.num, input$fieldModelCor, input$fieldCodePCAModelo)
     cod.pca[["variables"]] <<- input$fieldCodeVar
     isolate(eval(parse(text = cod.pca[["variables"]])))
   })
   
   obj.biplot <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$pca.num, input$fieldModelCor, input$fieldCodePCAModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, 
+                input$dec, input$pca.num, input$fieldModelCor, input$fieldCodePCAModelo)
     cod.pca[["sobreposicion"]] <<- input$fieldCodeBi
     isolate(eval(parse(text = cod.pca[["sobreposicion"]])))
   })
   
   obj.dya.num <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldFuncNum, input$sel.distribucion.num, input$col.dist)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, 
+                input$dec, input$fieldFuncNum, input$sel.distribucion.num, input$col.dist)
     cod.dya.num  <<- input$fieldCodeNum
     func.dya.num <<- input$fieldFuncNum
     isolate(eval(parse(text = func.dya.num)))
@@ -241,7 +253,8 @@ shinyServer(function(input, output, session) {
   })
   
   obj.dya.cat <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldFuncCat, input$sel.distribucion.cat, input$col.dist)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, 
+                input$dec, input$fieldFuncCat, input$sel.distribucion.cat, input$col.dist)
     cod.dya.cat  <<- input$fieldCodeCat
     func.dya.cat <<- input$fieldFuncCat
     isolate(eval(parse(text = func.dya.cat)))
@@ -249,19 +262,22 @@ shinyServer(function(input, output, session) {
   })
   
   obj.diagrama <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeDiag, input$fieldCodeModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, 
+                input$sep, input$dec, input$fieldCodeDiag, input$fieldCodeModelo)
     code.diagrama <<- input$fieldCodeDiag
     isolate(eval(parse(text = code.diagrama)))
   })
   
   obj.mapa <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeMapa, input$fieldCodeModelo, input$fieldCodePCAModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, 
+                input$dec, input$fieldCodeMapa, input$fieldCodeModelo, input$fieldCodePCAModelo)
     code.mapa <<- input$fieldCodeMapa
     isolate(eval(parse(text = code.mapa)))
   })
   
   obj.horiz <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeHoriz, input$fieldFuncHoriz, input$fieldCodeCentr, input$fieldCodeModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, input$dec, 
+                input$fieldCodeHoriz, input$fieldFuncHoriz, input$fieldCodeCentr, input$fieldCodeModelo)
     code.horiz <<- input$fieldCodeHoriz
     func.horiz <<- input$fieldFuncHoriz
     func.centros <<- input$fieldCodeCentr
@@ -271,7 +287,8 @@ shinyServer(function(input, output, session) {
   })
   
   obj.vert <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeVert, input$fieldCodeVert, input$fieldCodeCentr, input$fieldCodeModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, input$dec, 
+                input$fieldCodeVert, input$fieldCodeVert, input$fieldCodeCentr, input$fieldCodeModelo)
     code.vert <<- input$fieldCodeVert
     func.vert <<- input$fieldFuncVert
     func.centros <<- input$fieldCodeCentr
@@ -281,7 +298,8 @@ shinyServer(function(input, output, session) {
   })
   
   obj.radar <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeRadar, input$fieldFuncRadar, input$fieldCodeCentr, input$fieldCodeModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, input$dec, 
+                input$fieldCodeRadar, input$fieldFuncRadar, input$fieldCodeCentr, input$fieldCodeModelo)
     code.radar <<- input$fieldCodeRadar
     func.radar <<- input$fieldFuncRadar
     func.centros <<- input$fieldCodeCentr
@@ -291,25 +309,29 @@ shinyServer(function(input, output, session) {
   })
   
   obj.bar.cat <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeBarras, input$fieldCodeModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, 
+                input$sep, input$dec, input$fieldCodeBarras, input$fieldCodeModelo)
     code.cat <<- input$fieldCodeBarras
     return(isolate(eval(parse(text = code.cat))))
   })
   
   obj.jambu <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeJambu, input$fieldCodeKModelo, input$fieldFuncJambu)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, 
+                input$dec, input$fieldCodeJambu, input$fieldCodeKModelo, input$fieldFuncJambu)
     isolate(eval(parse(text = input$fieldFuncJambu)))
     return(isolate(eval(parse(text = input$fieldCodeJambu))))
   })
   
   obj.kmapa <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeKmapa, input$fieldCodeKModelo, input$fieldCodePCAModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, 
+                input$dec, input$fieldCodeKmapa, input$fieldCodeKModelo, input$fieldCodePCAModelo)
     code.kmapa <<- input$fieldCodeKmapa
     isolate(eval(parse(text = code.kmapa)))
   })
   
   obj.khoriz <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeKhoriz, input$fieldFuncKhoriz, input$fieldCodeKModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep,
+                input$dec, input$fieldCodeKhoriz, input$fieldFuncKhoriz, input$fieldCodeKModelo)
     code.khoriz <<- input$fieldCodeKhoriz
     func.khoriz <<- input$fieldFuncKhoriz
     isolate(eval(parse(text = func.khoriz)))
@@ -317,7 +339,8 @@ shinyServer(function(input, output, session) {
   })
   
   obj.kvert <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeKvert, input$fieldFuncKvert, input$fieldCodeKModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep,
+                input$dec, input$fieldCodeKvert, input$fieldFuncKvert, input$fieldCodeKModelo)
     code.kvert <<- input$fieldCodeKvert
     func.kvert <<- input$fieldFuncKvert
     isolate(eval(parse(text = func.kvert)))
@@ -325,7 +348,8 @@ shinyServer(function(input, output, session) {
   })
   
   obj.kradar <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeKradar, input$fieldFuncKradar, input$fieldCodeKModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, input$sep, 
+                input$dec, input$fieldCodeKradar, input$fieldFuncKradar, input$fieldCodeKModelo)
     code.kradar <<- input$fieldCodeKradar
     func.kradar <<- input$fieldFuncKradar
     isolate(eval(parse(text = func.kradar)))
@@ -333,7 +357,8 @@ shinyServer(function(input, output, session) {
   })
   
   obj.kcat <- reactive({
-    plotNo <- c(input$file1, input$transButton, input$fieldCodeKbarras, input$fieldCodeKModelo)
+    plotNo <- c(input$file1, input$transButton, input$header, input$columname, 
+                input$sep, input$dec, input$fieldCodeKbarras, input$fieldCodeKModelo)
     code.kcat <<- input$fieldCodeKbarras
     return(isolate(eval(parse(text = code.kcat))))
   })
@@ -341,7 +366,7 @@ shinyServer(function(input, output, session) {
   observe({
     updateSelectInput(session, "sel.cluster", choices = c("Todos", 1:input$cant.cluster))
     updateSelectInput(session, "sel.kmeans.cluster", choices = c("Todos", 1:input$cant.kmeans.cluster))
-    updateAceEditor(session, "fieldCodeResum", value = cod.resum)
+    updateAceEditor(session, "fieldCodeResum", value = cod.resum())
     
     updateAceEditor(session, "fieldFuncNum", value = func.dya.num)
     updateAceEditor(session, "fieldFuncCat", value = func.dya.cat)
@@ -359,18 +384,18 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldCodeReport", value = def.reporte())
   })
   
-  observeEvent(input$sel.distribucion.num, {
-    cod.dya.num <<- def.code.num(variable = paste0("'", input$sel.distribucion.num, "'"))
+  observeEvent(c(input$sel.distribucion.num, input$sel.datos), {
+    cod.dya.num <<- def.code.num(data = input$sel.datos, variable = paste0("'", input$sel.distribucion.num, "'"))
     updateAceEditor(session, "fieldCodeNum", value = cod.dya.num)
   })
   
-  observeEvent(input$sel.distribucion.cat, {
-    cod.dya.cat <<- def.code.cat(variable = paste0("'", input$sel.distribucion.cat, "'"))
+  observeEvent(c(input$sel.distribucion.cat, input$sel.datos), {
+    cod.dya.cat <<- def.code.cat(data = input$sel.datos, variable = paste0("'", input$sel.distribucion.cat, "'"))
     updateAceEditor(session, "fieldCodeCat", value = cod.dya.cat)
   })
   
-  observeEvent(input$select.var, {
-    cod.disp <<- default.disp(vars = input$select.var)
+  observeEvent(c(input$select.var, input$sel.datos), {
+    cod.disp <<- default.disp(data = input$sel.datos, vars = input$select.var)
     updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
   })
   
@@ -379,7 +404,8 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldCodeCor", value = cod.cor)
   })
   
-  observeEvent(c(input$file1, input$cant.cluster, input$transButton, input$sel.dist.method, input$sel.hc.method), {
+  observeEvent(c(input$file1, input$header, input$columname, input$sep, input$dec, input$cant.cluster, 
+                 input$transButton, input$sel.datos, input$sel.dist.method, input$sel.hc.method), {
     tryCatch ({
       isolate(eval(parse(text = def.model(data = input$sel.datos, cant = input$cant.cluster, 
                                           dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))))
@@ -419,7 +445,8 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldCodeBarras", value = code.cat)
   })
   
-  observeEvent(c(input$file1, input$cant.kmeans.cluster, input$transButton, input$num.iter, input$slider.nstart), {
+  observeEvent(c(input$file1, input$header, input$columname, input$sep, input$dec,
+                 input$cant.kmeans.cluster, input$transButton, input$num.iter, input$slider.nstart), {
     tryCatch ({
       isolate(eval(parse(text = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster,
                                             iter.max = input$num.iter, nstart = input$slider.nstart))))

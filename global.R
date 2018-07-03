@@ -96,24 +96,24 @@ resumen.kmeans <- function(kmedias){
   return(salida)
 }
 
-default.disp <- function(vars = NULL){
+default.disp <- function(data = "datos.originales", vars = NULL){
   if(is.null(vars)){
     return(NULL)
   } else if(length(vars) == 1){
     return(paste0("color <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 140, maxColorValue = 255)
-hist(datos.originales[, '", vars, "'], col = color, border=F, main = paste0('Test de normalidad de la variable ','", vars,"'), axes=F, freq = F)
+hist(", data, "[, '", vars, "'], col = color, border=F, main = paste0('Test de normalidad de la variable ','", vars,"'), axes=F, freq = F)
 axis(1, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
 axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
-curve(dnorm(x, mean = mean(datos.originales[, '", vars, "']), sd = sd(datos.originales[, '", vars, "'])), add=T, col='blue', lwd=2)
+curve(dnorm(x, mean = mean(", data, "[, '", vars, "']), sd = sd(", data, "[, '", vars, "'])), add=T, col='blue', lwd=2)
 legend('bottom', legend = 'Curva Normal', col = 'blue', lty=1, cex=1.5)"))
   } else if(length(vars) == 2){
     return(paste0("color <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 255, maxColorValue = 255) 
-ggplot(data = datos.originales, aes(x = ", vars[1], ", y = ", vars[2], ", label = rownames(datos.originales))) +
+ggplot(data = ", data, ", aes(x = ", vars[1], ", y = ", vars[2], ", label = rownames(", data, "))) +
        geom_point(color = color, size = 3) + geom_text(vjust = -0.7)"))
   } else{
     return(paste0("colores <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 255, maxColorValue = 255)
-scatterplot3d(datos.originales[, '", vars[1], "'], datos.originales[, '", 
-                  vars[2], "'], datos.originales[, '", vars[3], "'], pch = 16, color = colores)"))
+scatterplot3d(", data, "[, '", vars[1], "'], ", data, "[, '", 
+                  vars[2], "'], ", data, "[, '", vars[3], "'], pch = 16, color = colores)"))
   }
 }
 
@@ -153,12 +153,12 @@ correlaciones <- function(metodo = 'circle', tipo = "lower"){
          tl.srt=20, addCoef.col='black', order='AOE', type = '", tipo, "')"))
 }
 
-def.code.num <- function(variable = "input$sel.distribucion", color = 'input$col.dist'){
-  return(paste0("distribucion.numerico(datos.originales[, ", variable, "], ", variable, ", color = ", color,")"))
+def.code.num <- function(data = "datos.originales", variable = "input$sel.distribucion", color = 'input$col.dist'){
+  return(paste0("distribucion.numerico(", data, "[, ", variable, "], ", variable, ", color = ", color,")"))
 }
 
-def.code.cat <- function(variable = "input$sel.distribucion", color = 'input$col.dist'){
-  return(paste0("distribucion.categorico(datos.originales[, ", variable,"], color = ", color, ")"))
+def.code.cat <- function(data = "datos.originales", variable = "input$sel.distribucion", color = 'input$col.dist'){
+  return(paste0("distribucion.categorico(", data, "[, ", variable,"], color = ", color, ")"))
 }
 
 default.func.num <- function(){
@@ -369,7 +369,7 @@ def.reporte <- function(){
   return(paste0("---
 title: 'Untitled'
 author: 'PROMIDAT'
-date: Sys.Date()
+date: ", Sys.Date(), "
 output:
   html_document:
     df_print: paged
@@ -437,7 +437,7 @@ datos.disyuntivos <- function(data, vars){
 ```"))
 }
 
-cod.resum <- "summary(datos.originales)" 
+cod.resum <- function(data = "datos.originales") {return(paste0("summary(", data, ")"))}
 cod.disp <- default.disp()
 cod.pca <- list("variables" = pca.variables(), "individuos" = pca.individuos(), "sobreposicion" = pca.sobreposicion())
 
