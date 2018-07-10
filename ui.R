@@ -16,6 +16,7 @@ library(colourpicker)
 library(shinyjs)
 library(knitr)
 library(DT)
+library(future)
 library(promises)
 library(ggplot2)
 library(FactoMineR)
@@ -68,15 +69,6 @@ shinyUI(dashboardPage(
                 
                 hr(),
                 
-                radioGroupButtons(
-                  inputId = "sel.datos",
-                  label = "Seleccionar Datos",
-                  choices = c("Original" = "datos.originales", "Modificada" = "datos.modificados"),
-                  status = "primary",
-                  checkIcon = list(
-                    yes = icon("ok", lib = "glyphicon"),
-                    no = icon("remove", lib = "glyphicon"))
-                ),
                 conditionalPanel(
                   condition = "input.principal == 'dispersion'",
                   selectizeInput("select.var", "Seleccionar variables", multiple = T, choices = c(""), 
@@ -141,7 +133,7 @@ shinyUI(dashboardPage(
       
       #Carga de Datos
       tabItem(tabName = "cargar",
-              column(width = 4,
+              column(width = 5,
                      tabBox(title = NULL, width = 12,
                        tabPanel(title = "Cargar", width = 12, solidHeader = FALSE, collapsible = FALSE, collapsed = FALSE,
                        checkboxInput('header', 'Encabezado (Header)', TRUE),
@@ -155,14 +147,13 @@ shinyUI(dashboardPage(
                        aceEditor("fieldCodeData", mode = "r", theme = "monokai", value = "", height = "15vh", readOnly = T)
                      ),
                      tabPanel(title = "Transformar", width = 12, solidHeader = FALSE, collapsible = FALSE, collapsed = FALSE,
-                       selectizeInput("trans.var", "Seleccionar variables", multiple = T, choices = c(""), width = "100%"),
-                       selectInput(inputId = "tipo.var", label = "Nuevo Tipo:", choices =  c("Numérico", "Categorico"), width = "100%"),
-                       actionButton("transButton", "Transformar", width = "100%"),
+                       DT::dataTableOutput('transData'),
+                       actionButton("transButton", "Aplicar", width = "100%"),
                        hr(),
-                       aceEditor("fieldCodeTrans", mode = "r", theme = "monokai", value = "", height = "20vh",  readOnly = T)
+                       aceEditor("fieldCodeTrans", mode = "r", theme = "monokai", value = "", height = "10vh",  readOnly = T)
                      )
               )),
-              column(width = 8,
+              column(width = 7,
                      box(title = "Datos", status = "primary", width = 12, solidHeader = TRUE, collapsible = TRUE,
                        withSpinner(DT::DTOutput('contents'), type = 7, color = "#CBB051")
               ))

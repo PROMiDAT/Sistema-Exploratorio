@@ -1,5 +1,5 @@
+datos <<- NULL
 datos.originales <<- NULL
-datos.modificados <<- NULL
 centros <<- NULL
 
 var.numericas <- function(data){
@@ -31,33 +31,45 @@ datos.disyuntivos <- function(data, vars){
 code.carga <- function(nombre.columnas = T, ruta = NULL, separador = ";", sep.decimal = ",", encabezado = "T"){
   if(nombre.columnas){
     return(paste0("datos.originales <<- read.csv('", ruta, "', header=", 
-                  encabezado, ", sep='", separador, "', dec = '", sep.decimal, "', row.names = 1)"))
+                  encabezado, ", sep='", separador, "', dec = '", sep.decimal, "', row.names = 1) \n datos <<- datos.originales"))
   } else {
-    return(paste0("datos.originales <<- read.csv('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal, "')"))
+    return(paste0("datos.originales <<- read.csv('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal, 
+                  "') \n datos <<- datos.originales"))
   }
 }
 
 code.trans <- function(variables, nuevo.tipo){
   res <- ""
-  if(nuevo.tipo == "Categorico"){
+  if(nuevo.tipo == "categorico"){
     for (variable in variables) {
-      res <- paste0(res, "datos.originales[, '", variable, "'] <<- as.factor(datos.originales[, '", variable, "']) \n")
+      res <- paste0(res, "datos[, '", variable, "'] <<- as.factor(datos[, '", variable, "'])")
     }
   } else {
-    res <- paste0("datos.modificados <<- datos.disyuntivos(datos.originales, '", variables,"')")
+    res <- paste0("datos <<- datos.disyuntivos(datos, '", variables,"')")
   }
   return(res)
 }
 
+code.desactivar <- function(variables){
+  return(paste0("datos <<- subset(datos.originales, select = c(", paste(variables, collapse = ","), "))"))
+}
+
 resumen.numerico <- function(data, variable){
   salida <- ""
-  datos.numericos <- list(Q1 = list(id = "q1", Label = "Primer Cuartil", Value = formatC(quantile(data[, variable], .25)), color = "green"),
-                          Mediana = list(id = "mediana", Label = "Mediana", Value = formatC(median(data[, variable])), color = "orange"),
-                          Q3 = list(id = "q3", Label = "Tercer Cuartil", Value = formatC(quantile(data[, variable], .75)), color = "maroon"),
-                          Minimo = list(id = "minimo", Label = "Mínimo", Value = formatC(min(data[, variable])), color = "red"),
-                          Promedio = list(id = "promedio", Label = "Promedio", Value = formatC(mean(data[, variable])), color = "blue"),
-                          Maximo = list(id = "maximo", Label = "Máximo", Value = formatC(max(data[, variable])), color = "purple"),
-                          DS <- list(id = "ds", Label = "Desviación Estandar", Value = formatC(max(data[, variable])), color = "yellow"))
+  datos.numericos <- list(Q1 = list(id = "q1", Label = "Primer Cuartil", 
+                                    Value = format(quantile(data[, variable], .25), scientific = FALSE), color = "green"),
+                          Mediana = list(id = "mediana", Label = "Mediana", 
+                                         Value = format(median(data[, variable]), scientific = FALSE), color = "orange"),
+                          Q3 = list(id = "q3", Label = "Tercer Cuartil", 
+                                    Value = format(quantile(data[, variable], .75), scientific = FALSE), color = "maroon"),
+                          Minimo = list(id = "minimo", Label = "Mínimo", 
+                                        Value = format(min(data[, variable]), scientific = FALSE), color = "red"),
+                          Promedio = list(id = "promedio", Label = "Promedio", 
+                                          Value = format(mean(data[, variable]), scientific = FALSE), color = "blue"),
+                          Maximo = list(id = "maximo", Label = "Máximo", 
+                                        Value = format(max(data[, variable]), scientific = FALSE), color = "purple"),
+                          DS <- list(id = "ds", Label = "Desviación Estandar", 
+                                     Value = format(max(data[, variable]), scientific = FALSE), color = "yellow"))
   
   for (calculo in datos.numericos) {
     salida <- paste0(salida, "<div class='shiny-html-output col-sm-6 shiny-bound-output' id='", calculo$id, 
@@ -83,9 +95,12 @@ resumen.categorico <- function(data, variable){
 
 resumen.kmeans <- function(kmedias){
   salida <- ""
-  datos.numericos <- list(WP = list(id = "WP", Label = "Inercia Intra-Clases", Value = formatC(kmedias$tot.withinss), color = "red"),
-                          BP = list(id = "BP", Label = "Inercia Inter-Clases", Value = formatC(kmedias$betweenss), color = "green"),
-                          total = list(id = "total", Label = "Inercia Total", Value = formatC(kmedias$totss), color = "blue"))
+  datos.numericos <- list(WP = list(id = "WP", Label = "Inercia Intra-Clases", 
+                                    Value = format(kmedias$tot.withinss, scientific = FALSE), color = "red"),
+                          BP = list(id = "BP", Label = "Inercia Inter-Clases", 
+                                    Value = format(kmedias$betweenss, scientific = FALSE), color = "green"),
+                          total = list(id = "total", Label = "Inercia Total", 
+                                       Value = format(kmedias$totss, scientific = FALSE), color = "blue"))
   
   for (calculo in datos.numericos) {
     salida <- paste0(salida, "<div class='shiny-html-output col-sm-4 shiny-bound-output' id='", calculo$id, 
@@ -96,7 +111,7 @@ resumen.kmeans <- function(kmedias){
   return(salida)
 }
 
-default.disp <- function(data = "datos.originales", vars = NULL){
+default.disp <- function(data = "datos", vars = NULL){
   if(is.null(vars)){
     return(NULL)
   } else if(length(vars) == 1){
@@ -117,16 +132,16 @@ scatterplot3d(", data, "[, '", vars[1], "'], ", data, "[, '",
   }
 }
 
-def.pca.model <- function(data = "datos.originales", scale.unit = T, npc = 5){
+def.pca.model <- function(data = "datos", scale.unit = T, npc = 5){
   return(paste0("pca.modelo <<- PCA(var.numericas(", data, "), scale.unit = ", scale.unit, ", ncp = ", npc, ", graph = FALSE)"))
 }
 
-def.model <- function(data = "datos.originales", cant = "as.numeric(input$cant.cluster)", dist.method = "euclidean", hc.method = "complete"){
+def.model <- function(data = "datos", cant = "as.numeric(input$cant.cluster)", dist.method = "euclidean", hc.method = "complete"){
   return(paste0("hc.modelo <<- hclust(dist(var.numericas(", data, "), method = '", dist.method, "'), method = '", hc.method, "')
 centros <<- calc.centros(var.numericas(", data, "), hc.modelo, ", cant, ")"))
 }
 
-def.k.model <- function(data = "datos.originales", cant = "as.numeric(input$cant.kmeans.cluster)", iter.max = 200, nstart = 300){
+def.k.model <- function(data = "datos", cant = "as.numeric(input$cant.kmeans.cluster)", iter.max = 200, nstart = 300){
   return(paste0("k.modelo <<- kmeans(var.numericas(", data, "), centers = ", cant,", iter.max = ", iter.max,", nstart = ", nstart,")"))
 }
 
@@ -144,7 +159,7 @@ pca.sobreposicion <- function(ind.cos = 0, var.cos = 0, col.ind = '#696969', col
                  col.ind = '", col.ind, "', select.ind = list(cos2 = ", ind.cos, ") , select.var = list(cos2 = ", var.cos, "))"))
 }
 
-modelo.cor <- function(data = "datos.originales"){
+modelo.cor <- function(data = "datos"){
   return(paste0("correlacion <<- cor(var.numericas(", data, "))"))
 }
 
@@ -153,11 +168,11 @@ correlaciones <- function(metodo = 'circle', tipo = "lower"){
          tl.srt=20, addCoef.col='black', order='AOE', type = '", tipo, "')"))
 }
 
-def.code.num <- function(data = "datos.originales", variable = "input$sel.distribucion", color = 'input$col.dist'){
+def.code.num <- function(data = "datos", variable = "input$sel.distribucion", color = 'input$col.dist'){
   return(paste0("distribucion.numerico(", data, "[, ", variable, "], ", variable, ", color = ", color,")"))
 }
 
-def.code.cat <- function(data = "datos.originales", variable = "input$sel.distribucion", color = 'input$col.dist'){
+def.code.cat <- function(data = "datos", variable = "input$sel.distribucion", color = 'input$col.dist'){
   return(paste0("distribucion.categorico(", data, "[, ", variable,"], color = ", color, ")"))
 }
 
@@ -193,7 +208,7 @@ modelo <- color_labels(hc.modelo, k = ", cant, ", col = )
 plot(modelo)"))
 } 
 
-def.code.jambu <- function(data = "datos.originales"){
+def.code.jambu <- function(data = "datos"){
   return(paste0("codo.jambu(data. = var.numericas(", data, "), k. = 2:10)"))
 } 
 
@@ -312,14 +327,14 @@ if(", sel, " == 'Todos'){
 
 cluster.cat <- function(var = "input$sel.kcat.var", cant = "input$cant.cluster"){
   return(paste0("hc.clusters <- cutree(hc.modelo, k=", cant, ")
-NDatos <- cbind(datos.originales, grupo = hc.clusters)
+NDatos <- cbind(datos, grupo = hc.clusters)
                 ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + 
                 facet_wrap(~grupo) + theme(text = element_text(size = 10), axis.text.x = element_blank()) +
                 scale_fill_discrete(name='Variable') + labs(x = '', y = '')"))
 }
 
 cluster.kcat <- function(var = "input$sel.kcat.var"){
-  return(paste0("NDatos <- cbind(datos.originales, grupo = k.modelo$cluster)
+  return(paste0("NDatos <- cbind(datos, grupo = k.modelo$cluster)
 ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + 
   facet_wrap(~grupo) + theme(text = element_text(size = 10), axis.text.x = element_blank()) +
   scale_fill_discrete(name='Variable') + labs(x = '', y = '')"))
@@ -379,7 +394,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Carga de librerias Necesarias
+# Carga de Paquetes
 ```{r message=FALSE, warning=FALSE}
 library(promises)
 library(ggplot2)
@@ -437,7 +452,7 @@ datos.disyuntivos <- function(data, vars){
 ```"))
 }
 
-cod.resum <- function(data = "datos.originales") {return(paste0("summary(", data, ")"))}
+cod.resum <- function(data = "datos") {return(paste0("summary(", data, ")"))}
 cod.disp <- default.disp()
 cod.pca <- list("variables" = pca.variables(), "individuos" = pca.individuos(), "sobreposicion" = pca.sobreposicion())
 

@@ -14,32 +14,27 @@ shinyServer(function(input, output, session) {
   options(shiny.maxRequestSize=200*1024^2)
   options(DT.options = list(aLengthMenu = c(10, 30, 50), iDisplayLength = 10, scrollX = TRUE))
 
-  observeEvent(c(input$file1, input$transButton, input$header, input$columname, input$sep, input$dec), {
+  observeEvent(c(input$file1, input$header, input$columname, input$sep, input$dec), {
     codigo <- code.carga(nombre.columnas = input$columname, ruta = input$file1$datapath, 
                          separador = input$sep, sep.decimal = input$dec, encabezado = input$header)
     updateAceEditor(session, "fieldCodeData", value = codigo)
+
+     tryCatch({
+       isolate(eval(parse(text = codigo)))
+     }, error = function(e) {
+       datos <<- NULL
+       datos.originales <<- NULL
+       return(NULL)
+     })
     
-    tryCatch({
-      isolate(eval(parse(text = codigo)))
-      if(!is.null(input$trans.var)){
-        codigo2 <- code.trans(variables = input$trans.var, nuevo.tipo = input$tipo.var)
-        isolate(eval(parse(text = codigo2)))
-      }
-    }, error = function(e) {
-      datos.originales <<- NULL
-      datos.modificados <<- NULL
-      return(NULL)
-    })
-    
-    updateSelectizeInput(session, "select.var", choices = colnames(var.numericas(datos.originales)))
-    updateSelectInput(session, "sel.distribucion.num", choices = colnames(var.numericas(datos.originales)))
-    updateSelectInput(session, "sel.distribucion.cat", choices = colnames(var.categoricas(datos.originales)))
-    updateSelectInput(session, "sel.resumen", choices = colnames(eval(parse(text = input$sel.datos))))
-    updateSelectInput(session, "trans.var", choices = colnames(datos.originales))
-    updateSelectInput(session, "sel.verticales", choices = c("Todos", colnames(var.numericas(datos.originales))))
-    updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(datos.originales))))
-    updateSelectInput(session, "sel.kcat.var", choices = colnames(var.categoricas(datos.originales)))
-    updateSelectInput(session, "sel.cat.var", choices = colnames(var.categoricas(datos.originales)))
+    updateSelectizeInput(session, "select.var", choices = colnames(var.numericas(datos)))
+    updateSelectInput(session, "sel.distribucion.num", choices = colnames(var.numericas(datos)))
+    updateSelectInput(session, "sel.distribucion.cat", choices = colnames(var.categoricas(datos)))
+    updateSelectInput(session, "sel.resumen", choices = colnames(datos))
+    updateSelectInput(session, "sel.verticales", choices = c("Todos", colnames(var.numericas(datos))))
+    updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(datos))))
+    updateSelectInput(session, "sel.kcat.var", choices = colnames(var.categoricas(datos)))
+    updateSelectInput(session, "sel.cat.var", choices = colnames(var.categoricas(datos)))
     
     updateAceEditor(session, "fieldModelCor", value = modelo.cor())
     updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
@@ -51,9 +46,76 @@ shinyServer(function(input, output, session) {
       isolate(eval(parse(text = modelo.cor())))
       isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
     }, error = function(e) {
-      return(datos.originales <- NULL)
+      return(datos <- NULL)
     })
   })
+  
+  observeEvent(input$transButton, {
+    var.activas <- c()
+    code.res <- "datos <<- datos.originales \n"
+    for (var in colnames(datos.originales)) {
+      if(input[[paste0("box", var)]]) {
+        var.activas <- c(var.activas, var)
+        if(input[[paste0("sel", var)]] == "categorico" & class(datos.originales[, var]) %in% c("numeric","integer")) {
+          code.res <- paste0(code.res, code.trans(var, "categorico"), "\n")
+        }
+        if(input[[paste0("sel", var)]] == "numerico" & !(class(datos.originales[, var]) %in% c("numeric","integer"))) {
+          code.res <- paste0(code.res, code.trans(var, "numerico"), "\n")
+        }
+      }
+    }
+    updateAceEditor(session, "fieldCodeTrans", value = code.res)
+    
+    isolate(eval(parse(text = code.desactivar(var.activas))))
+    isolate(eval(parse(text = code.res)))
+    
+    updateSelectizeInput(session, "select.var", choices = colnames(var.numericas(datos)))
+    updateSelectInput(session, "sel.distribucion.num", choices = colnames(var.numericas(datos)))
+    updateSelectInput(session, "sel.distribucion.cat", choices = colnames(var.categoricas(datos)))
+    updateSelectInput(session, "sel.resumen", choices = colnames(datos))
+    updateSelectInput(session, "sel.verticales", choices = c("Todos", colnames(var.numericas(datos))))
+    updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(datos))))
+    updateSelectInput(session, "sel.kcat.var", choices = colnames(var.categoricas(datos)))
+    updateSelectInput(session, "sel.cat.var", choices = colnames(var.categoricas(datos)))
+    
+    updateAceEditor(session, "fieldModelCor", value = modelo.cor())
+    updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
+    updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
+    updateAceEditor(session, "fieldCodeJambu", value = def.code.jambu())
+    
+    tryCatch({
+      isolate(eval(parse(text = default.centros())))
+      isolate(eval(parse(text = modelo.cor())))
+      isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
+    }, error = function(e) {
+      return(datos <- NULL)
+    })
+  })
+  
+  update <- reactive({
+    inFile <- c(input$file1, input$transButton, input$header, input$columname, input$sep, input$dec)
+    datos
+  })
+  output$contents = DT::renderDT(update(), selection = 'none', server = FALSE, editable = TRUE)
+  
+  update.trans <- reactive({
+    inFile <- c(input$file1, input$header, input$columname, input$sep, input$dec)
+    n <- ncol(datos)
+    res <-  data.frame(Variables = colnames(datos), Tipo = c(1:n), Activa = c(1:n))
+    res$Tipo <- sapply(colnames(datos), function(i) paste0('<select id="sel', i, '"> <option value="categorico">Categórico</option> 
+      <option value="numerico" ', ifelse(class(datos[, i]) %in% c("numeric","integer"), ' selected="selected"', ''),
+      '>Numérico</option> </select>'))
+    res$Activa <- sapply(colnames(datos), function(i) paste0('<input type="checkbox" id="box', i, '" checked/>'))
+    return(res)
+  })
+  output$transData = DT::renderDataTable(update.trans(), escape = FALSE, selection = 'none', server = FALSE,
+                                   options = list(dom = 't', paging = FALSE, ordering = FALSE), rownames = F,
+                                   callback = JS("table.rows().every(function(i, tab, row) {
+                                                   var $this = $(this.node());
+                                                   $this.attr('id', this.data()[0]);
+                                                   $this.addClass('shiny-input-checkbox');});
+                                                  Shiny.unbindAll(table.table().node());
+                                                  Shiny.bindAll(table.table().node());"))
   
   observeEvent(c(input$switch.scale, input$slider.npc), {
     tryCatch({
@@ -64,60 +126,22 @@ shinyServer(function(input, output, session) {
     })
   })
   
-  observeEvent(input$sel.datos, {
-    toggle(condition = (input$sel.datos == "datos.modificados"), selector = "#tabjerar li a[data-value=hcbarras]")
-    tryCatch ({
-      updateSelectizeInput(session, "select.var", choices = colnames(var.numericas(eval(parse(text = input$sel.datos)))))
-      updateSelectInput(session, "sel.distribucion.num", choices = colnames(var.numericas(eval(parse(text = input$sel.datos)))))
-      updateSelectInput(session, "sel.distribucion.cat", choices = colnames(var.categoricas(eval(parse(text = input$sel.datos)))))
-      updateSelectInput(session, "sel.resumen", choices = colnames(eval(parse(text = input$sel.datos))))
-      updateSelectInput(session, "sel.verticales", choices = c("Todos", colnames(var.numericas(eval(parse(text = input$sel.datos))))))
-      updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(eval(parse(text = input$sel.datos))))))
-      
-      isolate(eval(parse(text = modelo.cor(data = input$sel.datos))))
-      isolate(eval(parse(text = def.pca.model(data = input$sel.datos))))
-      isolate(eval(parse(text = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster,
-                                            iter.max = input$num.iter, nstart = input$slider.nstart))))
-      isolate(eval(parse(text = def.model(data = input$sel.datos, cant = input$cant.cluster, 
-                                          dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))))
-      
-      updateAceEditor(session, "fieldCodeResum", value = cod.resum(data = input$sel.datos))
-      updateAceEditor(session, "fieldCodeModelo", value = def.model(data = input$sel.datos, cant = input$cant.cluster, 
-                                                                    dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))
-      updateAceEditor(session, "fieldModelCor", value = modelo.cor(data = input$sel.datos))
-      updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(data = input$sel.datos))
-      updateAceEditor(session, "fieldCodeJambu", value = def.code.jambu(data = input$sel.datos))
-      updateAceEditor(session, "fieldCodeKModelo", value = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster,
-                                                                       iter.max = input$num.iter, nstart = input$slider.nstart))
-    }, error = function(e) {
-      print(e)
-      return(NULL)
-    })
-  })
-  
-  update <- reactive({
-    inFile <- c(input$file1, input$transButton, input$sel.datos, input$header, input$columname, input$sep, input$dec)
-    return(isolate(eval(parse(text = input$sel.datos))))
-  })
-  output$contents = DT::renderDT(update(), selection = 'none', server = FALSE, editable = TRUE)
-  
   output$resumen.completo = shiny::renderDataTable({
     return(obj.resum())
   }, options = list(dom = 'ft', scrollX = TRUE))
   
   output$resumen = renderUI({
-    if(input$sel.resumen %in% colnames(var.numericas(eval(parse(text = input$sel.datos))))){
-      HTML(resumen.numerico(var.numericas(eval(parse(text = input$sel.datos))), input$sel.resumen))
+    if(input$sel.resumen %in% colnames(var.numericas(datos))){
+      HTML(resumen.numerico(datos, input$sel.resumen))
     } else {
-      HTML(resumen.categorico(eval(parse(text = input$sel.datos)), input$sel.resumen))
+      HTML(resumen.categorico(datos, input$sel.resumen))
     }
   })
   
   output$mostrar.atipicos = DT::renderDataTable({
-    data <- eval(parse(text = input$sel.datos))
-    atipicos <- boxplot.stats(data[, input$sel.distribucion.num]) 
-    data <- data[data[, input$sel.distribucion.num] %in% atipicos$out, input$sel.distribucion.num, drop = F]
-    return(data[order(data[, input$sel.distribucion.num]), , drop = F])
+    atipicos <- boxplot.stats(datos[, input$sel.distribucion.num]) 
+    datos <- datos[datos[, input$sel.distribucion.num] %in% atipicos$out, input$sel.distribucion.num, drop = F]
+    return(datos[order(datos[, input$sel.distribucion.num]), , drop = F])
   }, options = list(dom = 't', scrollX = TRUE, scrollY = "10vh"))
   
   output$plot.disp = renderPlot({
@@ -173,11 +197,11 @@ shinyServer(function(input, output, session) {
   })
   
   output$pcakmedias = renderPlot({
-    pca.kmedias(var.numericas(datos.originales))
+    pca.kmedias(var.numericas(datos))
   })
   
   output$resumen.kmedias = renderUI({
-    kmedias <- kmeans(var.numericas(datos.originales), as.numeric(input$cant.kmeans.cluster), iter.max = 200, nstart = 300) 
+    kmedias <- kmeans(var.numericas(datos), as.numeric(input$cant.kmeans.cluster), iter.max = 200, nstart = 300) 
     HTML(resumen.kmeans(kmedias))
   })
   
@@ -384,18 +408,18 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldCodeReport", value = def.reporte())
   })
   
-  observeEvent(c(input$sel.distribucion.num, input$sel.datos), {
-    cod.dya.num <<- def.code.num(data = input$sel.datos, variable = paste0("'", input$sel.distribucion.num, "'"))
+  observeEvent(c(input$sel.distribucion.num), {
+    cod.dya.num <<- def.code.num(data = "datos", variable = paste0("'", input$sel.distribucion.num, "'"))
     updateAceEditor(session, "fieldCodeNum", value = cod.dya.num)
   })
   
-  observeEvent(c(input$sel.distribucion.cat, input$sel.datos), {
-    cod.dya.cat <<- def.code.cat(data = input$sel.datos, variable = paste0("'", input$sel.distribucion.cat, "'"))
+  observeEvent(c(input$sel.distribucion.cat), {
+    cod.dya.cat <<- def.code.cat(data = "datos", variable = paste0("'", input$sel.distribucion.cat, "'"))
     updateAceEditor(session, "fieldCodeCat", value = cod.dya.cat)
   })
   
-  observeEvent(c(input$select.var, input$sel.datos), {
-    cod.disp <<- default.disp(data = input$sel.datos, vars = input$select.var)
+  observeEvent(c(input$select.var), {
+    cod.disp <<- default.disp(data = "datos", vars = input$select.var)
     updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
   })
   
@@ -405,11 +429,11 @@ shinyServer(function(input, output, session) {
   })
   
   observeEvent(c(input$file1, input$header, input$columname, input$sep, input$dec, input$cant.cluster, 
-                 input$transButton, input$sel.datos, input$sel.dist.method, input$sel.hc.method), {
+                 input$transButton, input$sel.dist.method, input$sel.hc.method), {
     tryCatch ({
-      isolate(eval(parse(text = def.model(data = input$sel.datos, cant = input$cant.cluster, 
+      isolate(eval(parse(text = def.model(data = "datos", cant = input$cant.cluster, 
                                           dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))))
-      updateAceEditor(session, "fieldCodeModelo", value = def.model(data = input$sel.datos, cant = input$cant.cluster, 
+      updateAceEditor(session, "fieldCodeModelo", value = def.model(data = "datos", cant = input$cant.cluster, 
                                                                     dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))
     }, error = function(e) {
       print(e)
@@ -448,9 +472,9 @@ shinyServer(function(input, output, session) {
   observeEvent(c(input$file1, input$header, input$columname, input$sep, input$dec,
                  input$cant.kmeans.cluster, input$transButton, input$num.iter, input$slider.nstart), {
     tryCatch ({
-      isolate(eval(parse(text = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster,
+      isolate(eval(parse(text = def.k.model(data = "datos", cant = input$cant.kmeans.cluster,
                                             iter.max = input$num.iter, nstart = input$slider.nstart))))
-      updateAceEditor(session, "fieldCodeKModelo", value = def.k.model(data = input$sel.datos, cant = input$cant.kmeans.cluster,
+      updateAceEditor(session, "fieldCodeKModelo", value = def.k.model(data = "datos", cant = input$cant.kmeans.cluster,
                                                                        iter.max = input$num.iter, nstart = input$slider.nstart))
     }, error = function(e) {
       return(NULL)
@@ -491,7 +515,7 @@ shinyServer(function(input, output, session) {
       updateAceEditor(session, "fieldCodeBi", value = cod.pca[["sobreposicion"]])
       updateAceEditor(session, "fieldCodeInd", value = cod.pca[["individuos"]])
     }, error = function(e) {
-      return(datos.originales <- NULL)
+      return(datos <- NULL)
     })
   })
   
@@ -504,7 +528,7 @@ shinyServer(function(input, output, session) {
       updateAceEditor(session, "fieldCodeVar", value = cod.pca[["variables"]])
     }, error = function(e) {
       print(e)
-      return(datos.originales <- NULL)
+      return(datos <- NULL)
     })
   })
   
