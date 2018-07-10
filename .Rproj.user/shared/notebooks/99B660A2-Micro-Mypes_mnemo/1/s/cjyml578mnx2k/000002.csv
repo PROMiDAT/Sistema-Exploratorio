@@ -1,2 +1,0 @@
-"0","datos <- read.table(file = c(""/Users/promidat05/Documents/GitHub/Proyecto_Grupo-Improsa_Prospectacion/Datos/DatosLimpios/MICRMIPES_NEMOTEC.csv""), "
-"0","                    header=T, sep ="";"" , dec = ""."", na.strings = 'N/A', fill = TRUE, encoding = ""UTF-8"", row.names = 1)"
