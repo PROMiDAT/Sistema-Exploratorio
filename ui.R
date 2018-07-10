@@ -143,6 +143,7 @@ shinyUI(dashboardPage(
                        fileInput('file1', 'Cargar Archivo',
                                  accept = c('text/csv', 'text/comma-separated-values, text/plain', '.csv'), buttonLabel = "Subir",
                                  placeholder = ""),
+                       actionButton("loadButton", "Cargar", width = "100%"),
                        hr(),
                        aceEditor("fieldCodeData", mode = "r", theme = "monokai", value = "", height = "15vh", readOnly = T)
                      ),
