@@ -28,13 +28,13 @@ datos.disyuntivos <- function(data, vars){
   return(data)
 }
 
-code.carga <- function(nombre.columnas = T, ruta = NULL, separador = ";", sep.decimal = ",", encabezado = "T"){
-  if(nombre.columnas){
-    return(paste0("datos.originales <<- read.csv('", ruta, "', header=", 
-                  encabezado, ", sep='", separador, "', dec = '", sep.decimal, "', row.names = 1) \n datos <<- datos.originales"))
+code.carga <- function(nombre.filas = T, ruta = NULL, separador = ";", sep.decimal = ",", encabezado = T){
+  if(nombre.filas){
+    return(paste0("datos.originales <<- read.table('", ruta, "', header=", 
+                  encabezado, ", sep='", separador, "', dec = '", sep.decimal, "', row.names = 1) \ndatos <<- datos.originales"))
   } else {
-    return(paste0("datos.originales <<- read.csv('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal, 
-                  "') \n datos <<- datos.originales"))
+    return(paste0("datos.originales <<- read.table('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal, 
+                  "') \ndatos <<- datos.originales"))
   }
 }
 
