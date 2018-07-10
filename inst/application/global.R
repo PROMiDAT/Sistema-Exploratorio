@@ -30,10 +30,10 @@ datos.disyuntivos <- function(data, vars){
 
 code.carga <- function(nombre.filas = T, ruta = NULL, separador = ";", sep.decimal = ",", encabezado = T){
   if(nombre.filas){
-    return(paste0("datos.originales <<- read.table('", ruta, "', header=", 
+    return(paste0("datos.originales <<- read.table('", ruta, "', header=",
                   encabezado, ", sep='", separador, "', dec = '", sep.decimal, "', row.names = 1) \ndatos <<- datos.originales"))
   } else {
-    return(paste0("datos.originales <<- read.table('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal, 
+    return(paste0("datos.originales <<- read.table('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal,
                   "') \ndatos <<- datos.originales"))
   }
 }
@@ -51,28 +51,28 @@ code.trans <- function(variables, nuevo.tipo){
 }
 
 code.desactivar <- function(variables){
-  return(paste0("datos <<- subset(datos.originales, select = c(", paste(variables, collapse = ","), "))"))
+  return(paste0("datos <<- subset(datos, select = -c(", paste(variables, collapse = ","), "))"))
 }
 
 resumen.numerico <- function(data, variable){
   salida <- ""
-  datos.numericos <- list(Q1 = list(id = "q1", Label = "Primer Cuartil", 
+  datos.numericos <- list(Q1 = list(id = "q1", Label = "Primer Cuartil",
                                     Value = format(quantile(data[, variable], .25), scientific = FALSE), color = "green"),
-                          Mediana = list(id = "mediana", Label = "Mediana", 
+                          Mediana = list(id = "mediana", Label = "Mediana",
                                          Value = format(median(data[, variable]), scientific = FALSE), color = "orange"),
-                          Q3 = list(id = "q3", Label = "Tercer Cuartil", 
+                          Q3 = list(id = "q3", Label = "Tercer Cuartil",
                                     Value = format(quantile(data[, variable], .75), scientific = FALSE), color = "maroon"),
-                          Minimo = list(id = "minimo", Label = "Mínimo", 
+                          Minimo = list(id = "minimo", Label = "Mínimo",
                                         Value = format(min(data[, variable]), scientific = FALSE), color = "red"),
-                          Promedio = list(id = "promedio", Label = "Promedio", 
+                          Promedio = list(id = "promedio", Label = "Promedio",
                                           Value = format(mean(data[, variable]), scientific = FALSE), color = "blue"),
-                          Maximo = list(id = "maximo", Label = "Máximo", 
+                          Maximo = list(id = "maximo", Label = "Máximo",
                                         Value = format(max(data[, variable]), scientific = FALSE), color = "purple"),
-                          DS <- list(id = "ds", Label = "Desviación Estandar", 
+                          DS <- list(id = "ds", Label = "Desviación Estandar",
                                      Value = format(max(data[, variable]), scientific = FALSE), color = "yellow"))
-  
+
   for (calculo in datos.numericos) {
-    salida <- paste0(salida, "<div class='shiny-html-output col-sm-6 shiny-bound-output' id='", calculo$id, 
+    salida <- paste0(salida, "<div class='shiny-html-output col-sm-6 shiny-bound-output' id='", calculo$id,
                      "'> <div class='small-box bg-", calculo$color,"'> <div class='inner'>",
                      "<h3>", calculo$Value, "</h3> <p>", calculo$Label, "</p></div> <div class='icon-large'> <i class='",
                      calculo$icon, "'></i></div></div></div>")
@@ -85,9 +85,9 @@ resumen.categorico <- function(data, variable){
   color <- c("red","yellow","aqua","navy","teal","olive","purple","maroon","black","blue","lime","orange","light-blue","green","fuchsia")
   datos.categoricos <- summary(data[, variable])
   for (i in 1:length(datos.categoricos)) {
-    salida <- paste0(salida, "<div class='shiny-html-output col-sm-6 shiny-bound-output' id='", variable, i, 
+    salida <- paste0(salida, "<div class='shiny-html-output col-sm-6 shiny-bound-output' id='", variable, i,
                      "'> <div class='small-box bg-", sample(color, 1), "'> <div class='inner'>",
-                     "<h3>", datos.categoricos[i], "</h3> <p>", levels(data[, variable])[i], 
+                     "<h3>", datos.categoricos[i], "</h3> <p>", levels(data[, variable])[i],
                      "</p></div> <div class='icon-large'> <i class=''></i></div></div></div>")
   }
   return(salida)
@@ -95,15 +95,15 @@ resumen.categorico <- function(data, variable){
 
 resumen.kmeans <- function(kmedias){
   salida <- ""
-  datos.numericos <- list(WP = list(id = "WP", Label = "Inercia Intra-Clases", 
+  datos.numericos <- list(WP = list(id = "WP", Label = "Inercia Intra-Clases",
                                     Value = format(kmedias$tot.withinss, scientific = FALSE), color = "red"),
-                          BP = list(id = "BP", Label = "Inercia Inter-Clases", 
+                          BP = list(id = "BP", Label = "Inercia Inter-Clases",
                                     Value = format(kmedias$betweenss, scientific = FALSE), color = "green"),
-                          total = list(id = "total", Label = "Inercia Total", 
+                          total = list(id = "total", Label = "Inercia Total",
                                        Value = format(kmedias$totss, scientific = FALSE), color = "blue"))
-  
+
   for (calculo in datos.numericos) {
-    salida <- paste0(salida, "<div class='shiny-html-output col-sm-4 shiny-bound-output' id='", calculo$id, 
+    salida <- paste0(salida, "<div class='shiny-html-output col-sm-4 shiny-bound-output' id='", calculo$id,
                      "'> <div class='small-box bg-", calculo$color,"'> <div class='inner'>",
                      "<h3>", calculo$Value, "</h3> <p>", calculo$Label, "</p></div> <div class='icon-large'> <i class='",
                      calculo$icon, "'></i></div></div></div>")
@@ -111,23 +111,29 @@ resumen.kmeans <- function(kmedias){
   return(salida)
 }
 
-default.disp <- function(data = "datos", vars = NULL){
+default.normal <- function(data = "datos", vars = NULL){
   if(is.null(vars)){
     return(NULL)
-  } else if(length(vars) == 1){
+  } else {
     return(paste0("color <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 140, maxColorValue = 255)
-hist(", data, "[, '", vars, "'], col = color, border=F, main = paste0('Test de normalidad de la variable ','", vars,"'), axes=F, freq = F)
-axis(1, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
-axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
-curve(dnorm(x, mean = mean(", data, "[, '", vars, "']), sd = sd(", data, "[, '", vars, "'])), add=T, col='blue', lwd=2)
-legend('bottom', legend = 'Curva Normal', col = 'blue', lty=1, cex=1.5)"))
-  } else if(length(vars) == 2){
-    return(paste0("color <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 255, maxColorValue = 255) 
+                  hist(", data, "[, '", vars, "'], col = color, border=F, main = paste0('Test de normalidad de la variable ','", vars,"'), axes=F, freq = F)
+                  axis(1, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
+                  axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
+                  curve(dnorm(x, mean = mean(", data, "[, '", vars, "']), sd = sd(", data, "[, '", vars, "'])), add=T, col='blue', lwd=2)
+                  legend('bottom', legend = 'Curva Normal', col = 'blue', lty=1, cex=1.5)"))
+  }
+}
+
+default.disp <- function(data = "datos", vars = NULL){
+  if(length(vars) < 2) {
+    return(NULL)
+  } else if(length(vars) == 2) {
+return(paste0("color <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 255, maxColorValue = 255)
 ggplot(data = ", data, ", aes(x = ", vars[1], ", y = ", vars[2], ", label = rownames(", data, "))) +
        geom_point(color = color, size = 3) + geom_text(vjust = -0.7)"))
   } else{
-    return(paste0("colores <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 255, maxColorValue = 255)
-scatterplot3d(", data, "[, '", vars[1], "'], ", data, "[, '", 
+return(paste0("colores <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 255, maxColorValue = 255)
+scatterplot3d(", data, "[, '", vars[1], "'], ", data, "[, '",
                   vars[2], "'], ", data, "[, '", vars[3], "'], pch = 16, color = colores)"))
   }
 }
@@ -155,7 +161,7 @@ pca.variables <- function(var.cos = 0, color = 'steelblue'){
 }
 
 pca.sobreposicion <- function(ind.cos = 0, var.cos = 0, col.ind = '#696969', col.var = 'steelblue'){
-  return(paste0("fviz_pca_biplot(pca.modelo, pointsize = 2, pointshape = 16, col.var = '", col.var, "', 
+  return(paste0("fviz_pca_biplot(pca.modelo, pointsize = 2, pointshape = 16, col.var = '", col.var, "',
                  col.ind = '", col.ind, "', select.ind = list(cos2 = ", ind.cos, ") , select.var = list(cos2 = ", var.cos, "))"))
 }
 
@@ -164,7 +170,7 @@ modelo.cor <- function(data = "datos"){
 }
 
 correlaciones <- function(metodo = 'circle', tipo = "lower"){
-  return(paste0("corrplot(correlacion, method='", metodo,"', shade.col=NA, tl.col='black', 
+  return(paste0("corrplot(correlacion, method='", metodo,"', shade.col=NA, tl.col='black',
          tl.srt=20, addCoef.col='black', order='AOE', type = '", tipo, "')"))
 }
 
@@ -185,7 +191,7 @@ default.func.num <- function(){
   axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
   boxplot(var, col = color, boxcol = color, boxlty = 1, boxlwd = 3, boxwex = 1.5,
           edcol = color, medlty = 1, medlwd = 8, medcol = color, whiskcol = color, whisklty = 3,
-          staplecol = color, staplelty = 1, staplelwd = 3, horizontal=TRUE, outline=TRUE, 
+          staplecol = color, staplelty = 1, staplelwd = 3, horizontal=TRUE, outline=TRUE,
           frame=F, whisklwd = 2.5, outpch = 20, outcex = 1.5, outcol = 'red', axes=F)
 }"))
 }
@@ -206,11 +212,11 @@ diagrama <- function(cant = "as.numeric(input$cant.cluster)"){
   return(paste0("modelo <- color_branches(hc.modelo, k = ", cant, ", col = )
 modelo <- color_labels(hc.modelo, k = ", cant, ", col = )
 plot(modelo)"))
-} 
+}
 
 def.code.jambu <- function(data = "datos"){
   return(paste0("codo.jambu(data. = var.numericas(", data, "), k. = 2:10)"))
-} 
+}
 
 def.func.jambu <- function(){
   return(paste0("lead <- function(x){
@@ -222,17 +228,17 @@ codo.jambu <<- function(data. = NULL, k. = NA_integer_, nstart. = 200, iter.max.
   params <- purrr::cross(params)
   models <- purrr::map(params, ~future::future(kmeans(x = .$data, centers = .$k, iter.max = iter.max., nstart = nstart.)))
   models <- future::values(models)
-  tot_withinss <- purrr::map_dbl(models, 'tot.withinss') 
+  tot_withinss <- purrr::map_dbl(models, 'tot.withinss')
   model_index <- head(which(!tot_withinss/lead(tot_withinss) > h.), 1)
   if(length(model_index) == 0)
      model_index <- which.min(tot_withinss)
-                
+
   best_model <- models[[model_index]]
-  res.plot <- ggplot() + geom_point(aes(x = k., y = tot_withinss), size = 2) + 
-  geom_line(aes(x = k., y = tot_withinss), size = 1) + 
-  geom_vline(xintercept = k.[model_index], linetype='dashed', color = 'blue', size=0.8) + 
+  res.plot <- ggplot() + geom_point(aes(x = k., y = tot_withinss), size = 2) +
+  geom_line(aes(x = k., y = tot_withinss), size = 1) +
+  geom_vline(xintercept = k.[model_index], linetype='dashed', color = 'blue', size=0.8) +
   theme_minimal() + labs(x = 'k', y = 'Inercia Intra-Clase') +
-  scale_x_continuous(breaks = seq(1, length(k.), 1)) + scale_y_continuous(labels = scales::comma) 
+  scale_x_continuous(breaks = seq(1, length(k.), 1)) + scale_y_continuous(labels = scales::comma)
   return(res.plot)
 }"))
 }
@@ -254,7 +260,7 @@ default.centros <- function(){
   clusters <- cutree(modelo, k=cant.cluster)
   real <- lapply(unique(clusters), function(i) colMeans(data[clusters == i, ]))
   real <- as.data.frame(do.call('rbind', real))
-                
+
   porcentual <- apply(real, 2, function(i) scales::rescale(i, to = c(0, 100)))
   porcentual <- as.data.frame(porcentual)
   return(list(real = real, porcentual = porcentual))
@@ -289,7 +295,7 @@ if(", sel, " == 'Todos'){
     centros.horizontal.todos(t.centros)
 } else {
     ggplot(data = t.centros, aes(x = row.names(t.centros), y = t.centros[, as.numeric(", sel, ")])) +
-       geom_bar(stat = 'identity', fill = 'steelblue') + scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') + 
+       geom_bar(stat = 'identity', fill = 'steelblue') + scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') +
        coord_flip() + theme_minimal()
 }"))
 }
@@ -300,7 +306,7 @@ if(", sel, " == 'Todos'){
    centros.horizontal.todos(centros)
 } else{
    ggplot(data = centros, aes(x = row.names(centros), y = centros[, as.numeric(", sel, ")])) +
-       geom_bar(stat = 'identity', fill = 'steelblue') + scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') + 
+       geom_bar(stat = 'identity', fill = 'steelblue') + scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') +
        coord_flip() + theme_minimal()
 }"))
 }
@@ -328,14 +334,14 @@ if(", sel, " == 'Todos'){
 cluster.cat <- function(var = "input$sel.kcat.var", cant = "input$cant.cluster"){
   return(paste0("hc.clusters <- cutree(hc.modelo, k=", cant, ")
 NDatos <- cbind(datos, grupo = hc.clusters)
-                ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + 
+                ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) +
                 facet_wrap(~grupo) + theme(text = element_text(size = 10), axis.text.x = element_blank()) +
                 scale_fill_discrete(name='Variable') + labs(x = '', y = '')"))
 }
 
 cluster.kcat <- function(var = "input$sel.kcat.var"){
   return(paste0("NDatos <- cbind(datos, grupo = k.modelo$cluster)
-ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + 
+ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) +
   facet_wrap(~grupo) + theme(text = element_text(size = 10), axis.text.x = element_blank()) +
   scale_fill_discrete(name='Variable') + labs(x = '', y = '')"))
 }
@@ -353,8 +359,8 @@ centros.radar <<- function(centros){
   res$clusteres <- as.character(res$clusteres)
   ggplot(res, aes(x = variables, y = value)) +
     geom_polygon(aes(group = clusteres, color = clusteres, fill = clusteres), alpha=0.3, size = 1, show.legend = FALSE) +
-    geom_point(aes(group = clusteres, color = clusteres), size = 3) + 
-    theme( panel.background = element_rect(fill = 'transparent'), 
+    geom_point(aes(group = clusteres, color = clusteres), size = 3) +
+    theme( panel.background = element_rect(fill = 'transparent'),
            plot.background = element_rect(fill = 'transparent'),
            panel.grid.major = element_line(size = 0.5, linetype = 'solid', colour = '#dddddd'),
           axis.text.x = element_text(size = rel(1.2)),
@@ -362,11 +368,11 @@ centros.radar <<- function(centros){
           axis.ticks = element_blank()) +
     scale_y_continuous(limits=c(-10, 100), breaks=c(0, 25, 50, 75, 100)) +
     ggtitle('Comparación de Clustéres') + xlab('') + ylab('') +
-    geom_text(aes(x = 0.5, y = 0, label = '0%'), size = 3.5, colour = '#dddddd', family = 'Arial') + 
-    geom_text(aes(x = 0.5, y = 25, label = '25%'), size = 3.5, colour = '#dddddd', family = 'Arial') + 
-    geom_text(aes(x = 0.5, y = 50, label = '50%'), size = 3.5, colour = '#dddddd', family = 'Arial') + 
-    geom_text(aes(x = 0.5, y = 75, label = '75%'), size = 3.5, colour = '#dddddd', family = 'Arial') + 
-    geom_text(aes(x = 0.5, y = 100, label = '100%'), size = 3.5, colour = '#dddddd', family = 'Arial') + 
+    geom_text(aes(x = 0.5, y = 0, label = '0%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
+    geom_text(aes(x = 0.5, y = 25, label = '25%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
+    geom_text(aes(x = 0.5, y = 50, label = '50%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
+    geom_text(aes(x = 0.5, y = 75, label = '75%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
+    geom_text(aes(x = 0.5, y = 100, label = '100%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
     coord_radar()
 }"))
 }
@@ -486,10 +492,10 @@ code.kcat <- cluster.kcat()
 
 # aux <- datos.disyuntivos(iris, "Species")
 # k.modelo <<- kmeans(var.numericas(aux), 3, iter.max = 200, nstart = 300)
-# 
+#
 # NDatos <- cbind(aux, grupo = k.modelo$cluster)
-# NDatos <- cbind(NDatos, Species = iris$Species) 
-# ggplot(NDatos, aes(Species)) + geom_bar(aes(fill = Species)) + 
+# NDatos <- cbind(NDatos, Species = iris$Species)
+# ggplot(NDatos, aes(Species)) + geom_bar(aes(fill = Species)) +
 #   facet_wrap(~grupo) + theme(text = element_text(size = 10), axis.text.x = element_blank()) +
 #   scale_fill_discrete(name='Variable') + labs(x = '', y = '')
 
