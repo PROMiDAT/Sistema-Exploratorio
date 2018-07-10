@@ -1,0 +1,13 @@
+Package: PROMIDAT.EXPLORATORIO.SHINY
+Type: Package
+Title: Shiny Exploratorio
+Version: 0.1.0
+Author: Diego
+Maintainer: Diego <Diego@CORREO.net>
+Description: Este paquete hace cosas bonitas.
+License: GPL (>=2)
+Encoding: UTF-8
+LazyData: true
+Imports: shiny, shinyAce, shinydashboard, shinycssloaders, shinyWidgets, colourpicker, shinyjs, knitr, DT, promises, ggplot2, FactoMineR,rstudioapi, factoextra, reshape,corrplot, dendextend,scatterplot3d,stringr
+URL: http://www.promidat.com
+RoxygenNote: 6.0.1
