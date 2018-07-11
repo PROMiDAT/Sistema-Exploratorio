@@ -17,7 +17,7 @@ shinyServer(function(input, output, session) {
   })
 
   observeEvent(input$loadButton, {
-    codigo <- code.carga(nombre.filas = input$columname, ruta = input$file1$datapath,
+    codigo <- code.carga(nombre.filas = input$rowname, ruta = input$file1$datapath,
                          separador = input$sep, sep.decimal = input$dec, encabezado = input$header)
     updateAceEditor(session, "fieldCodeData", value = codigo)
 
@@ -49,6 +49,8 @@ shinyServer(function(input, output, session) {
       isolate(eval(parse(text = default.centros())))
       isolate(eval(parse(text = modelo.cor())))
       isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
+      output$txtpca <- renderPrint(print(unclass(pca.modelo)))
+      output$txtcor <- renderPrint(print(correlacion))
     }, error = function(e) {
       return(datos <- NULL)
     })
@@ -95,16 +97,25 @@ shinyServer(function(input, output, session) {
       isolate(eval(parse(text = default.centros())))
       isolate(eval(parse(text = modelo.cor())))
       isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
+      output$txtpca <- renderPrint(print(unclass(pca.modelo)))
+      output$txtcor <- renderPrint(print(correlacion))
     }, error = function(e) {
       return(datos <- NULL)
     })
   })
 
-  update <- reactive({
-    inFile <- c(input$loadButton, input$transButton)
-    datos
+  mostrarData <- eventReactive(c(input$loadButton, input$transButton), {
+    nombre.columnas <- c("ID", colnames(datos))
+    tipo.columnas <- c("", sapply(colnames(datos),
+                           function(i) ifelse(class(datos[,i]) %in% c("numeric", "integer"), "Numérico", "Categórico")))
+    sketch = htmltools::withTags(table(
+      tableHeader(nombre.columnas),
+      tableFooter(tipo.columnas)
+    ))
+    return(DT::datatable(datos, selection = 'none', editable = TRUE, extensions = 'Buttons', container = sketch,
+              options = list(dom = 'Bfrtip', buttons = list(list(extend = 'csv', filename = "datos", text = 'Descargar')))))
   })
-  output$contents = DT::renderDT(update(), selection = 'none', server = FALSE, editable = TRUE)
+  output$contents = DT::renderDT(mostrarData())
 
   update.trans <- reactive({
     inFile <- c(input$loadButton)
@@ -129,15 +140,16 @@ shinyServer(function(input, output, session) {
     tryCatch({
       updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
       isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
+      output$txtpca <- renderPrint(print(unclass(pca.modelo)))
     }, error = function(e) {
       print(paste0("ERROR EN PCA: ", e))
       return(NULL)
     })
   })
 
-  output$resumen.completo = shiny::renderDataTable({
+  output$resumen.completo = DT::renderDataTable({
     return(obj.resum())
-  }, options = list(dom = 'ft', scrollX = TRUE))
+  }, options = list(dom = 'ft', scrollX = TRUE), rownames = F)
 
   output$resumen = renderUI({
     if(input$sel.resumen %in% colnames(var.numericas(datos))){
@@ -214,8 +226,7 @@ shinyServer(function(input, output, session) {
   })
 
   output$resumen.kmedias = renderUI({
-    kmedias <- kmeans(var.numericas(datos), as.numeric(input$cant.kmeans.cluster), iter.max = 200, nstart = 300)
-    HTML(resumen.kmeans(kmedias))
+    return(obj.inercia())
   })
 
   output$plot.jambu = renderPlot({
@@ -242,8 +253,8 @@ shinyServer(function(input, output, session) {
     return(obj.kcat())
   })
 
-  obj.resum <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeResum), {
-    isolate(eval(parse(text = input$fieldCodeResum)))
+  obj.resum <- eventReactive(c(input$loadButton, input$transButton), {
+    data.frame(unclass(summary(datos)), check.names = FALSE, stringsAsFactors = FALSE)
   })
 
   obj.normal <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeNormal), {
@@ -335,6 +346,10 @@ shinyServer(function(input, output, session) {
     return(isolate(eval(parse(text = code.cat))))
   })
 
+  obj.inercia <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeKModelo), {
+    return(HTML(resumen.kmeans(k.modelo)))
+  })
+
   obj.jambu <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeJambu, input$fieldCodeKModelo, input$fieldFuncJambu), {
     isolate(eval(parse(text = input$fieldFuncJambu)))
     return(isolate(eval(parse(text = input$fieldCodeJambu))))
@@ -422,11 +437,12 @@ shinyServer(function(input, output, session) {
                  input$transButton, input$sel.dist.method, input$sel.hc.method), {
     tryCatch ({
       if(!is.null(datos)){
-        isolate(eval(parse(text = def.model(data = "datos", cant = input$cant.cluster,
-                                          dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))))
-        updateAceEditor(session, "fieldCodeModelo",
-                        value = def.model(data = "datos", cant = input$cant.cluster,
-                                          dist.method = input$sel.dist.method, hc.method = input$sel.hc.method))
+        codigo <- def.model(data = "datos", cant = input$cant.cluster,
+                            dist.method = input$sel.dist.method, hc.method = input$sel.hc.method)
+        isolate(eval(parse(text = codigo)))
+        updateAceEditor(session, "fieldCodeModelo", value = codigo)
+        output$txthc <- renderPrint(print(unclass(hc.modelo)))
+        output$txtcentros <- renderPrint(print(unclass(centros)))
       }
     }, error = function(e) {
       print(paste0("ERROR EN HC: ", e))
@@ -465,10 +481,11 @@ shinyServer(function(input, output, session) {
   observeEvent(c(input$loadButton,
                  input$cant.kmeans.cluster, input$transButton, input$num.iter, input$slider.nstart), {
     tryCatch ({
-      isolate(eval(parse(text = def.k.model(data = "datos", cant = input$cant.kmeans.cluster,
-                                            iter.max = input$num.iter, nstart = input$slider.nstart))))
-      updateAceEditor(session, "fieldCodeKModelo", value = def.k.model(data = "datos", cant = input$cant.kmeans.cluster,
-                                                                       iter.max = input$num.iter, nstart = input$slider.nstart))
+      codigo <- def.k.model(data = "datos", cant = input$cant.kmeans.cluster,
+                            iter.max = input$num.iter, nstart = input$slider.nstart)
+      isolate(eval(parse(text = codigo)))
+      updateAceEditor(session, "fieldCodeKModelo", value = codigo)
+      output$txtk <- renderPrint(print(unclass(k.modelo)))
     }, error = function(e) {
       return(NULL)
     })

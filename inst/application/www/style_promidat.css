@@ -48,6 +48,26 @@
     z-index: -2;
 }
 
+#txtpca { 
+  height: 76vh; 
+}
+
+#txtcor { 
+  height: 76vh; 
+}
+
+#txtk { 
+  height: 70vh; 
+}
+
+#txthc { 
+  height: 43vh; 
+}
+
+#txtcentros { 
+  height: 22vh; 
+}
+
 .box {
     background-color: #777777;
     color: #CBB051;
@@ -103,6 +123,11 @@ input[type="checkbox"]:before, input[type="checkbox"]:checked:before {
  text-align:center;
  color:#fff;
  content: '✘';
+}
+
+.colourpicker-panel {
+    right: 0;
+    left: auto;
 }
 
 input[type="checkbox"]:checked:before {

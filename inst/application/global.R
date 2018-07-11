@@ -1,6 +1,10 @@
 datos <<- NULL
 datos.originales <<- NULL
 centros <<- NULL
+hc.modelo <<- NULL
+pca.modelo <<- NULL
+k.modelo <<- NULL
+correlacion<<- NULL
 
 var.numericas <- function(data){
   if(is.null(data)) return(NULL)
@@ -116,11 +120,11 @@ default.normal <- function(data = "datos", vars = NULL){
     return(NULL)
   } else {
     return(paste0("color <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 140, maxColorValue = 255)
-                  hist(", data, "[, '", vars, "'], col = color, border=F, main = paste0('Test de normalidad de la variable ','", vars,"'), axes=F, freq = F)
-                  axis(1, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
-                  axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
-                  curve(dnorm(x, mean = mean(", data, "[, '", vars, "']), sd = sd(", data, "[, '", vars, "'])), add=T, col='blue', lwd=2)
-                  legend('bottom', legend = 'Curva Normal', col = 'blue', lty=1, cex=1.5)"))
+hist(", data, "[, '", vars, "'], col = color, border=F, main = paste0('Test de normalidad de la variable ','", vars,"'), axes=F, freq = F)
+axis(1, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
+axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
+curve(dnorm(x, mean = mean(", data, "[, '", vars, "']), sd = sd(", data, "[, '", vars, "'])), add=T, col='blue', lwd=2)
+legend('bottom', legend = 'Curva Normal', col = 'blue', lty=1, cex=1.5)"))
   }
 }
 

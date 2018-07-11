@@ -27,28 +27,6 @@ library(dendextend)
 library(scatterplot3d)
 library(stringr)
 
-codigo.color <- '<div class="colourpicker-input-container">
-	<input id="col.pca.ind" class="form-control shiny-colour-input colourpicker-input shiny-bound-input" data-init-value="#696969"
-         data-show-colour="both" data-palette="square" data-allow-alpha="true" spellcheck="false"
-         size="7" style="color: rgb(221, 221, 221); background-color: rgb(105, 105, 105);" type="text">
-  <div class="colourpicker-panel" style="display: none;">
-      <div class="colourpicker-slider colourpicker-sprite">
-          <div class="colourpicker-slider-picker" style="top: 150px;"></div>
-      </div>
-      <div class="colourpicker-alpha-slider">
-         <div class="colourpicker-alpha-inner-slider"
-            style="background: rgba(0, 0, 0, 0) linear-gradient(rgb(105, 105, 105) 0px, rgba(105, 105, 105, 0) 100%) repeat scroll 0% 0%;"></div>
-         <div class="colourpicker-slider-picker" style="top: 0px;"></div>
-      </div>
-      <div class="colourpicker-grid">
-          <div class="colourpicker-grid-inner colourpicker-sprite" style="background-color: rgb(255, 0, 0);">
-              <div class="colourpicker-grid-inner-2"></div>
-          </div>
-          <div class="colourpicker-picker" style="top: 88px; left: 0px;"></div>
-      </div>
-  </div>
-</div>'
-
 # Define UI for application that draws a histogram
 shinyUI(dashboardPage(
   dashboardHeader(title = tags$a(href="http://promidat.com",
@@ -64,7 +42,7 @@ shinyUI(dashboardPage(
                          menuSubItem("Distribuciones", tabName = "distribucion", icon = icon("th")),
                          menuSubItem("Correlación", tabName = "correlacion", icon = icon("th"))),
                 menuItem("ACP", tabName = "acp", icon = icon("th")),
-                menuItem("Clusterización", tabName = "agrupacion", icon = icon("th")),
+                menuItem("Cluster Jerárquico", tabName = "agrupacion", icon = icon("th")),
                 menuItem("K-Medias", tabName = "kmedias", icon = icon("th")),
                 menuItem("Generar Reporte", tabName = "reporte", icon = icon("th")),
 
@@ -92,7 +70,6 @@ shinyUI(dashboardPage(
                 ),
                 conditionalPanel(
                   condition = "input.principal == 'agrupacion'",
-                  sliderInput(inputId = "cant.cluster", label = "Cantidad de Clusters:", min = 2, max = 10, value = 2),
                   conditionalPanel(
                     condition = "input.tabjerar == 'Horizontal'",
                     selectInput(inputId = "sel.cluster", label = "Seleccionar Cluster:", choices =  "")),
@@ -106,7 +83,6 @@ shinyUI(dashboardPage(
                 ),
                 conditionalPanel(
                   condition = "input.principal == 'kmedias'",
-                  sliderInput(inputId = "cant.kmeans.cluster", label = "Cantidad de Clusters:", min = 2, max = 10, value = 2),
                   conditionalPanel(
                     condition = "input.tabkmedias== 'Horizontal'",
                     selectInput(inputId = "sel.kmeans.cluster", label = "Seleccionar Cluster:", choices =  "")),
@@ -118,13 +94,6 @@ shinyUI(dashboardPage(
                     selectInput(inputId = "sel.kcat.var", label = "Seleccionar Variable:", choices =  "")
                   )
                 )
-                #tags$div(style = (""),
-                #tags$div(style = ("float:left; width: 40px; padding-left:5px;"), HTML(codigo.color)),
-                #tags$div(style = ("float:left; width: 40px; padding-left:5px;"), HTML(codigo.color)),
-                #tags$div(style = ("float:left; width: 40px; padding-left:5px;"), HTML(codigo.color)),
-                #tags$div(style = ("float:left; width: 40px; padding-left:5px;"), HTML(codigo.color)),
-                #tags$div(style = ("float:left; width: 40px; padding-left:5px;"), HTML(codigo.color))
-                #)
     )
   ),
 
@@ -142,12 +111,11 @@ shinyUI(dashboardPage(
                      tabBox(title = NULL, width = 12,
                        tabPanel(title = "Cargar", width = 12, solidHeader = FALSE, collapsible = FALSE, collapsed = FALSE,
                        checkboxInput('header', 'Encabezado (Header)', TRUE),
-                       checkboxInput('columname', 'Incluir nombre de filas', TRUE),
+                       checkboxInput('rowname', 'Incluir nombre de filas', TRUE),
                        radioButtons('sep', 'Seperador', c(Coma=',', 'Punto y Coma'=';', Tab='\t'), selected = 'Coma'),
                        radioButtons('dec', 'Separador Decimal', c('Punto'='.', 'Coma'=","), selected = 'Punto'),
-                       fileInput('file1', 'Cargar Archivo',
-                                 accept = c('text/csv', 'text/comma-separated-values, text/plain', '.csv'), buttonLabel = "Subir",
-                                 placeholder = ""),
+                       fileInput('file1', label = 'Cargar Archivo', placeholder = "", buttonLabel = "Subir", width = "100%",
+                                 accept = c('text/csv', 'text/comma-separated-values, text/plain', '.csv')),
                        actionButton("loadButton", "Cargar", width = "100%"),
                        hr(),
                        aceEditor("fieldCodeData", mode = "r", theme = "monokai", value = "", height = "15vh", readOnly = T)
@@ -169,7 +137,7 @@ shinyUI(dashboardPage(
       tabItem(tabName = "resumen",
               column(width = 7,
                      box(title = "Resumen Numérico", status = "primary",
-                         width = 12, solidHeader = TRUE, collapsible = TRUE, shiny::dataTableOutput("resumen.completo"),
+                         width = 12, solidHeader = TRUE, collapsible = TRUE, DT::dataTableOutput("resumen.completo"), hr(),
                          aceEditor("fieldCodeResum", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
                      )
               ),
@@ -204,23 +172,22 @@ shinyUI(dashboardPage(
 
       #Correlaciones
       tabItem(tabName = "correlacion",
-              fluidRow(
-                column(width = 6,
-                       dropdownButton(
-                         h4("Opciones"),
-                         selectInput(inputId = "cor.metodo", label = "Seleccionar Método",
-                                     choices =  c("circle", "square", "ellipse", "number", "shade", "color", "pie")),
-                         selectInput(inputId = "cor.tipo", label = "Seleccionar Tipo", choices =  c("lower", "upper", "full")),
-                         circle = F, status = "danger", icon = icon("gear"), width = "300px",
-                         tooltip = tooltipOptions(title = "Clic para ver opciones")
-              ))),
-              #withSpinner(plotOutput('plot.cor', height = "84vh"), type = 7, color = "#CBB051"),
-              plotOutput('plot.cor', height = "80vh"),
-              fluidRow(
-                column(width = 4,
-                       aceEditor("fieldModelCor", mode = "r", theme = "monokai", value = "", height = "6vh", autoComplete = "enabled")),
-                column(width = 8,
-                       aceEditor("fieldCodeCor", mode = "r", theme = "monokai", value = "", height = "6vh", autoComplete = "enabled")))
+              column(width = 12,
+                     tabBox(id = "tabCor", width = NULL, title =
+                            dropdownButton(h4("Opciones"),
+                                           selectInput(inputId = "cor.metodo", label = "Seleccionar Método",
+                                                       choices =  c("circle", "square", "ellipse", "number", "shade", "color", "pie")),
+                                           selectInput(inputId = "cor.tipo", label = "Seleccionar Tipo", choices =  c("lower", "upper", "full")),
+                                           circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
+                                           tooltip = tooltipOptions(title = "Clic para ver opciones")),
+                            #withSpinner(plotOutput('plot.cor', height = "84vh"), type = 7, color = "#CBB051"),
+                            tabPanel(title = 'Correlación', value = "correlacion", plotOutput('plot.cor', height = "76vh"),
+                                     fluidRow(column(width = 4, aceEditor("fieldModelCor", mode = "r", theme = "monokai", value = "",
+                                                                          height = "6vh", autoComplete = "enabled")),
+                                              column(width = 8, aceEditor("fieldCodeCor", mode = "r", theme = "monokai", value = "",
+                                                                          height = "6vh", autoComplete = "enabled")))),
+                            tabPanel(title = 'Salida Código', value = "cor.salida", verbatimTextOutput("txtcor")))
+              )
       ),
 
       #PCA
@@ -249,7 +216,8 @@ shinyUI(dashboardPage(
                                              tooltip = tooltipOptions(title = "Clic para ver opciones")), width = NULL,
                             tabPanel(title = 'Individuos', value = "individuos", plotOutput('plot.ind', height = "76vh")),
                             tabPanel(title = 'Variables', value = "variables", plotOutput('plot.var', height = "76vh")),
-                            tabPanel(title = 'Sobreposición', value = "sobreposicion", plotOutput('plot.biplot', height = "76vh"))
+                            tabPanel(title = 'Sobreposición', value = "sobreposicion", plotOutput('plot.biplot', height = "76vh")),
+                            tabPanel(title = 'Salida Código', value = "pca.salida", verbatimTextOutput("txtpca"))
                      ),
                      column(width = 5,
                             aceEditor("fieldCodePCAModelo", mode = "r", theme = "monokai", value = "",
@@ -274,7 +242,7 @@ shinyUI(dashboardPage(
                      tabBox(id = "tabDyA",
                             title = fluidRow(
                               column(width = 6,
-                                     dropdownButton(h4("Codigo"),
+                                     dropdownButton(h4("Código"),
                                                     h5("Grafico de la Distribución (Numéricas)"),
                                                     aceEditor("fieldFuncNum", mode = "r", theme = "monokai", value = "",
                                                               height = "20vh", autoComplete = "enabled"),
@@ -282,7 +250,7 @@ shinyUI(dashboardPage(
                                                     aceEditor("fieldFuncCat", mode = "r", theme = "monokai", value = "",
                                                               height = "20vh", autoComplete = "enabled"),
                                                     circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
-                                                    tooltip = tooltipOptions(title = "Clic para ver el codigo"))),
+                                                    tooltip = tooltipOptions(title = "Clic para ver el código"))),
                               column(width = 5,
                                      dropdownButton(h4("Opciones"),
                                                     colourpicker::colourInput("col.dist", "Seleccionar Color:",
@@ -309,7 +277,7 @@ shinyUI(dashboardPage(
                      tabBox(id = "tabjerar", title =
                               fluidRow(
                                 column(width = 6,
-                                       dropdownButton(h4("Codigo"),
+                                       dropdownButton(h4("Código"),
                                             h5("Calculo de los centros"),
                                             aceEditor("fieldCodeCentr", mode = "r", theme = "monokai",
                                                       value = "", height = "25vh", autoComplete = "enabled"),
@@ -329,22 +297,34 @@ shinyUI(dashboardPage(
                                               aceEditor("fieldFuncRadar", mode = "r", theme = "monokai",
                                                         value = "", height = "30vh", autoComplete = "enabled")),
                                             circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
-                                            tooltip = tooltipOptions(title = "Clic para ver el codigo"))),
+                                            tooltip = tooltipOptions(title = "Clic para ver el código"))),
 
                                 column(width = 5,
                                        dropdownButton(h4("Opciones"),
-                                            selectInput(inputId = "sel.hc.method", label = "Método Jerarquico", selectize = T,
-                                                        choices =  c("ward.D2", "single", "complete", "average")),
-                                            selectInput(inputId = "sel.dist.method", label = "Método para la Distancia", selectize = T,
-                                                        choices =  c("euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski")),
-                                            circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
-                                            tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
+                                          sliderInput(inputId = "cant.cluster", label = "Cantidad de Clusters:", min = 2, max = 10, value = 2),
+                                          selectInput(inputId = "sel.hc.method", label = "Método Jerarquico", selectize = T,
+                                                      choices =  c("ward.D2", "single", "complete", "average")),
+                                          selectInput(inputId = "sel.dist.method", label = "Método para la Distancia", selectize = T,
+                                                      choices =  c("euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski")),
+                                          #h5("Seleccionar Colores"),
+                                          HTML("<label class='control-label'>Seleccionar Colores: </label>"),
+                                          fluidRow(
+                                            shiny::column(width = 2, colourpicker::colourInput("color1", NULL, allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("color2", NULL, allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("color3", NULL, allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("color4", NULL, allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("color5", NULL, allowTransparent = T))
+                                          ),
+                                          circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
+                                          tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
                             tabPanel(title = 'Diagrama', plotOutput('plot.diag', height = "71vh")),
                             tabPanel(title = 'Mapa', plotOutput('plot.mapa', height = "71vh")),
                             tabPanel(title = 'Horizontal', plotOutput('plot.horiz', height = "71vh")),
                             tabPanel(title = 'Vertical', plotOutput('plot.vert', height = "71vh")),
                             tabPanel(title = 'Radar', plotOutput('plot.radar', height = "71vh")),
-                            tabPanel(title = 'Barras', value = "hcbarras", plotOutput('plot.bar.cat', height = "71vh"))
+                            tabPanel(title = 'Barras', value = "hcbarras", plotOutput('plot.bar.cat', height = "71vh")),
+                            tabPanel(title = 'Salida Código', value = "salida.hc", verbatimTextOutput("txthc"),
+                                     hr(), verbatimTextOutput("txtcentros"))
                      ),
                      fluidRow(
                        column(width = 6,
@@ -379,7 +359,7 @@ shinyUI(dashboardPage(
                      tabBox(id = "tabkmedias", title =
                               fluidRow(
                                 column(width = 6,
-                                       dropdownButton(h4("Codigo"),
+                                       dropdownButton(h4("Código"),
                                                       conditionalPanel(
                                                         condition = "input.tabkmedias == 'codoJambu'",
                                                         h5("Calculo del Codo de Jambu"),
@@ -401,10 +381,11 @@ shinyUI(dashboardPage(
                                                         aceEditor("fieldFuncKradar", mode = "r", theme = "monokai",
                                                                   value = "", height = "40vh", autoComplete = "enabled")),
                                                       circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
-                                                      tooltip = tooltipOptions(title = "Clic para ver el codigo"))),
+                                                      tooltip = tooltipOptions(title = "Clic para ver el código"))),
 
                                 column(width = 5,
                                        dropdownButton(h4("Opciones"),
+                                       sliderInput(inputId = "cant.kmeans.cluster", label = "Cantidad de Clusters:", min = 2, max = 10, value = 2),
                                                       sliderInput("slider.nstart", "Cantidad de Centros al azar", min = 10, max = 100,
                                                                   value = 100, step = 10),
                                                       numericInput("num.iter", label = "Número de Iteraciones", step = 100, value = 100),
@@ -417,7 +398,8 @@ shinyUI(dashboardPage(
                             tabPanel(title = 'Horizontal', plotOutput('plot.khoriz', height = "71vh")),
                             tabPanel(title = 'Vertical', plotOutput('plot.kvert', height = "71vh")),
                             tabPanel(title = 'Radar', plotOutput('plot.kradar', height = "71vh")),
-                            tabPanel(title = 'Barras', value = "kbarras", plotOutput('plot.kcat', height = "71vh"))
+                            tabPanel(title = 'Barras', value = "kbarras", plotOutput('plot.kcat', height = "71vh")),
+                            tabPanel(title = 'Salida Código', value = "salida.k", verbatimTextOutput("txtk"))
                      ),
                      fluidRow(
                        column(width = 6,
@@ -451,7 +433,7 @@ shinyUI(dashboardPage(
               column(width = 5,
                      tabBox(width = 12, id = "tabReporte",
                             tabPanel(title = "Reporte", width = 12),
-                            tabPanel(title = "Codigo", width = 12, aceEditor("fieldCodeReport", mode="markdown", value=''))),
+                            tabPanel(title = "Código", width = 12, aceEditor("fieldCodeReport", mode="markdown", value=''))),
                      downloadButton("descargar", "Descargar", style = "position: relative; left: 40%")),
               column(width = 7,
                      box(title = "Vista Previa", width = 12, height = "90vh", status = "primary", solidHeader = TRUE,
