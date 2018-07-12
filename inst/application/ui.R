@@ -246,7 +246,7 @@ shinyUI(dashboardPage(
                                                     h5("Grafico de la Distribución (Numéricas)"),
                                                     aceEditor("fieldFuncNum", mode = "r", theme = "monokai", value = "",
                                                               height = "20vh", autoComplete = "enabled"),
-                                                    h5("Grafico de la Distribución (Categoricas)"),
+                                                    h5("Grafico de la Distribución (Categóricas)"),
                                                     aceEditor("fieldFuncCat", mode = "r", theme = "monokai", value = "",
                                                               height = "20vh", autoComplete = "enabled"),
                                                     circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
@@ -264,7 +264,7 @@ shinyUI(dashboardPage(
                                        column(width = 6,
                                               DT::dataTableOutput("mostrar.atipicos")))
                             ),
-                            tabPanel(title = 'Categoricas', value = "categoricas", plotOutput('plot.cat', height = "76vh"),
+                            tabPanel(title = 'Categóricas', value = "categoricas", plotOutput('plot.cat', height = "76vh"),
                                      aceEditor("fieldCodeCat", mode = "r", theme = "monokai", value = "", height = "6vh", autoComplete = "enabled")
                             )
                      )
@@ -308,7 +308,28 @@ shinyUI(dashboardPage(
                                                       choices =  c("euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski")),
                                           HTML("<label class='control-label'>Seleccionar Colores: </label>"),
                                           fluidRow(
-                                            uiOutput("hcColores")
+                                            #uiOutput("hcColores")
+                                            shiny::column(width = 2, colourpicker::colourInput("hcColor1",
+                                                                                               NULL, value = "#F8766D", allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("hcColor2",
+                                                                                               NULL, value = "#00BFC4", allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("hcColor3",
+                                                                                               NULL, value = "#00BA38", allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("hcColor4",
+                                                                                               NULL, value = "#C77CFF", allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("hcColor5",
+                                                                                               NULL, value = "#00B0F6", allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("hcColor6",
+                                                                                               NULL, value = "#EEEE00", allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("hcColor7",
+                                                                                               NULL, value = "#CD661D", allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("hcColor8",
+                                                                                               NULL, value = "#006400", allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("hcColor9",
+                                                                                               NULL, value = "#EE82EE", allowTransparent = T)),
+                                            shiny::column(width = 2, colourpicker::colourInput("hcColor10",
+                                                                                               NULL, value = "#000080", allowTransparent = T))
+
                                           ),
                                           circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                           tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,

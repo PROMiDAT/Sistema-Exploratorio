@@ -67,6 +67,9 @@ shinyServer(function(input, output, session) {
         if(input[[paste0("sel", var)]] == "numerico" & !(class(datos.originales[, var]) %in% c("numeric","integer"))) {
           code.res <- paste0(code.res, code.trans(var, "numerico"), "\n")
         }
+        if(input[[paste0("sel", var)]] == "disyuntivo"){
+          code.res <- paste0(code.res, code.trans(var, "disyuntivo"), "\n")
+        }
       } else {
         var.noactivas <- c(var.noactivas, var)
       }
@@ -123,7 +126,7 @@ shinyServer(function(input, output, session) {
     res <-  data.frame(Variables = colnames(datos), Tipo = c(1:n), Activa = c(1:n))
     res$Tipo <- sapply(colnames(datos), function(i) paste0('<select id="sel', i, '"> <option value="categorico">Categórico</option>
       <option value="numerico" ', ifelse(class(datos[, i]) %in% c("numeric","integer"), ' selected="selected"', ''),
-      '>Numérico</option> </select>'))
+      '>Numérico</option> <option value="disyuntivo">Disyuntivo</option> </select>'))
     res$Activa <- sapply(colnames(datos), function(i) paste0('<input type="checkbox" id="box', i, '" checked/>'))
     return(res)
   })
@@ -261,14 +264,14 @@ shinyServer(function(input, output, session) {
     return(obj.kcat())
   })
 
-  obj.hc.colores <- eventReactive(input$cant.cluster, {
+  obj.hc.colores <- eventReactive(c(input$loadButton, input$cant.cluster), {
     salida <- lapply(1:input$cant.cluster, function(i) {
       shiny::column(width = 2, colourpicker::colourInput(paste0("hcColor", i), NULL, value = def.colores[i], allowTransparent = T))
     })
     do.call(tagList, salida)
   })
 
-  obj.k.colores <- eventReactive(input$cant.kmeans.cluster, {
+  obj.k.colores <- eventReactive(c(input$loadButton, input$cant.kmeans.cluster), {
     salida <- lapply(1:input$cant.kmeans.cluster, function(i) {
       shiny::column(width = 2, colourpicker::colourInput(paste0("kColor", i), NULL, value = def.colores[i], allowTransparent = T))
     })
@@ -471,7 +474,9 @@ shinyServer(function(input, output, session) {
       return(NULL)
     })
 
-    code.diagrama <<- diagrama(cant = input$cant.cluster, colores = input$hcColores)
+    colores <- sapply(1:input$cant.cluster, function(i) paste0("'", input[[paste0("hcColor", i)]], "'"))
+    print(colores)
+    code.diagrama <<- diagrama(cant = input$cant.cluster, colores = colores)
     code.mapa <<- cluster.mapa(cant = input$cant.cluster)
     code.horiz <<- cluster.horiz(sel = paste0("'", input$sel.cluster, "'"))
     code.vert <<- cluster.vert(sel = paste0("'", input$sel.cluster, "'"))
