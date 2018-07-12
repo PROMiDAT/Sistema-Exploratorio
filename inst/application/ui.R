@@ -77,7 +77,7 @@ shinyUI(dashboardPage(
                     condition = "input.tabjerar == 'Vertical'",
                     selectInput(inputId = "sel.verticales", label = "Seleccionar Variable:", choices =  "")),
                   conditionalPanel(
-                    condition = "input.tabjerar == 'Barras'",
+                    condition = "input.tabjerar == 'hcbarras'",
                     selectInput(inputId = "sel.cat.var", label = "Seleccionar Variable:", choices =  "")
                   )
                 ),
@@ -90,7 +90,7 @@ shinyUI(dashboardPage(
                     condition = "input.tabkmedias == 'Vertical'",
                     selectInput(inputId = "sel.kmeans.verticales", label = "Seleccionar Variable:", choices =  "")),
                   conditionalPanel(
-                    condition = "input.tabkmedias == 'Barras'",
+                    condition = "input.tabkmedias == 'kbarras'",
                     selectInput(inputId = "sel.kcat.var", label = "Seleccionar Variable:", choices =  "")
                   )
                 )
@@ -100,6 +100,7 @@ shinyUI(dashboardPage(
   dashboardBody(
     tags$head(
       tags$link(rel = "stylesheet", type = "text/css", href = "style_promidat.css"),
+      tags$link(rel = "icon", type = "image", href = "http://www.promidat.org/theme/image.php/formal_white/theme/1438713216/favicon"),
       useShinyjs()
     ),
 
@@ -186,7 +187,7 @@ shinyUI(dashboardPage(
                                                                           height = "6vh", autoComplete = "enabled")),
                                               column(width = 8, aceEditor("fieldCodeCor", mode = "r", theme = "monokai", value = "",
                                                                           height = "6vh", autoComplete = "enabled")))),
-                            tabPanel(title = 'Salida Código', value = "cor.salida", verbatimTextOutput("txtcor")))
+                            tabPanel(title = 'Código Modelo', value = "cor.salida", verbatimTextOutput("txtcor")))
               )
       ),
 
@@ -217,7 +218,7 @@ shinyUI(dashboardPage(
                             tabPanel(title = 'Individuos', value = "individuos", plotOutput('plot.ind', height = "76vh")),
                             tabPanel(title = 'Variables', value = "variables", plotOutput('plot.var', height = "76vh")),
                             tabPanel(title = 'Sobreposición', value = "sobreposicion", plotOutput('plot.biplot', height = "76vh")),
-                            tabPanel(title = 'Salida Código', value = "pca.salida", verbatimTextOutput("txtpca"))
+                            tabPanel(title = 'Código Modelo', value = "pca.salida", verbatimTextOutput("txtpca"))
                      ),
                      column(width = 5,
                             aceEditor("fieldCodePCAModelo", mode = "r", theme = "monokai", value = "",
@@ -308,7 +309,6 @@ shinyUI(dashboardPage(
                                                       choices =  c("euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski")),
                                           HTML("<label class='control-label'>Seleccionar Colores: </label>"),
                                           fluidRow(
-                                            #uiOutput("hcColores")
                                             shiny::column(width = 2, colourpicker::colourInput("hcColor1",
                                                                                                NULL, value = "#F8766D", allowTransparent = T)),
                                             shiny::column(width = 2, colourpicker::colourInput("hcColor2",
@@ -338,8 +338,8 @@ shinyUI(dashboardPage(
                             tabPanel(title = 'Horizontal', plotOutput('plot.horiz', height = "71vh")),
                             tabPanel(title = 'Vertical', plotOutput('plot.vert', height = "71vh")),
                             tabPanel(title = 'Radar', plotOutput('plot.radar', height = "71vh")),
-                            tabPanel(title = 'Barras', value = "hcbarras", plotOutput('plot.bar.cat', height = "71vh")),
-                            tabPanel(title = 'Salida Código', value = "salida.hc", verbatimTextOutput("txthc"),
+                            tabPanel(title = 'Interpretación Categórico', value = "hcbarras", plotOutput('plot.bar.cat', height = "71vh")),
+                            tabPanel(title = 'Código Modelo', value = "salida.hc", verbatimTextOutput("txthc"),
                                      hr(), verbatimTextOutput("txtcentros"))
                      ),
                      fluidRow(
@@ -363,7 +363,7 @@ shinyUI(dashboardPage(
                                 condition = "input.tabjerar == 'Radar'",
                                 aceEditor("fieldCodeRadar", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
                               conditionalPanel(
-                                condition = "input.tabjerar == 'Barras'",
+                                condition = "input.tabjerar == 'hcbarras'",
                                 aceEditor("fieldCodeBarras", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled"))
                        ))
               )
@@ -407,7 +407,26 @@ shinyUI(dashboardPage(
                                        numericInput("num.iter", label = "Número de Iteraciones", step = 100, value = 100),
                                        HTML("<label class='control-label'>Seleccionar Colores: </label>"),
                                        fluidRow(
-                                         uiOutput("kColores")
+                                         shiny::column(width = 2, colourpicker::colourInput("kColor1",
+                                                                                            NULL, value = "#F8766D", allowTransparent = T)),
+                                         shiny::column(width = 2, colourpicker::colourInput("kColor2",
+                                                                                            NULL, value = "#00BFC4", allowTransparent = T)),
+                                         shiny::column(width = 2, colourpicker::colourInput("kColor3",
+                                                                                            NULL, value = "#00BA38", allowTransparent = T)),
+                                         shiny::column(width = 2, colourpicker::colourInput("kColor4",
+                                                                                            NULL, value = "#C77CFF", allowTransparent = T)),
+                                         shiny::column(width = 2, colourpicker::colourInput("kColor5",
+                                                                                            NULL, value = "#00B0F6", allowTransparent = T)),
+                                         shiny::column(width = 2, colourpicker::colourInput("kColor6",
+                                                                                            NULL, value = "#EEEE00", allowTransparent = T)),
+                                         shiny::column(width = 2, colourpicker::colourInput("kColor7",
+                                                                                            NULL, value = "#CD661D", allowTransparent = T)),
+                                         shiny::column(width = 2, colourpicker::colourInput("kColor8",
+                                                                                            NULL, value = "#006400", allowTransparent = T)),
+                                         shiny::column(width = 2, colourpicker::colourInput("kColor9",
+                                                                                            NULL, value = "#EE82EE", allowTransparent = T)),
+                                         shiny::column(width = 2, colourpicker::colourInput("kColor10",
+                                                                                            NULL, value = "#000080", allowTransparent = T))
                                        ),
                                        circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                        tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
@@ -417,8 +436,8 @@ shinyUI(dashboardPage(
                             tabPanel(title = 'Horizontal', plotOutput('plot.khoriz', height = "71vh")),
                             tabPanel(title = 'Vertical', plotOutput('plot.kvert', height = "71vh")),
                             tabPanel(title = 'Radar', plotOutput('plot.kradar', height = "71vh")),
-                            tabPanel(title = 'Barras', value = "kbarras", plotOutput('plot.kcat', height = "71vh")),
-                            tabPanel(title = 'Salida Código', value = "salida.k", verbatimTextOutput("txtk"))
+                            tabPanel(title = 'Interpretación Categórico', value = "kbarras", plotOutput('plot.kcat', height = "71vh")),
+                            tabPanel(title = 'Código Modelo', value = "salida.k", verbatimTextOutput("txtk"))
                      ),
                      fluidRow(
                        column(width = 6,
@@ -441,7 +460,7 @@ shinyUI(dashboardPage(
                                 condition = "input.tabkmedias == 'Radar'",
                                 aceEditor("fieldCodeKradar", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
                               conditionalPanel(
-                                condition = "input.tabkmedias == 'Barras'",
+                                condition = "input.tabkmedias == 'kbarras'",
                                 aceEditor("fieldCodeKbarras", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled"))
                      ))
               )

@@ -218,9 +218,9 @@ default.func.cat <- function(){
 }"))
 }
 
-diagrama <- function(cant = "as.numeric(input$cant.cluster)", colores = def.colores){
+diagrama <- function(cant = "as.numeric(input$cant.cluster)", colores = "'steelblue'"){
   return(paste0("modelo <- color_branches(hc.modelo, k = ", cant, ", col = c(", paste(colores, collapse = ","), "))\n",
-                "modelo <- color_labels(hc.modelo, k = ", cant, ", col = c(", paste(colores, collapse = ","), "))\n",
+                "modelo <- color_labels(modelo, k = ", cant, ", col = c(", paste(colores, collapse = ","), "))\n",
                 "plot(modelo)"))
 }
 
@@ -253,15 +253,15 @@ codo.jambu <<- function(data. = NULL, k. = NA_integer_, nstart. = 200, iter.max.
 }"))
 }
 
-cluster.mapa <- function(cant = "as.numeric(input$cant.cluster)"){
+cluster.mapa <- function(cant = "as.numeric(input$cant.cluster)", colores = "'steelblue'"){
   return(paste0("res.hcpc <- HCPC(pca.modelo, nb.clust = -1, consol = TRUE, min = ", cant, ", max = ", cant, ", graph = FALSE)
-fviz_pca_biplot(pca.modelo, col.ind = res.hcpc$data.clust$clust, palette = 'jco', addEllipses = T,
+fviz_pca_biplot(pca.modelo, col.ind = res.hcpc$data.clust$clust, palette = c(", paste(colores, collapse = ","), "), addEllipses = T,
                 label = 'var', col.var = 'steelblue', repel = TRUE, legend.title = 'Clúster')"))
 }
 
-cluster.kmapa <- function(){
-  return(paste0("fviz_pca_biplot(pca.modelo, col.ind = as.factor(k.modelo$cluster), palette = 'jco', addEllipses = T,
-                label = 'var', col.var = 'steelblue', repel = TRUE, legend.title = 'Clúster')"))
+cluster.kmapa <- function(colores = "'steelblue'"){
+  return(paste0("fviz_pca_biplot(pca.modelo, col.ind = as.factor(k.modelo$cluster), palette = c(", paste(colores, collapse = ","), "),
+                 addEllipses = T, label = 'var', col.var = 'steelblue', repel = TRUE, legend.title = 'Clúster')"))
 }
 
 default.centros <- function(){
@@ -283,9 +283,9 @@ default.horiz <- function(){
   var <- row.names(centros)
   centros <- cbind(centros, var)
   centros <- melt(centros, id.vars = 'var')
-  ggplot(centros, aes(x=var, y=value)) + geom_bar(stat='identity', position='dodge') +
-     scale_fill_discrete(name='Variable') + labs(x = '', y = '') + facet_wrap(~variable) + coord_flip() +
-     theme_minimal() + theme(text = element_text(size = 20))
+  ggplot(centros, aes(x=var, y=value)) + geom_bar(stat='identity', position='dodge', show.legend = F) +
+     labs(x = '', y = '') + facet_wrap(~variable) + coord_flip() +
+     theme(text = element_text(size = 20)) + aes(fill = variable)
 }"))
 }
 
@@ -294,50 +294,53 @@ default.vert <- function(){
   cluster <- c(1:nrow(centros))
   centros <- cbind(centros, cluster)
   centros <- melt(centros, id.vars = 'cluster')
-  ggplot(centros, aes(x=variable, y=value, fill=factor(cluster))) + geom_bar(stat='identity', position='dodge') +
-                scale_fill_discrete(name='Clúster') + labs(x = '', y = '')
+  ggplot(centros, aes(x=variable, y=value, fill=factor(cluster))) +
+    geom_bar(stat='identity', position='dodge') + labs(x = '', y = '')
 }"))
 }
 
-cluster.horiz <- function(sel = "input$sel.cluster"){
+cluster.horiz <- function(sel = "1", colores = "'steelblue'", color = "red"){
   return(paste0("t.centros <- as.data.frame(t(centros$real))
 if(", sel, " == 'Todos'){
-    centros.horizontal.todos(t.centros)
+    centros.horizontal.todos(t.centros) + scale_fill_manual(values = c(", paste(colores, collapse = ","), "))
 } else {
     ggplot(data = t.centros, aes(x = row.names(t.centros), y = t.centros[, as.numeric(", sel, ")])) +
-       geom_bar(stat = 'identity', fill = 'steelblue') + scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') +
+       geom_bar(stat = 'identity', fill = ", color, ") +
+       scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') +
        coord_flip() + theme_minimal()
 }"))
 }
 
-cluster.khoriz <- function(sel = "input$sel.kmeans.cluster"){
+cluster.khoriz <- function(sel = "1", colores = "'steelblue'", color = "red"){
   return(paste0("centros <- as.data.frame(t(k.modelo$centers))
 if(", sel, " == 'Todos'){
-   centros.horizontal.todos(centros)
+   centros.horizontal.todos(centros) + scale_fill_manual(values = c(", paste(colores, collapse = ","), "))
 } else{
    ggplot(data = centros, aes(x = row.names(centros), y = centros[, as.numeric(", sel, ")])) +
-       geom_bar(stat = 'identity', fill = 'steelblue') + scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') +
+       geom_bar(stat = 'identity', fill = '", color, "') + scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') +
        coord_flip() + theme_minimal()
 }"))
 }
 
-cluster.vert <- function(sel = "input$sel.verticales"){
+cluster.vert <- function(sel = "input$sel.verticales", colores = "'steelblue'"){
   return(paste0("real <- centros$real
 if(", sel, " == 'Todos'){
-  centros.vertical.todos(real)
+  centros.vertical.todos(real) + scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), "))
 } else{
   ggplot(data = real, aes(x = row.names(real), y = real[, ", sel, "], fill = row.names(real))) +
-         geom_bar(stat = 'identity') + scale_fill_discrete(name = 'Clúster') + labs(x = '', y = '')
+         geom_bar(stat = 'identity') + labs(x = '', y = '') +
+         scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), "))
 }"))
 }
 
-cluster.kvert <- function(sel = "input$sel.kmeans.verticales"){
+cluster.kvert <- function(sel = "input$sel.kmeans.verticales", colores = "'steelblue'"){
   return(paste0("centros <- as.data.frame(k.modelo$centers)
 if(", sel, " == 'Todos'){
-    centros.vertical.todos(centros)
+    centros.vertical.todos(centros) + scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), "))
 } else{
     ggplot(data = centros, aes(x = row.names(centros), y = centros[, ", sel, "], fill = row.names(centros))) +
-         geom_bar(stat = 'identity') + scale_fill_discrete(name = 'Clúster') + labs(x = '', y = '')
+         geom_bar(stat = 'identity') + labs(x = '', y = '') +
+         scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), "))
 }"))
 }
 
@@ -387,13 +390,17 @@ centros.radar <<- function(centros){
 }"))
 }
 
-def.radar <- function(){
-  return(paste0("centros.radar(centros$porcentual)"))
+def.radar <- function(colores = "'steelblue'"){
+  return(paste0("centros.radar(centros$porcentual) + \n",
+                "  scale_color_manual('Clústeres', values = c(", paste(colores, collapse = ","), ")) + \n",
+                "  scale_fill_manual('Clústeres', values = c(", paste(colores, collapse = ","), "))"))
 }
 
-def.kradar <- function(){
-  return(paste0("centros <- as.data.frame(apply(k.modelo$centers, 2, function(i) scales::rescale(i, to = c(0, 100))))
-centros.radar(centros)"))
+def.kradar <- function(colores = "'steelblue'"){
+  return(paste0("centros <- as.data.frame(apply(k.modelo$centers, 2, function(i) scales::rescale(i, to = c(0, 100))))\n",
+                "centros.radar(centros) + \n",
+                "  scale_color_manual('Clústeres', values = c(", paste(colores, collapse = ","), ")) + \n",
+                "  scale_fill_manual('Clústeres', values = c(", paste(colores, collapse = ","), "))"))
 }
 
 def.reporte <- function(){

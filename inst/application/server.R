@@ -264,18 +264,24 @@ shinyServer(function(input, output, session) {
     return(obj.kcat())
   })
 
-  obj.hc.colores <- eventReactive(c(input$loadButton, input$cant.cluster), {
-    salida <- lapply(1:input$cant.cluster, function(i) {
-      shiny::column(width = 2, colourpicker::colourInput(paste0("hcColor", i), NULL, value = def.colores[i], allowTransparent = T))
-    })
-    do.call(tagList, salida)
+  observeEvent(c(input$loadButton, input$cant.cluster), {
+    for (i in 1:10) {
+      if(i <= input$cant.cluster) {
+        shinyjs::show(paste0("hcColor", i))
+      } else {
+        shinyjs::hide(paste0("hcColor", i))
+      }
+    }
   })
 
-  obj.k.colores <- eventReactive(c(input$loadButton, input$cant.kmeans.cluster), {
-    salida <- lapply(1:input$cant.kmeans.cluster, function(i) {
-      shiny::column(width = 2, colourpicker::colourInput(paste0("kColor", i), NULL, value = def.colores[i], allowTransparent = T))
-    })
-    do.call(tagList, salida)
+  observeEvent(c(input$loadButton, input$cant.kmeans.cluster), {
+    for (i in 1:10) {
+      if(i <= input$cant.kmeans.cluster) {
+        shinyjs::show(paste0("kColor", i))
+      } else {
+        shinyjs::hide(paste0("kColor", i))
+      }
+    }
   })
 
   obj.resum <- eventReactive(c(input$loadButton, input$transButton), {
@@ -458,14 +464,12 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldCodeCor", value = cod.cor)
   })
 
-  observeEvent(c(input$loadButton, input$cant.cluster,
-                 input$transButton, input$sel.dist.method, input$sel.hc.method), {
+  observeEvent(c(input$loadButton, input$cant.cluster, input$transButton, input$sel.dist.method, input$sel.hc.method), {
+    codigo <- def.model(data = "datos", cant = input$cant.cluster,
+                        dist.method = input$sel.dist.method, hc.method = input$sel.hc.method)
     tryCatch ({
       if(!is.null(datos)){
-        codigo <- def.model(data = "datos", cant = input$cant.cluster,
-                            dist.method = input$sel.dist.method, hc.method = input$sel.hc.method)
         isolate(eval(parse(text = codigo)))
-        updateAceEditor(session, "fieldCodeModelo", value = codigo)
         output$txthc <- renderPrint(print(unclass(hc.modelo)))
         output$txtcentros <- renderPrint(print(unclass(centros)))
       }
@@ -474,13 +478,50 @@ shinyServer(function(input, output, session) {
       return(NULL)
     })
 
-    colores <- sapply(1:input$cant.cluster, function(i) paste0("'", input[[paste0("hcColor", i)]], "'"))
-    print(colores)
-    code.diagrama <<- diagrama(cant = input$cant.cluster, colores = colores)
-    code.mapa <<- cluster.mapa(cant = input$cant.cluster)
-    code.horiz <<- cluster.horiz(sel = paste0("'", input$sel.cluster, "'"))
-    code.vert <<- cluster.vert(sel = paste0("'", input$sel.cluster, "'"))
-    code.radar <<- def.radar()
+    nuevos.colores <- sapply(1:input$cant.cluster, function(i) paste0("'", input[[paste0("hcColor", i)]], "'"))
+    color <- ifelse(input$sel.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.cluster)])
+    code.diagrama <<- diagrama(cant = input$cant.cluster, colores = nuevos.colores)
+    code.mapa <<- cluster.mapa(cant = input$cant.cluster, colores = nuevos.colores)
+    code.horiz <<- cluster.horiz(sel = paste0("'", input$sel.cluster, "'"), colores = nuevos.colores, color = color)
+    code.vert <<- cluster.vert(sel = paste0("'", input$sel.cluster, "'"), colores = nuevos.colores)
+    code.radar <<- def.radar(colores = nuevos.colores)
+    code.cat <<- cluster.cat(var = input$sel.cat.var, cant = as.numeric(input$cant.cluster))
+    updateAceEditor(session, "fieldCodeDiag", value = code.diagrama)
+    updateAceEditor(session, "fieldCodeMapa", value = code.mapa)
+    updateAceEditor(session, "fieldCodeHoriz", value = code.horiz)
+    updateAceEditor(session, "fieldCodeVert", value = code.vert)
+    updateAceEditor(session, "fieldCodeRadar", value = code.radar)
+    updateAceEditor(session, "fieldCodeBarras", value = code.cat)
+    updateAceEditor(session, "fieldCodeModelo", value = codigo)
+  })
+
+  observeEvent(input$sel.cluster, {
+    nuevos.colores <- sapply(1:input$cant.cluster, function(i) paste0("'", input[[paste0("hcColor", i)]], "'"))
+    color <- ifelse(input$sel.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.cluster)])
+    code.horiz <<- cluster.horiz(sel = paste0("'", input$sel.cluster, "'"), colores = nuevos.colores, color = color)
+    updateAceEditor(session, "fieldCodeHoriz", value = code.horiz)
+  })
+
+  observeEvent(input$sel.verticales, {
+    nuevos.colores <- sapply(1:input$cant.cluster, function(i) paste0("'", input[[paste0("hcColor", i)]], "'"))
+    code.vert <<- cluster.vert(sel = paste0("'", input$sel.verticales, "'"), colores = nuevos.colores)
+    updateAceEditor(session, "fieldCodeVert", value = code.vert)
+  })
+
+  observeEvent(input$sel.cat.var, {
+    code.cat <<- cluster.cat(var = input$sel.cat.var)
+    updateAceEditor(session, "fieldCodeBarras", value = code.cat)
+  })
+
+  observeEvent(c(input$hcColor1, input$hcColor2, input$hcColor3, input$hcColor4, input$hcColor5,
+                 input$hcColor6, input$hcColor7, input$hcColor8, input$hcColor9, input$hcColor10), {
+    nuevos.colores <- sapply(1:input$cant.cluster, function(i) paste0("'", input[[paste0("hcColor", i)]], "'"))
+    color <- ifelse(input$sel.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.cluster)])
+    code.diagrama <<- diagrama(cant = input$cant.cluster, colores = nuevos.colores)
+    code.mapa <<- cluster.mapa(cant = input$cant.cluster, colores = nuevos.colores)
+    code.horiz <<- cluster.horiz(sel = paste0("'", input$sel.cluster, "'"), colores = nuevos.colores, color = color)
+    code.vert <<- cluster.vert(sel = paste0("'", input$sel.cluster, "'"), colores = nuevos.colores)
+    code.radar <<- def.radar(colores = nuevos.colores)
     code.cat <<- cluster.cat(var = input$sel.cat.var, cant = as.numeric(input$cant.cluster))
     updateAceEditor(session, "fieldCodeDiag", value = code.diagrama)
     updateAceEditor(session, "fieldCodeMapa", value = code.mapa)
@@ -490,57 +531,62 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldCodeBarras", value = code.cat)
   })
 
-  observeEvent(input$sel.cluster, {
-    code.horiz <<- cluster.horiz(sel = paste0("'", input$sel.cluster, "'"))
-    updateAceEditor(session, "fieldCodeHoriz", value = code.horiz)
-  })
-
-  observeEvent(input$sel.verticales, {
-    code.vert <<- cluster.vert(sel = paste0("'", input$sel.verticales, "'"))
-    updateAceEditor(session, "fieldCodeVert", value = code.vert)
-  })
-
-  observeEvent(input$sel.cat.var, {
-    code.cat <<- cluster.cat(var = input$sel.cat.var)
-    updateAceEditor(session, "fieldCodeBarras", value = code.cat)
-  })
-
-  observeEvent(c(input$loadButton,
-                 input$cant.kmeans.cluster, input$transButton, input$num.iter, input$slider.nstart), {
+  observeEvent(c(input$loadButton, input$cant.kmeans.cluster, input$transButton, input$num.iter, input$slider.nstart), {
     tryCatch ({
       codigo <- def.k.model(data = "datos", cant = input$cant.kmeans.cluster,
                             iter.max = input$num.iter, nstart = input$slider.nstart)
       isolate(eval(parse(text = codigo)))
-      updateAceEditor(session, "fieldCodeKModelo", value = codigo)
       output$txtk <- renderPrint(print(unclass(k.modelo)))
     }, error = function(e) {
       return(NULL)
     })
 
-    code.kmapa <<- cluster.kmapa()
-    code.khoriz <<- cluster.khoriz(sel = paste0("'", input$sel.kmeans.cluster, "'"))
-    code.kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.cluster, "'"))
-    code.kradar <<- def.kradar()
+    nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i) paste0("'", input[[paste0("kColor", i)]], "'"))
+    color <- ifelse(input$sel.kmeans.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.kmeans.cluster)])
+    code.kmapa <<- cluster.kmapa(colores = nuevos.colores)
+    code.khoriz <<- cluster.khoriz(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores, color = color)
+    code.kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores)
+    code.kradar <<- def.kradar(colores = nuevos.colores)
     code.kcat <<- cluster.kcat(var = input$sel.kcat.var)
     updateAceEditor(session, "fieldCodeKmapa", value = code.kmapa)
     updateAceEditor(session, "fieldCodeKhoriz", value = code.khoriz)
     updateAceEditor(session, "fieldCodeKvert", value = code.kvert)
     updateAceEditor(session, "fieldCodeKradar", value = code.kradar)
     updateAceEditor(session, "fieldCodeKbarras", value = code.kcat)
+    updateAceEditor(session, "fieldCodeKModelo", value = codigo)
   })
 
   observeEvent(input$sel.kmeans.cluster, {
-    code.khoriz <<- cluster.khoriz(sel = paste0("'", input$sel.kmeans.cluster, "'"))
+    nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i) paste0("'", input[[paste0("kColor", i)]], "'"))
+    color <- ifelse(input$sel.kmeans.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.kmeans.cluster)])
+    code.khoriz <<- cluster.khoriz(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores, color = color)
     updateAceEditor(session, "fieldCodeKhoriz", value = code.khoriz)
   })
 
   observeEvent(input$sel.kmeans.verticales, {
-    code.kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.verticales, "'"))
+    nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i) paste0("'", input[[paste0("kColor", i)]], "'"))
+    code.kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores)
     updateAceEditor(session, "fieldCodeKvert", value = code.kvert)
   })
 
   observeEvent(input$sel.kcat.var, {
     code.kcat <<- cluster.kcat(var = input$sel.kcat.var)
+    updateAceEditor(session, "fieldCodeKbarras", value = code.kcat)
+  })
+
+  observeEvent(c(input$kColor1, input$kColor2, input$kColor3, input$kColor4, input$kColor5,
+                 input$kColor6, input$kColor7, input$kColor8, input$kColor9, input$kColor10), {
+    nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i) paste0("'", input[[paste0("kColor", i)]], "'"))
+    color <- ifelse(input$sel.kmeans.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.kmeans.cluster)])
+    code.kmapa <<- cluster.kmapa(colores = nuevos.colores)
+    code.khoriz <<- cluster.khoriz(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores, color = color)
+    code.kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores)
+    code.kradar <<- def.kradar(colores = nuevos.colores)
+    code.kcat <<- cluster.kcat(var = input$sel.kcat.var)
+    updateAceEditor(session, "fieldCodeKmapa", value = code.kmapa)
+    updateAceEditor(session, "fieldCodeKhoriz", value = code.khoriz)
+    updateAceEditor(session, "fieldCodeKvert", value = code.kvert)
+    updateAceEditor(session, "fieldCodeKradar", value = code.kradar)
     updateAceEditor(session, "fieldCodeKbarras", value = code.kcat)
   })
 
