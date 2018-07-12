@@ -1,10 +1,16 @@
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
 datos <<- NULL
 datos.originales <<- NULL
 centros <<- NULL
 hc.modelo <<- NULL
 pca.modelo <<- NULL
 k.modelo <<- NULL
-correlacion<<- NULL
+correlacion <<- NULL
+def.colores <<- gg_color_hue(10)
 
 var.numericas <- function(data){
   if(is.null(data)) return(NULL)
@@ -42,16 +48,16 @@ code.carga <- function(nombre.filas = T, ruta = NULL, separador = ";", sep.decim
   }
 }
 
-code.trans <- function(variables, nuevo.tipo){
-  res <- ""
+code.trans <- function(variable, nuevo.tipo){
   if(nuevo.tipo == "categorico"){
-    for (variable in variables) {
-      res <- paste0(res, "datos[, '", variable, "'] <<- as.factor(datos[, '", variable, "'])")
-    }
+      return(paste0("datos[, '", variable, "'] <<- as.factor(datos[, '", variable, "'])"))
+  } else if(nuevo.tipo == "numerico") {
+    return(paste0("datos[, '", variable, "'] <<- as.numeric(datos[, '", variable, "'])"))
   } else {
-    res <- paste0("datos <<- datos.disyuntivos(datos, '", variables,"')")
+    es.factor <- ifelse(class(datos.originales[, variable]) %in% c('numeric', 'integer'),
+           paste0("datos[, '", variable, "'] <<- as.factor(datos[, '", variable, "']) \n"), "")
+    return(paste0(es.factor, "datos <<- datos.disyuntivos(datos, '", variable,"')"))
   }
-  return(res)
 }
 
 code.desactivar <- function(variables){
@@ -212,10 +218,10 @@ default.func.cat <- function(){
 }"))
 }
 
-diagrama <- function(cant = "as.numeric(input$cant.cluster)"){
-  return(paste0("modelo <- color_branches(hc.modelo, k = ", cant, ", col = )
-modelo <- color_labels(hc.modelo, k = ", cant, ", col = )
-plot(modelo)"))
+diagrama <- function(cant = "as.numeric(input$cant.cluster)", colores = def.colores){
+  return(paste0("modelo <- color_branches(hc.modelo, k = ", cant, ", col = c(", paste(colores, collapse = ","), "))\n",
+                "modelo <- color_labels(hc.modelo, k = ", cant, ", col = c(", paste(colores, collapse = ","), "))\n",
+                "plot(modelo)"))
 }
 
 def.code.jambu <- function(data = "datos"){
