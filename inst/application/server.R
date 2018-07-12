@@ -588,7 +588,7 @@ shinyServer(function(input, output, session) {
       files <- c(namermd, files)
 
       src <- normalizePath(namermd)
-      out <- render(src,  params = NULL, html_document())
+      out <- rmarkdown::render(src,  params = NULL, rmarkdown::html_document())
       file.rename(out, paste('data-', Sys.Date(), '.html', sep=''))
       files <- c(paste('data-', Sys.Date(), '.html', sep=''), files)
 
