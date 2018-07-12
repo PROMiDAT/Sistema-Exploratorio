@@ -159,6 +159,14 @@ shinyServer(function(input, output, session) {
     }
   })
 
+  output$hcColores = renderUI({
+    return(obj.hc.colores())
+  })
+
+  output$kColores = renderUI({
+    return(obj.k.colores())
+  })
+
   output$mostrar.atipicos = DT::renderDataTable({
     atipicos <- boxplot.stats(datos[, input$sel.distribucion.num])
     datos <- datos[datos[, input$sel.distribucion.num] %in% atipicos$out, input$sel.distribucion.num, drop = F]
@@ -251,6 +259,20 @@ shinyServer(function(input, output, session) {
 
   output$plot.kcat = renderPlot({
     return(obj.kcat())
+  })
+
+  obj.hc.colores <- eventReactive(input$cant.cluster, {
+    salida <- lapply(1:input$cant.cluster, function(i) {
+      shiny::column(width = 2, colourpicker::colourInput(paste0("hcColor", i), NULL, value = def.colores[i], allowTransparent = T))
+    })
+    do.call(tagList, salida)
+  })
+
+  obj.k.colores <- eventReactive(input$cant.kmeans.cluster, {
+    salida <- lapply(1:input$cant.kmeans.cluster, function(i) {
+      shiny::column(width = 2, colourpicker::colourInput(paste0("kColor", i), NULL, value = def.colores[i], allowTransparent = T))
+    })
+    do.call(tagList, salida)
   })
 
   obj.resum <- eventReactive(c(input$loadButton, input$transButton), {
@@ -449,7 +471,7 @@ shinyServer(function(input, output, session) {
       return(NULL)
     })
 
-    code.diagrama <<- diagrama(cant = input$cant.cluster)
+    code.diagrama <<- diagrama(cant = input$cant.cluster, colores = input$hcColores)
     code.mapa <<- cluster.mapa(cant = input$cant.cluster)
     code.horiz <<- cluster.horiz(sel = paste0("'", input$sel.cluster, "'"))
     code.vert <<- cluster.vert(sel = paste0("'", input$sel.cluster, "'"))

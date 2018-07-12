@@ -306,14 +306,9 @@ shinyUI(dashboardPage(
                                                       choices =  c("ward.D2", "single", "complete", "average")),
                                           selectInput(inputId = "sel.dist.method", label = "Método para la Distancia", selectize = T,
                                                       choices =  c("euclidean", "maximum", "manhattan", "canberra", "binary", "minkowski")),
-                                          #h5("Seleccionar Colores"),
                                           HTML("<label class='control-label'>Seleccionar Colores: </label>"),
                                           fluidRow(
-                                            shiny::column(width = 2, colourpicker::colourInput("color1", NULL, allowTransparent = T)),
-                                            shiny::column(width = 2, colourpicker::colourInput("color2", NULL, allowTransparent = T)),
-                                            shiny::column(width = 2, colourpicker::colourInput("color3", NULL, allowTransparent = T)),
-                                            shiny::column(width = 2, colourpicker::colourInput("color4", NULL, allowTransparent = T)),
-                                            shiny::column(width = 2, colourpicker::colourInput("color5", NULL, allowTransparent = T))
+                                            uiOutput("hcColores")
                                           ),
                                           circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                           tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
@@ -386,12 +381,15 @@ shinyUI(dashboardPage(
                                 column(width = 5,
                                        dropdownButton(h4("Opciones"),
                                        sliderInput(inputId = "cant.kmeans.cluster", label = "Cantidad de Clusters:", min = 2, max = 10, value = 2),
-                                                      sliderInput("slider.nstart", "Cantidad de Centros al azar", min = 10, max = 100,
-                                                                  value = 100, step = 10),
-                                                      numericInput("num.iter", label = "Número de Iteraciones", step = 100, value = 100),
-                                                      circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
-                                                      tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
-
+                                       sliderInput("slider.nstart", "Cantidad de Centros al azar", min = 10, max = 100,
+                                                   value = 100, step = 10),
+                                       numericInput("num.iter", label = "Número de Iteraciones", step = 100, value = 100),
+                                       HTML("<label class='control-label'>Seleccionar Colores: </label>"),
+                                       fluidRow(
+                                         uiOutput("kColores")
+                                       ),
+                                       circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
+                                       tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
                             tabPanel(title = 'Inercia', fluidRow(uiOutput('resumen.kmedias'))),
                             tabPanel(title = 'Codo Jambu', value = "codoJambu", plotOutput('plot.jambu', height = "71vh")),
                             tabPanel(title = 'Mapa', plotOutput('plot.kmapa', height = "71vh")),
