@@ -28,7 +28,7 @@ library(scatterplot3d)
 library(stringr)
 
 # Define UI for application that draws a histogram
-shinyUI(dashboardPage(
+shinyUI(dashboardPage(title="PROMiDAT",
   dashboardHeader(title = tags$a(href="http://promidat.com",
                                  img(src="Logo2.png", height=55, width="100%", style="padding-top:2px; padding-bottom:6px;"))),
   dashboardSidebar(
