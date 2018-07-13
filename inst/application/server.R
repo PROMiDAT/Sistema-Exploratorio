@@ -196,6 +196,10 @@ shinyServer(function(input, output, session) {
     return(obj.biplot())
   })
 
+  output$plotAyuda = renderPlot({
+    return(obj.ayuda())
+  })
+
   output$plot.cor = renderPlot({
     return(obj.cor())
   })
@@ -318,6 +322,23 @@ shinyServer(function(input, output, session) {
     isolate(eval(parse(text = cod.pca[["sobreposicion"]])))
   })
 
+  obj.ayuda <- eventReactive(input$tabPCA, {
+    codigo <- switch (input$tabPCA,
+            "tabVarExplicada" = code.pca.vee(),
+            "tabIndCos" = code.pca.cci(),
+            "tabVarCos" = code.pca.ccv(),
+            "tabCorVarComp" = code.pca.cvp(),
+            "tabVarDim1" = code.pca.pc1(),
+            "tabVarDim2" = code.pca.pc2()
+    )
+    if(is.null(codigo)){
+      return(NULL)
+    } else {
+      updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+      return(isolate(eval(parse(text = codigo))))
+    }
+  })
+
   obj.dya.num <- eventReactive(c(input$loadButton, input$transButton, input$fieldFuncNum, input$fieldCodeNum), {
     cod.dya.num  <<- input$fieldCodeNum
     func.dya.num <<- input$fieldFuncNum
@@ -342,8 +363,8 @@ shinyServer(function(input, output, session) {
     isolate(eval(parse(text = code.mapa)))
   })
 
-  obj.horiz <- eventReactive(c(input$loadButton, input$transButton,
-                               input$fieldCodeHoriz, input$fieldFuncHoriz, input$fieldCodeCentr, input$fieldCodeModelo), {
+  obj.horiz <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeHoriz,
+                               input$fieldFuncHoriz, input$fieldCodeCentr, input$fieldCodeModelo), {
     code.horiz <<- input$fieldCodeHoriz
     func.horiz <<- input$fieldFuncHoriz
     func.centros <<- input$fieldCodeCentr
@@ -642,6 +663,3 @@ shinyServer(function(input, output, session) {
     }
   )
 })
-
-
-

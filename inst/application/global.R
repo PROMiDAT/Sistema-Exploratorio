@@ -40,11 +40,11 @@ datos.disyuntivos <- function(data, vars){
 
 code.carga <- function(nombre.filas = T, ruta = NULL, separador = ";", sep.decimal = ",", encabezado = T){
   if(nombre.filas){
-    return(paste0("datos.originales <<- read.table('", ruta, "', header=",
-                  encabezado, ", sep='", separador, "', dec = '", sep.decimal, "', row.names = 1) \ndatos <<- datos.originales"))
+    return(paste0("datos.originales <<- read.table('", ruta, "', header=", encabezado, ", sep='",
+                  separador, "', dec = '", sep.decimal, "', row.names = 1) \ndatos <<- datos.originales"))
   } else {
-    return(paste0("datos.originales <<- read.table('", ruta, "', header=", encabezado, ", sep='", separador, "', dec = '", sep.decimal,
-                  "') \ndatos <<- datos.originales"))
+    return(paste0("datos.originales <<- read.table('", ruta, "', header=", encabezado, ", sep='",
+                  separador, "', dec = '", sep.decimal, "') \ndatos <<- datos.originales"))
   }
 }
 
@@ -61,7 +61,8 @@ code.trans <- function(variable, nuevo.tipo){
 }
 
 code.desactivar <- function(variables){
-  return(paste0("datos <<- subset(datos, select = -c(", paste(variables, collapse = ","), "))"))
+  return(paste0("datos <<- subset(datos, select = -c(",
+                paste(variables, collapse = ","), "))"))
 }
 
 resumen.numerico <- function(data, variable){
@@ -173,6 +174,46 @@ pca.variables <- function(var.cos = 0, color = 'steelblue'){
 pca.sobreposicion <- function(ind.cos = 0, var.cos = 0, col.ind = '#696969', col.var = 'steelblue'){
   return(paste0("fviz_pca_biplot(pca.modelo, pointsize = 2, pointshape = 16, col.var = '", col.var, "',
                  col.ind = '", col.ind, "', select.ind = list(cos2 = ", ind.cos, ") , select.var = list(cos2 = ", var.cos, "))"))
+}
+
+code.pca.vee <- function(){
+  # Varianza Explicada por cada eje
+  return("fviz_eig(pca.modelo, addlabels = TRUE, ylab = 'Porcentaje de Varianzas Explicadas',
+           xlab = 'Dimensiones', main = 'Varianza Explicada por cada eje')")
+}
+
+code.pca.cci <- function(){
+  # Cosenos cuadrados de los individuos
+  return("fviz_cos2(pca.modelo, choice = 'ind', axes = 1:2) +
+         labs(y = 'Cos2 - Calidad de la Representación',
+         title = 'Cosenos cuadrados de los individuos')")
+}
+
+code.pca.ccv <- function(){
+  # Cosenos cuadrados de las variables
+  return("fviz_cos2(pca.modelo, choice = 'var', axes = 1:2) +
+         labs(y = 'Cos2 - Calidad de la Representación',
+         title = 'Cosenos cuadrados de los variables')")
+}
+
+code.pca.cvp <- function(){
+  # Correlación de las variables con las componentes principales
+  return("corrplot(pca.modelo$var$cos2, is.corr=FALSE, mar=c(0,0,1,0),
+         title = 'Correlación de las variables con las componentes principales')")
+}
+
+code.pca.pc1 <- function(){
+  # Contributions of variables to PC1
+  return("fviz_contrib(pca.modelo, choice = 'var', axes = 1, top = 10) +
+         labs(y = 'Contribuciones (%)',
+              title = 'Contribuciones de las variables para Dim-1')")
+}
+
+code.pca.pc2 <- function(){
+  # Contributions of variables to PC2
+  return("fviz_contrib(pca.modelo, choice = 'var', axes = 2, top = 10) +
+         labs(y = 'Contribuciones (%)',
+              title = 'Contribuciones de las variables para Dim-2')")
 }
 
 modelo.cor <- function(data = "datos"){
@@ -506,13 +547,4 @@ func.kvert <- default.vert()
 func.kradar <- cluster.radar()
 code.kradar <- def.kradar()
 code.kcat <- cluster.kcat()
-
-# aux <- datos.disyuntivos(iris, "Species")
-# k.modelo <<- kmeans(var.numericas(aux), 3, iter.max = 200, nstart = 300)
-#
-# NDatos <- cbind(aux, grupo = k.modelo$cluster)
-# NDatos <- cbind(NDatos, Species = iris$Species)
-# ggplot(NDatos, aes(Species)) + geom_bar(aes(fill = Species)) +
-#   facet_wrap(~grupo) + theme(text = element_text(size = 10), axis.text.x = element_blank()) +
-#   scale_fill_discrete(name='Variable') + labs(x = '', y = '')
 

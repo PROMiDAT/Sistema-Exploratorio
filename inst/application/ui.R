@@ -187,7 +187,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                                           height = "6vh", autoComplete = "enabled")),
                                               column(width = 8, aceEditor("fieldCodeCor", mode = "r", theme = "monokai", value = "",
                                                                           height = "6vh", autoComplete = "enabled")))),
-                            tabPanel(title = 'Código Modelo', value = "cor.salida", verbatimTextOutput("txtcor")))
+                            tabPanel(title = 'Resultados Numéricos', value = "cor.salida", verbatimTextOutput("txtcor")))
               )
       ),
 
@@ -219,10 +219,18 @@ shinyUI(dashboardPage(title="PROMiDAT",
                             tabPanel(title = 'Variables', value = "variables", plotOutput('plot.var', height = "76vh")),
                             tabPanel(title = 'Sobreposición', value = "sobreposicion", plotOutput('plot.biplot', height = "76vh")),
                             navbarMenu("Ayuda Interpretación",
-                                       tabPanel("Varianza Explicada por cada eje"),
-                                       tabPanel("Cosenos cuadrados de los individuos")),
-                            tabPanel(title = 'Código Modelo', value = "pca.salida", verbatimTextOutput("txtpca"))
+                                       tabPanel("Varianza Explicada por cada eje", value = "tabVarExplicada"),
+                                       tabPanel("Cosenos cuadrados de los individuos", value = "tabIndCos"),
+                                       tabPanel("Cosenos cuadrados de las variables", value = "tabVarCos"),
+                                       tabPanel("Correlación variables-componentes", value = "tabCorVarComp"),
+                                       tabPanel("Contribución de las Variables Dim-1", value = "tabVarDim1"),
+                                       tabPanel("Contribución de las Variables Dim-2", value = "tabVarDim2")),
+                            tabPanel(title = "Resultados Numéricos", value = "pca.salida", verbatimTextOutput("txtpca"))
                      ),
+                     conditionalPanel(
+                       condition = "input.tabPCA == 'tabVarExplicada' || input.tabPCA == 'tabIndCos' || input.tabPCA == 'tabVarCos' ||
+                                    input.tabPCA == 'tabCorVarComp' || input.tabPCA == 'tabVarDim1' || input.tabPCA == 'tabVarDim2'",
+                       column(width = 12, plotOutput("plotAyuda", height = "76vh"))),
                      column(width = 5,
                             aceEditor("fieldCodePCAModelo", mode = "r", theme = "monokai", value = "",
                                       height = "5vh", readOnly = T, autoComplete = "enabled")),
@@ -235,7 +243,11 @@ shinyUI(dashboardPage(title="PROMiDAT",
                               aceEditor("fieldCodeVar", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")),
                             conditionalPanel(
                               condition = "input.tabPCA == 'sobreposicion'",
-                              aceEditor("fieldCodeBi", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled"))
+                              aceEditor("fieldCodeBi", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")),
+                            conditionalPanel(
+                              condition = "input.tabPCA == 'tabVarExplicada' || input.tabPCA == 'tabIndCos' || input.tabPCA == 'tabVarCos' ||
+                                           input.tabPCA == 'tabCorVarComp' || input.tabPCA == 'tabVarDim1' || input.tabPCA == 'tabVarDim2'",
+                              aceEditor("fieldCodeAyuda", mode = "r", theme = "monokai", value = "", height = "5vh", readOnly = T))
                      )
               )
       ),
@@ -342,7 +354,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
                             tabPanel(title = 'Vertical', plotOutput('plot.vert', height = "71vh")),
                             tabPanel(title = 'Radar', plotOutput('plot.radar', height = "71vh")),
                             tabPanel(title = 'Interpretación Categórico', value = "hcbarras", plotOutput('plot.bar.cat', height = "71vh")),
-                            tabPanel(title = 'Código Modelo', value = "salida.hc", verbatimTextOutput("txthc"),
+                            tabPanel(title = 'Resultados Numéricos', value = "salida.hc", verbatimTextOutput("txthc"),
                                      hr(), verbatimTextOutput("txtcentros"))
                      ),
                      fluidRow(
@@ -440,7 +452,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
                             tabPanel(title = 'Vertical', plotOutput('plot.kvert', height = "71vh")),
                             tabPanel(title = 'Radar', plotOutput('plot.kradar', height = "71vh")),
                             tabPanel(title = 'Interpretación Categórico', value = "kbarras", plotOutput('plot.kcat', height = "71vh")),
-                            tabPanel(title = 'Código Modelo', value = "salida.k", verbatimTextOutput("txtk"))
+                            tabPanel(title = 'Resultados Numéricos', value = "salida.k", verbatimTextOutput("txtk"))
                      ),
                      fluidRow(
                        column(width = 6,
