@@ -153,21 +153,29 @@ shinyUI(dashboardPage(title="PROMiDAT",
 
       #test de Normalidad
       tabItem(tabName = "normalidad",
-              column(width = 4,
-                     dropdownButton(h4("Opciones"),
-                                    circle = F, status = "danger", icon = icon("gear"), width = "100%",
-                                    tooltip = tooltipOptions(title = "Clic para ver opciones"))),
-              plotOutput('plot.normal', height = "82vh"),
+              column(width = 12,
+                     tabBox(id = "BoxNormal", width = NULL, title =
+                              dropdownButton(h4("Opciones"),
+                                             colourpicker::colourInput("col.normal", "Seleccionar Color:",
+                                                                       value = "#00FF22AA", allowTransparent = T),
+                                             circle = F, status = "danger", icon = icon("gear"), width = "100%",
+                                             tooltip = tooltipOptions(title = "Clic para ver opciones"), right = T),
+                            tabPanel(title = "Test de Normalidad", value = "tabNormal", plotOutput('plot.normal', height = "72vh"))
+                     )),
               aceEditor("fieldCodeNormal", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
       ),
 
       #Dispersión
       tabItem(tabName = "dispersion",
-              column(width = 4,
-                     dropdownButton(h4("Opciones"),
+              column(width = 12,
+                     tabBox(id = "BoxDisp", width = NULL, title =
+                              dropdownButton(h4("Opciones"),
+                                    colourpicker::colourInput("col.disp", "Seleccionar Color:",
+                                                              value = "#FF0000AA", allowTransparent = T),
                                     circle = F, status = "danger", icon = icon("gear"), width = "100%",
-                                    tooltip = tooltipOptions(title = "Clic para ver opciones"))),
-              plotOutput('plot.disp', height = "82vh"),
+                                    tooltip = tooltipOptions(title = "Clic para ver opciones"), right = T),
+                     tabPanel(title = "Dispersión", value = "tabDisp", plotOutput('plot.disp', height = "72vh"))
+              )),
               aceEditor("fieldCodeDisp", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
       ),
 
@@ -194,7 +202,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
       #PCA
       tabItem(tabName = "acp",
               column(width = 12,
-                     tabBox(id = "tabPCA", title =
+                     tabBox(id = "tabPCA", width = NULL, title =
                               dropdownButton(h4("Opciones"),
                                              switchInput(inputId = "switch.scale", onStatus = "success", offStatus = "danger", value = T,
                                                          label = "Centrar y Reducir", onLabel = "SI", offLabel = "NO", labelWidth = "100%"),
@@ -214,7 +222,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                sliderInput("var.cos", "Coseno de las Variables: ", min = 0, max = 100, value = 0)
                                              ),
                                              circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
-                                             tooltip = tooltipOptions(title = "Clic para ver opciones")), width = NULL,
+                                             tooltip = tooltipOptions(title = "Clic para ver opciones")),
                             tabPanel(title = 'Individuos', value = "individuos", plotOutput('plot.ind', height = "76vh")),
                             tabPanel(title = 'Variables', value = "variables", plotOutput('plot.var', height = "76vh")),
                             tabPanel(title = 'Sobreposición', value = "sobreposicion", plotOutput('plot.biplot', height = "76vh")),

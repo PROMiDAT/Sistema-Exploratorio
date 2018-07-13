@@ -122,12 +122,12 @@ resumen.kmeans <- function(kmedias){
   return(salida)
 }
 
-default.normal <- function(data = "datos", vars = NULL){
+default.normal <- function(data = "datos", vars = NULL, color = "#00FF22AA"){
   if(is.null(vars)){
     return(NULL)
   } else {
-    return(paste0("color <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 140, maxColorValue = 255)
-hist(", data, "[, '", vars, "'], col = color, border=F, main = paste0('Test de normalidad de la variable ','", vars,"'), axes=F, freq = F)
+    return(paste0("hist(", data, "[, '", vars, "'], col = '", color,
+"', border=F, main = paste0('Test de normalidad de la variable ','", vars,"'), axes=F, freq = F)
 axis(1, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
 axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
 curve(dnorm(x, mean = mean(", data, "[, '", vars, "']), sd = sd(", data, "[, '", vars, "'])), add=T, col='blue', lwd=2)
@@ -135,17 +135,15 @@ legend('bottom', legend = 'Curva Normal', col = 'blue', lty=1, cex=1.5)"))
   }
 }
 
-default.disp <- function(data = "datos", vars = NULL){
+default.disp <- function(data = "datos", vars = NULL, color = "#FF0000AA"){
   if(length(vars) < 2) {
     return(NULL)
   } else if(length(vars) == 2) {
-return(paste0("color <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 255, maxColorValue = 255)
-ggplot(data = ", data, ", aes(x = ", vars[1], ", y = ", vars[2], ", label = rownames(", data, "))) +
-       geom_point(color = color, size = 3) + geom_text(vjust = -0.7)"))
+return(paste0("ggplot(data = ", data, ", aes(x = ", vars[1], ", y = ", vars[2], ", label = rownames(", data, "))) +
+       geom_point(color = '", color, "', size = 3) + geom_text(vjust = -0.7)"))
   } else{
-return(paste0("colores <- rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 255, maxColorValue = 255)
-scatterplot3d(", data, "[, '", vars[1], "'], ", data, "[, '",
-                  vars[2], "'], ", data, "[, '", vars[3], "'], pch = 16, color = colores)"))
+return(paste0("scatterplot3d(", data, "[, '", vars[1], "'], ", data, "[, '",
+                  vars[2], "'], ", data, "[, '", vars[3], "'], pch = 16, color = '", color, "')"))
   }
 }
 
@@ -444,7 +442,7 @@ def.kradar <- function(colores = "'steelblue'"){
                 "  scale_fill_manual('Clústeres', values = c(", paste(colores, collapse = ","), "))"))
 }
 
-def.reporte <- function(){
+def.reporte <- function(entradas){
   return(paste0("---
 title: 'Untitled'
 author: 'PROMIDAT'
@@ -455,10 +453,9 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE,  fig.height = 10, fig.width = 15)
 ```
 
-# Carga de Paquetes
 ```{r message=FALSE, warning=FALSE}
 library(promises)
 library(ggplot2)
@@ -471,12 +468,10 @@ library(scatterplot3d)
 library(stringr)
 ```
 
-# Funciones
-
 ```{r}
 var.numericas <- function(data){
   if(is.null(data)) return(NULL)
-  res <- subset(data, select = sapply(data, class) %in% c('numeric', 'integer'))
+  res <- base::subset(data, select = sapply(data, class) %in% c('numeric', 'integer'))
   return(res)
 }
 
@@ -488,15 +483,15 @@ var.categoricas <- function(data){
 
 datos.disyuntivos <- function(data, vars){
   if(is.null(data)) return(NULL)
-  cualitativas <- base::subset(data, select = colnames(data) %in% c(vars))
-  data <- data[, !colnames(data) %in% vars]
-  for (variable in colnames(cualitativas)) {
-    for (categoria in unique(cualitativas[, variable])) {
-      nueva.var <- as.numeric(cualitativas[, variable] == categoria)
-      data <- cbind(data, nueva.var)
-      colnames(data)[length(colnames(data))] <- paste0(variable, '.', categoria)
-    }
-  }
+     cualitativas <- base::subset(data, select = colnames(data) %in% c(vars))
+     data <- data[, !colnames(data) %in% vars]
+     for (variable in colnames(cualitativas)) {
+       for (categoria in unique(cualitativas[, variable])) {
+          nueva.var <- as.numeric(cualitativas[, variable] == categoria)
+          data <- cbind(data, nueva.var)
+          colnames(data)[length(colnames(data))] <- paste0(variable, '.', categoria)
+       }
+     }
   return(data)
 }
 
@@ -513,7 +508,180 @@ datos.disyuntivos <- function(data, vars){
 ", default.vert(), "
 
 ", cluster.radar(), "
-```"))
+```
+
+# Carga de Datos
+```{r}
+head(datos)
+```
+
+# Estadísticas Básicas
+
+## Resumen Numérico
+```{r}
+summary(datos)
+```
+##### Interpretación
+
+## Test de Normalidad
+```{r}
+```
+
+## Dispersión
+```{r}
+```
+
+## Distribuciones
+```{r}
+```
+
+## Correlación
+```{r}
+", entradas$fieldCodeCor, "
+```
+##### Interpretación
+
+# ACP
+
+## Individuos
+```{r}
+", entradas$fieldCodeInd, "
+```
+##### Interpretación
+
+## Variables
+```{r}
+", entradas$fieldCodeVar, "
+```
+##### Interpretación
+
+## Sobreposición
+```{r}
+", entradas$fieldCodeBi, "
+```
+##### Interpretación
+
+## Inercia y Valores Propios
+
+### Varianza Explicada por cada eje
+```{r}
+", code.pca.vee(), "
+```
+##### Interpretación
+
+### Cosenos cuadrados de los individuos
+```{r}
+", code.pca.cci(), "
+```
+##### Interpretación
+
+### Cosenos cuadrados de los variables
+```{r}
+", code.pca.ccv(), "
+```
+##### Interpretación
+
+### Correlación variables-componentes
+```{r}
+", code.pca.cvp(), "
+```
+##### Interpretación
+
+### Contribución de las Variables Dim-1
+```{r}
+", code.pca.pc1(), "
+```
+##### Interpretación
+
+### Contribución de las Variables Dim-2
+```{r}
+", code.pca.pc2(), "
+```
+##### Interpretación
+
+# Cluster Jerárquico
+```{r}
+", entradas$fieldCodeModelo, "
+```
+##### Interpretación
+
+## Diagrama
+```{r}
+", entradas$fieldCodeDiag, "
+```
+##### Interpretación
+
+## Mapa
+```{r}
+", entradas$fieldCodeMapa, "
+```
+##### Interpretación
+
+## Interpretación Horizontal
+```{r}
+", entradas$fieldCodeHoriz, "
+```
+##### Interpretación
+
+## Interpretación Vertical
+```{r}
+", entradas$fieldCodeVert, "
+```
+##### Interpretación
+
+## Gráfico Radar
+```{r}
+", entradas$fieldCodeRadar, "
+```
+##### Interpretación
+
+## Interpretación Categórico
+```{r}
+", entradas$fieldCodeBarras, "
+```
+##### Interpretación
+
+# K-Medias
+
+## Inercia
+
+## Codo de Jambu
+```{r}
+", entradas$fieldCodeJambu, "
+```
+##### Interpretación
+
+## Mapa
+```{r}
+", entradas$fieldCodeKmapa, "
+```
+##### Interpretación
+
+## Interpretación Horizontal
+```{r}
+", entradas$fieldCodeKhoriz, "
+```
+##### Interpretación
+
+## Interpretación Vertical
+```{r}
+", entradas$fieldCodeKvert, "
+```
+##### Interpretación
+
+## Gráfico Radar
+```{r}
+", entradas$fieldCodeKradar, "
+```
+##### Interpretación
+
+## Interpretación Categórico
+```{r}
+", entradas$fieldCodeKbarras, "
+```
+##### Interpretación
+
+"))
 }
 
 cod.resum <- function(data = "datos") {return(paste0("summary(", data, ")"))}

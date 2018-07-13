@@ -322,7 +322,7 @@ shinyServer(function(input, output, session) {
     isolate(eval(parse(text = cod.pca[["sobreposicion"]])))
   })
 
-  obj.ayuda <- eventReactive(input$tabPCA, {
+  obj.ayuda <- eventReactive(c(input$tabPCA, input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
     codigo <- switch (input$tabPCA,
             "tabVarExplicada" = code.pca.vee(),
             "tabIndCos" = code.pca.cci(),
@@ -456,7 +456,7 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldFuncKvert", value = func.kvert)
     updateAceEditor(session, "fieldFuncKradar", value = func.kradar)
 
-    updateAceEditor(session, "fieldCodeReport", value = def.reporte())
+    updateAceEditor(session, "fieldCodeReport", value = def.reporte(input))
   })
 
   observeEvent(c(input$sel.distribucion.num, input$col.dist), {
@@ -470,13 +470,13 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldCodeCat", value = cod.dya.cat)
   })
 
-  observeEvent(c(input$sel.normal), {
-    cod.normal <<- default.normal(data = "datos", vars = input$sel.normal)
+  observeEvent(c(input$sel.normal, input$col.normal), {
+    cod.normal <<- default.normal(data = "datos", vars = input$sel.normal, color = input$col.normal)
     updateAceEditor(session, "fieldCodeNormal", value = cod.normal)
   })
 
-  observeEvent(c(input$select.var), {
-    cod.disp <<- default.disp(data = "datos", vars = input$select.var)
+  observeEvent(c(input$select.var, input$col.disp), {
+    cod.disp <<- default.disp(data = "datos", vars = input$select.var, color = input$col.disp)
     updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
   })
 
@@ -655,9 +655,9 @@ shinyServer(function(input, output, session) {
       files <- c(namermd, files)
 
       src <- normalizePath(namermd)
-      out <- rmarkdown::render(src,  params = NULL, rmarkdown::html_document())
-      file.rename(out, paste('data-', Sys.Date(), '.html', sep=''))
-      files <- c(paste('data-', Sys.Date(), '.html', sep=''), files)
+      out <- rmarkdown::render(src,  params = NULL, rmarkdown::word_document())
+      file.rename(out, paste('data-', Sys.Date(), '.docx', sep=''))
+      files <- c(paste('data-', Sys.Date(), '.docx', sep=''), files)
 
       zip(file, files)
     }
