@@ -7,6 +7,26 @@
   background-color: #777777
 }
 
+.select-var-ind {
+   padding-top: 3px;
+}
+
+.multiple-select-var{
+    float: left;
+    width: 50%;
+    padding-right: 8px;
+    padding-top: 3px;
+    margin-bottom: 0px;
+    margin-top: 0px;
+    font-size: 14px;
+}
+
+.option-var-ind {
+    float: left;
+    padding-right: 8px;
+    margin-top: 0px;
+}
+
 .skin-blue .main-sidebar {
     background-color: #777777;
 }

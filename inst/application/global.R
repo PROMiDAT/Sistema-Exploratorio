@@ -356,7 +356,7 @@ if(", sel, " == 'Todos'){
    centros.horizontal.todos(centros) + scale_fill_manual(values = c(", paste(colores, collapse = ","), "))
 } else{
    ggplot(data = centros, aes(x = row.names(centros), y = centros[, as.numeric(", sel, ")])) +
-       geom_bar(stat = 'identity', fill = '", color, "') + scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') +
+       geom_bar(stat = 'identity', fill = ", color, ") + scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') +
        coord_flip() + theme_minimal()
 }"))
 }
@@ -597,12 +597,14 @@ summary(datos)
 ```{r}
 ", code.pca.pc2(), "
 ```
+
 ##### Interpretación
 
 # Cluster Jerárquico
 ```{r}
 ", entradas$fieldCodeModelo, "
 ```
+
 ##### Interpretación
 
 ## Diagrama
@@ -615,24 +617,28 @@ summary(datos)
 ```{r}
 ", entradas$fieldCodeMapa, "
 ```
+
 ##### Interpretación
 
 ## Interpretación Horizontal
 ```{r}
 ", entradas$fieldCodeHoriz, "
 ```
+
 ##### Interpretación
 
 ## Interpretación Vertical
 ```{r}
 ", entradas$fieldCodeVert, "
 ```
+
 ##### Interpretación
 
 ## Gráfico Radar
 ```{r}
 ", entradas$fieldCodeRadar, "
 ```
+
 ##### Interpretación
 
 ## Interpretación Categórico
@@ -649,36 +655,42 @@ summary(datos)
 ```{r}
 ", entradas$fieldCodeJambu, "
 ```
+
 ##### Interpretación
 
 ## Mapa
 ```{r}
 ", entradas$fieldCodeKmapa, "
 ```
+
 ##### Interpretación
 
 ## Interpretación Horizontal
 ```{r}
 ", entradas$fieldCodeKhoriz, "
 ```
+
 ##### Interpretación
 
 ## Interpretación Vertical
 ```{r}
 ", entradas$fieldCodeKvert, "
 ```
+
 ##### Interpretación
 
 ## Gráfico Radar
 ```{r}
 ", entradas$fieldCodeKradar, "
 ```
+
 ##### Interpretación
 
 ## Interpretación Categórico
 ```{r}
 ", entradas$fieldCodeKbarras, "
 ```
+
 ##### Interpretación
 
 "))

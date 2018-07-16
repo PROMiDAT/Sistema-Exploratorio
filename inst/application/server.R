@@ -196,8 +196,28 @@ shinyServer(function(input, output, session) {
     return(obj.biplot())
   })
 
-  output$plotAyuda = renderPlot({
-    return(obj.ayuda())
+  output$plotVEE = renderPlot({
+    return(obj.vee())
+  })
+
+  output$plotCCI = renderPlot({
+    return(obj.cci())
+  })
+
+  output$plotCCV = renderPlot({
+    return(obj.ccv())
+  })
+
+  output$plotCVC = renderPlot({
+    return(obj.cvc())
+  })
+
+  output$plotCP1 = renderPlot({
+    return(obj.cp1())
+  })
+
+  output$plotCP2 = renderPlot({
+    return(obj.cp2())
   })
 
   output$plot.cor = renderPlot({
@@ -269,6 +289,7 @@ shinyServer(function(input, output, session) {
   })
 
   observeEvent(c(input$loadButton, input$cant.cluster), {
+    updateSelectInput(session, "sel.cluster", choices = c("Todos", 1:input$cant.cluster))
     for (i in 1:10) {
       if(i <= input$cant.cluster) {
         shinyjs::show(paste0("hcColor", i))
@@ -279,6 +300,7 @@ shinyServer(function(input, output, session) {
   })
 
   observeEvent(c(input$loadButton, input$cant.kmeans.cluster), {
+    updateSelectInput(session, "sel.kmeans.cluster", choices = c("Todos", 1:input$cant.kmeans.cluster))
     for (i in 1:10) {
       if(i <= input$cant.kmeans.cluster) {
         shinyjs::show(paste0("kColor", i))
@@ -322,21 +344,44 @@ shinyServer(function(input, output, session) {
     isolate(eval(parse(text = cod.pca[["sobreposicion"]])))
   })
 
-  obj.ayuda <- eventReactive(c(input$tabPCA, input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
-    codigo <- switch (input$tabPCA,
-            "tabVarExplicada" = code.pca.vee(),
-            "tabIndCos" = code.pca.cci(),
-            "tabVarCos" = code.pca.ccv(),
-            "tabCorVarComp" = code.pca.cvp(),
-            "tabVarDim1" = code.pca.pc1(),
-            "tabVarDim2" = code.pca.pc2()
-    )
-    if(is.null(codigo)){
-      return(NULL)
-    } else {
-      updateAceEditor(session, "fieldCodeAyuda", value = codigo)
-      return(isolate(eval(parse(text = codigo))))
-    }
+  obj.vee <- eventReactive(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
+    codigo <- code.pca.vee()
+    updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+    return(isolate(eval(parse(text = codigo))))
+
+  })
+
+  obj.cci <- eventReactive(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
+    codigo <- code.pca.cci()
+    updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+    return(isolate(eval(parse(text = codigo))))
+
+  })
+
+  obj.ccv <- eventReactive(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
+    codigo <- code.pca.ccv()
+    updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+    return(isolate(eval(parse(text = codigo))))
+
+  })
+
+  obj.cvc <- eventReactive(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
+    codigo <- code.pca.cvp()
+    updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+    return(isolate(eval(parse(text = codigo))))
+  })
+
+  obj.cp1 <- eventReactive(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
+    codigo <- code.pca.pc1()
+    updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+    return(isolate(eval(parse(text = codigo))))
+
+  })
+
+  obj.cp2 <- eventReactive(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
+    codigo <- code.pca.pc2()
+    updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+    return(isolate(eval(parse(text = codigo))))
   })
 
   obj.dya.num <- eventReactive(c(input$loadButton, input$transButton, input$fieldFuncNum, input$fieldCodeNum), {
@@ -439,10 +484,7 @@ shinyServer(function(input, output, session) {
   })
 
   observe({
-    updateSelectInput(session, "sel.cluster", choices = c("Todos", 1:input$cant.cluster))
-    updateSelectInput(session, "sel.kmeans.cluster", choices = c("Todos", 1:input$cant.kmeans.cluster))
     updateAceEditor(session, "fieldCodeResum", value = cod.resum())
-
     updateAceEditor(session, "fieldFuncNum", value = func.dya.num)
     updateAceEditor(session, "fieldFuncCat", value = func.dya.cat)
 
@@ -586,7 +628,7 @@ shinyServer(function(input, output, session) {
 
   observeEvent(input$sel.kmeans.verticales, {
     nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i) paste0("'", input[[paste0("kColor", i)]], "'"))
-    code.kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores)
+    code.kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.verticales, "'"), colores = nuevos.colores)
     updateAceEditor(session, "fieldCodeKvert", value = code.kvert)
   })
 
@@ -637,7 +679,10 @@ shinyServer(function(input, output, session) {
   })
 
   output$knitDoc <- renderUI({
-    c(input$fieldCodeReport)
+    obj.reporte()
+  })
+
+  obj.reporte <- eventReactive(input$btnReporte, {
     return(isolate(HTML(knit2html(text = input$fieldCodeReport, fragment.only = T, quiet = T))))
   })
 
