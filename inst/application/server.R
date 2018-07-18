@@ -17,7 +17,7 @@ shinyServer(function(input, output, session) {
   })
 
   observe({
-    addClass(class = "disabled", selector = "#sidebarItemExpanded li[class=treeview]")
+    #addClass(class = "disabled", selector = "#sidebarItemExpanded li[class=treeview]")
     addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
     addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
     addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
@@ -31,29 +31,16 @@ shinyServer(function(input, output, session) {
 
      tryCatch({
        isolate(eval(parse(text = codigo)))
-       if(is.null(datos) || ncol(datos) < 1){
-         addClass(class = "disabled", selector = "#sidebarItemExpanded li a[href=#shiny-tab-parte1]")
-         addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
-         addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
-         addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
-         addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=reporte]")
-       } else {
-         removeClass(class = "disabled", selector = "#sidebarItemExpanded li[class=treeview disabled]")
-         removeClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
-         removeClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
-         removeClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
-         removeClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=reporte]")
-       }
-       #toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
-      #             class = "disabled", selector = "#sidebarItemExpanded li[class=treeview]")
-      # toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
-      #             class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
-      # toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
-      #             class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
-      # toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
-      #             class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
-      # toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
-      #             class = "disabled", selector = "#sidebarItemExpanded li a[data-value=reporte]")
+       toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+                   class = "disabled", selector = "#sidebarItemExpanded li[class=treeview]")
+       toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+                   class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
+       toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+                   class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
+       toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+                   class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
+       toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+                   class = "disabled", selector = "#sidebarItemExpanded li a[data-value=reporte]")
      }, error = function(e) {
        showNotification(paste0("Error al cargar los Datos: ", e), duration = 10, type = "error")
        datos <<- NULL
