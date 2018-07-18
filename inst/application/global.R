@@ -41,7 +41,7 @@ datos.disyuntivos <- function(data, vars){
 
 code.carga <- function(nombre.filas = T, ruta = NULL, separador = ";", sep.decimal = ",", encabezado = T){
   if(!is.null(ruta)){
-    gsub("\\\\", "/", ruta)
+    ruta <- gsub("\\", "/", ruta, fixed = T)
   }
   if(nombre.filas){
     return(paste0("datos.originales <<- read.table('", ruta, "', header=", encabezado, ", sep='",
