@@ -10,6 +10,7 @@
 shinyServer(function(input, output, session) {
   source('global.R', local = T)
   options(shiny.maxRequestSize=200*1024^2)
+  options(encoding = "windows-1252")
   options(DT.options = list(aLengthMenu = c(10, 30, 50), iDisplayLength = 10, scrollX = TRUE))
 
   session$onSessionEnded(function() {
