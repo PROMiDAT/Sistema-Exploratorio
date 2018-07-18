@@ -26,6 +26,13 @@ library(corrplot)
 library(dendextend)
 library(scatterplot3d)
 library(stringr)
+cod.deshabilitar <-
+  'shinyjs.init = function() {
+$(".sidebar").on("click", ".disabled", function (e) {
+e.preventDefault();
+return false;
+});
+}'
 
 # Define UI for application that draws a histogram
 shinyUI(dashboardPage(title="PROMiDAT",
@@ -52,7 +59,8 @@ shinyUI(dashboardPage(title="PROMiDAT",
     tags$head(
       tags$link(rel = "stylesheet", type = "text/css", href = "style_promidat.css"),
       tags$link(rel = "icon", type = "image", href = "http://www.promidat.org/theme/image.php/formal_white/theme/1438713216/favicon"),
-      useShinyjs()
+      useShinyjs(),
+      extendShinyjs(text = cod.deshabilitar, functions = "init")
     ),
 
     tabItems(
@@ -74,6 +82,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
                      ),
                      tabPanel(title = "Transformar", width = 12, solidHeader = FALSE, collapsible = FALSE, collapsed = FALSE,
                        DT::dataTableOutput('transData'),
+                       hr(),
                        actionButton("transButton", "Aplicar", width = "100%"),
                        hr(),
                        aceEditor("fieldCodeTrans", mode = "r", theme = "monokai", value = "", height = "10vh",  readOnly = T)
@@ -114,7 +123,8 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                                                            value = "#00FF22AA", allowTransparent = T),
                                                                  circle = F, status = "danger", icon = icon("gear"), width = "100%",
                                                                  tooltip = tooltipOptions(title = "Clic para ver opciones"), right = T))),
-                            tabPanel(title = "Test de Normalidad", value = "tabNormal", plotOutput('plot.normal', height = "72vh")))),
+                            tabPanel(title = "Gráfico Normalidad", value = "tabNormal", plotOutput('plot.normal', height = "72vh")),
+                            tabPanel(title = "Calculo Normalidad", value = "tabNormal", verbatimTextOutput('calculo.normal')))),
               aceEditor("fieldCodeNormal", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
       ),
 

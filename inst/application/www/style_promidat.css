@@ -8,23 +8,23 @@
 }
 
 .select-var-ind {
-   padding-top: 3px;
+  padding-top: 3px;
 }
 
 .multiple-select-var{
-    float: left;
-    width: 50%;
-    padding-right: 8px;
-    padding-top: 3px;
-    margin-bottom: 0px;
-    margin-top: 0px;
-    font-size: 14px;
+  float: left;
+  width: 50%;
+  padding-right: 8px;
+  padding-top: 3px;
+  margin-bottom: 0px;
+  margin-top: 0px;
+  font-size: 14px;
 }
 
 .option-var-ind {
-    float: left;
-    padding-right: 8px;
-    margin-top: 0px;
+  float: left;
+  padding-right: 8px;
+  margin-top: 0px;
 }
 
 .skin-blue .main-sidebar {
@@ -119,14 +119,20 @@ input[type="radio"]:checked {
 }
 
 input[type="checkbox"] {
- -webkit-appearance:none;/* Hides the default checkbox style */ 
- height:15px;
- width:15px;
- cursor:pointer;
- position:relative;
- -webkit-transition: .15s;
- border-radius:2em;
- background-color:#900;
+  -webkit-appearance:none;/* Hides the default checkbox style */ 
+  height:15px;
+  width:15px;
+  cursor:pointer;
+  position:relative;
+  -webkit-transition: .15s;
+  border-radius:2em;
+  background-color:#900;
+}
+
+.disabled {
+  background: #eee;
+  cursor: default;
+  color: black;
 }
 
 input[type="checkbox"]:checked {
@@ -134,35 +140,35 @@ input[type="checkbox"]:checked {
 }
 
 input[type="checkbox"]:before, input[type="checkbox"]:checked:before {
- position:absolute;
- top:0;
- left:0;
- width:100%;
- height:100%;
- line-height:15px;
- text-align:center;
- color:#fff;
- content: '✘';
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  line-height:15px;
+  text-align:center;
+  color:#fff;
+  content: '✘';
 }
 
 .colourpicker-panel {
-    right: 0;
-    left: auto;
+  right: 0;
+  left: auto;
 }
 
 input[type="checkbox"]:checked:before {
- content: '✔';
+  content: '✔';
 }
 
 input[type="checkbox"]:hover:before {
 }
 
 .box.box-solid.box-primary > .box-header{
-    background-color: #CBB051;
-    color: white;
+  background-color: #CBB051;
+  color: white;
 }
 
 .table-striped > tbody > tr:nth-of-type(2n+1){
-    background-color: #CBB051;
-    color: #777777;
+  background-color: #CBB051;
+  color: #777777;
 }

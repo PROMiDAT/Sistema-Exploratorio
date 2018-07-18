@@ -12,9 +12,10 @@ k.modelo <<- NULL
 correlacion <<- NULL
 def.colores <<- gg_color_hue(10)
 
-var.numericas <- function(data){
-  if(is.null(data)) return(NULL)
-  res <- base::subset(data, select = sapply(data, class) %in% c('numeric', 'integer'))
+colnames.empty <- function(res){
+  res <- colnames(res)
+  if(is.null(res))
+    return("")
   return(res)
 }
 

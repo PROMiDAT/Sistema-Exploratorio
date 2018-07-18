@@ -16,6 +16,14 @@ shinyServer(function(input, output, session) {
     stopApp()
   })
 
+  observe({
+    addClass(class = "disabled", selector = "#sidebarItemExpanded li[class=treeview]")
+    addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
+    addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
+    addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
+    addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=reporte]")
+  })
+
   observeEvent(input$loadButton, {
     codigo <- code.carga(nombre.filas = input$rowname, ruta = input$file1$datapath,
                          separador = input$sep, sep.decimal = input$dec, encabezado = input$header)
@@ -23,27 +31,35 @@ shinyServer(function(input, output, session) {
 
      tryCatch({
        isolate(eval(parse(text = codigo)))
+       if(is.null(datos) || ncol(datos) < 1){
+         addClass(class = "disabled", selector = "#sidebarItemExpanded li a[href=#shiny-tab-parte1]")
+         addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
+         addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
+         addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
+         addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=reporte]")
+       } else {
+         removeClass(class = "disabled", selector = "#sidebarItemExpanded li[class=treeview disabled]")
+         removeClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
+         removeClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
+         removeClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
+         removeClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=reporte]")
+       }
+       #toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+      #             class = "disabled", selector = "#sidebarItemExpanded li[class=treeview]")
+      # toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+      #             class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
+      # toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+      #             class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
+      # toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+      #             class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
+      # toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+      #             class = "disabled", selector = "#sidebarItemExpanded li a[data-value=reporte]")
      }, error = function(e) {
-       print(paste0("ERROR EN CARGAR: ", e))
+       showNotification(paste0("Error al cargar los Datos: ", e), duration = 10, type = "error")
        datos <<- NULL
        datos.originales <<- NULL
        return(NULL)
      })
-
-    updateSelectizeInput(session, "sel.normal", choices = colnames(var.numericas(datos)))
-    updateSelectizeInput(session, "select.var", choices = colnames(var.numericas(datos)))
-    updateSelectInput(session, "sel.distribucion.num", choices = colnames(var.numericas(datos)))
-    updateSelectInput(session, "sel.distribucion.cat", choices = colnames(var.categoricas(datos)))
-    updateSelectInput(session, "sel.resumen", choices = colnames(datos))
-    updateSelectInput(session, "sel.verticales", choices = c("Todos", colnames(var.numericas(datos))))
-    updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(datos))))
-    updateSelectInput(session, "sel.kcat.var", choices = colnames(var.categoricas(datos)))
-    updateSelectInput(session, "sel.cat.var", choices = colnames(var.categoricas(datos)))
-
-    updateAceEditor(session, "fieldModelCor", value = modelo.cor())
-    updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
-    updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
-    updateAceEditor(session, "fieldCodeJambu", value = def.code.jambu())
 
     tryCatch({
       isolate(eval(parse(text = default.centros())))
@@ -51,7 +67,23 @@ shinyServer(function(input, output, session) {
       isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
       output$txtpca <- renderPrint(print(unclass(pca.modelo)))
       output$txtcor <- renderPrint(print(correlacion))
+
+      updateSelectizeInput(session, "sel.normal", choices = colnames(var.numericas(datos)))
+      updateSelectizeInput(session, "select.var", choices = colnames(var.numericas(datos)))
+      updateSelectInput(session, "sel.distribucion.num", choices = colnames(var.numericas(datos)))
+      updateSelectInput(session, "sel.distribucion.cat", choices = colnames(var.categoricas(datos)))
+      updateSelectInput(session, "sel.resumen", choices = colnames(datos))
+      updateSelectInput(session, "sel.verticales", choices = c("Todos", colnames(var.numericas(datos))))
+      updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(datos))))
+      updateSelectInput(session, "sel.kcat.var", choices = colnames(var.categoricas(datos)))
+      updateSelectInput(session, "sel.cat.var", choices = colnames(var.categoricas(datos)))
+
+      updateAceEditor(session, "fieldModelCor", value = modelo.cor())
+      updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
+      updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
+      updateAceEditor(session, "fieldCodeJambu", value = def.code.jambu())
     }, error = function(e) {
+      print(paste0("ERROR EN EVALUAR: ", e))
       return(datos <- NULL)
     })
   })
@@ -118,18 +150,29 @@ shinyServer(function(input, output, session) {
     return(DT::datatable(datos, selection = 'none', editable = TRUE, extensions = 'Buttons', container = sketch,
               options = list(dom = 'Bfrtip', buttons = list(list(extend = 'csv', filename = "datos", text = 'Descargar')))))
   })
-  output$contents = DT::renderDT(mostrarData())
+  output$contents = DT::renderDT(mostrarData(), server = F)
 
-  update.trans <- reactive({
-    inFile <- c(input$loadButton)
-    n <- ncol(datos)
-    res <-  data.frame(Variables = colnames(datos), Tipo = c(1:n), Activa = c(1:n))
+  var.numericas <- function(data){
+    if(is.null(data)) return(NULL)
+    res <- base::subset(data, select = sapply(data, class) %in% c('numeric', 'integer'))
+    return(res)
+  }
+
+  update.trans <- eventReactive(c(input$loadButton), {
+    if(!is.null(datos) && ncol(datos) > 0) {
+      res <-  data.frame(Variables = colnames(datos), Tipo = c(1:ncol(datos)), Activa = c(1:ncol(datos)))
+    }else{
+      res <-  as.data.frame(NULL)
+      showNotification("Tiene que cargar los datos", duration = 10, type = "error")
+    }
     res$Tipo <- sapply(colnames(datos), function(i) paste0('<select id="sel', i, '"> <option value="categorico">Categórico</option>
-      <option value="numerico" ', ifelse(class(datos[, i]) %in% c("numeric","integer"), ' selected="selected"', ''),
-      '>Numérico</option> <option value="disyuntivo">Disyuntivo</option> </select>'))
+                                                           <option value="numerico" ', ifelse(class(datos[, i]) %in% c("numeric","integer"),
+                                                                                              ' selected="selected"', ''),
+                                                           '>Numérico</option> <option value="disyuntivo">Disyuntivo</option> </select>'))
     res$Activa <- sapply(colnames(datos), function(i) paste0('<input type="checkbox" id="box', i, '" checked/>'))
     return(res)
   })
+
   output$transData = DT::renderDataTable(update.trans(), escape = FALSE, selection = 'none', server = FALSE,
                                    options = list(dom = 't', paging = FALSE, ordering = FALSE), rownames = F,
                                    callback = JS("table.rows().every(function(i, tab, row) {
@@ -708,3 +751,7 @@ shinyServer(function(input, output, session) {
     }
   )
 })
+
+
+
+
