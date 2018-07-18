@@ -514,6 +514,7 @@ shinyServer(function(input, output, session) {
   })
 
   observe({
+    options(encoding = "mac")
     updateAceEditor(session, "fieldCodeResum", value = cod.resum())
     updateAceEditor(session, "fieldFuncNum", value = func.dya.num)
     updateAceEditor(session, "fieldFuncCat", value = func.dya.cat)
