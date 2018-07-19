@@ -10,6 +10,7 @@ hc.modelo <<- NULL
 pca.modelo <<- NULL
 k.modelo <<- NULL
 correlacion <<- NULL
+codigo.reporte <<- list()
 def.colores <<- gg_color_hue(10)
 
 colnames.empty <- function(res){
