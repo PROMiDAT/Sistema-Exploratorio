@@ -19,7 +19,7 @@ shinyServer(function(input, output, session) {
   })
 
   observe({
-    #addClass(class = "disabled", selector = "#sidebarItemExpanded li[class=treeview]")
+    addClass(class = "disabled", selector = "#sidebarItemExpanded li[class^=treeview]")
     addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
     addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
     addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
@@ -33,22 +33,23 @@ shinyServer(function(input, output, session) {
 
      tryCatch({
        isolate(eval(parse(text = codigo)))
-       toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
-                   class = "disabled", selector = "#sidebarItemExpanded li[class=treeview]")
-       toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
-                   class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
-       toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
-                   class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
-       toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
-                   class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
-       toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
-                   class = "disabled", selector = "#sidebarItemExpanded li a[data-value=reporte]")
      }, error = function(e) {
        showNotification(paste0("Error al cargar los Datos: ", e), duration = 10, type = "error")
        datos <<- NULL
        datos.originales <<- NULL
        return(NULL)
      })
+
+    toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+                class = "disabled", selector = "#sidebarItemExpanded li[class^=treeview]")
+    toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+                class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
+    toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+                class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
+    toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+                class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
+    toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
+                class = "disabled", selector = "#sidebarItemExpanded li a[data-value=reporte]")
 
     tryCatch({
       isolate(eval(parse(text = default.centros())))

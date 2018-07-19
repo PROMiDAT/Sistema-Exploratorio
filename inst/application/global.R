@@ -141,7 +141,7 @@ legend('bottom', legend = 'Curva Normal', col = 'blue', lty=1, cex=1.5)"))
 
 default.disp <- function(data = "datos", vars = NULL, color = "#FF0000AA"){
   if(length(vars) < 2) {
-    return(NULL)
+    return("NULL")
   } else if(length(vars) == 2) {
 return(paste0("ggplot(data = ", data, ", aes(x = ", vars[1], ", y = ", vars[2], ", label = rownames(", data, "))) +
        geom_point(color = '", color, "', size = 3) + geom_text(vjust = -0.7)"))
@@ -268,7 +268,7 @@ diagrama <- function(cant = "as.numeric(input$cant.cluster)", colores = "'steelb
 }
 
 def.code.jambu <- function(data = "datos"){
-  return(paste0("codo.jambu(data. = var.numericas(", data, "), k. = 2:10)"))
+  return(paste0("codo.jambu(data. = var.numericas(", data, "), k. = 2:5)"))
 }
 
 def.func.jambu <- function(){
