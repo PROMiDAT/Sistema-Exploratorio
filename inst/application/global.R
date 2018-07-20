@@ -150,9 +150,9 @@ default.normal <- function(data = "datos", vars = NULL, color = "#00FF22AA"){
   } else {
     return(paste0("promedio <- mean(", data, "[, '", vars, "']) \n",
                   "desviacion <- sd(", data, "[, '", vars, "']) \n",
-                  "values <- hist(", data, "[, '", vars, "'], plot = F)$density \n",
+                  "values <- dnorm(", data, "[, '", vars, "'], mean = promedio, sd = desviacion) \n",
                   "hist(", data, "[, '", vars, "'], col = '#00FF22AA', border=F, axes=F,\n",
-                  "  freq = F, ylim = range(0, max(desviacion, values)), \n",
+                  "  freq = F, ylim = range(0, max(values)), \n",
                   "  main = paste0('Test de normalidad de la variable ','", vars, "')) \n",
                   "axis(1, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025) \n",
                   "axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025) \n",
