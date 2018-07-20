@@ -20,6 +20,12 @@ colnames.empty <- function(res){
   return(res)
 }
 
+var.numericas <- function(data){
+  if(is.null(data)) return(NULL)
+  res <- base::subset(data, select = sapply(data, class) %in% c('numeric', 'integer'))
+  return(res)
+}
+
 var.categoricas <- function(data){
   if(is.null(data)) return(NULL)
   res <- base::subset(data, select = !sapply(data, class) %in% c('numeric', 'integer'))
@@ -44,13 +50,21 @@ code.carga <- function(nombre.filas = T, ruta = NULL, separador = ";", sep.decim
   if(!is.null(ruta)){
     ruta <- gsub("\\", "/", ruta, fixed = T)
   }
-  if(nombre.filas){
-    return(paste0("datos.originales <<- read.table('", ruta, "', header=", encabezado, ", sep='",
-                  separador, "', dec = '", sep.decimal, "', row.names = 1) \ndatos <<- datos.originales"))
-  } else {
-    return(paste0("datos.originales <<- read.table('", ruta, "', header=", encabezado, ", sep='",
-                  separador, "', dec = '", sep.decimal, "') \ndatos <<- datos.originales"))
-  }
+  res <- paste0("datos.originales <<- read.table('", ruta, "', header=", encabezado, ", sep='",
+                separador, "', dec = '", sep.decimal, "'", ifelse(nombre.filas, ", row.names = 1", ""),
+                ") \ndatos <<- datos.originales")
+  return(res)
+}
+
+code.NA <- function(deleteNA = T) {
+  res <- ifelse(deleteNA, "datos <<- na.omit(datos)",
+         paste0("for (variable in colnames(datos)) {\n",
+                "  if(any(is.na(datos[, variable]))){\n",
+                "    ifelse(class(datos[, variable]) %in% c('numeric', 'integer'),\n",
+                "           datos[, variable][is.na(datos[, variable])] <<- mean(datos[, variable], na.rm = T),\n",
+                "           datos[, variable][is.na(datos[, variable])] <<- modeest::mfv(datos[, variable], na.rm = T))",
+                "\n   }\n}"))
+  return(res)
 }
 
 code.trans <- function(variable, nuevo.tipo){

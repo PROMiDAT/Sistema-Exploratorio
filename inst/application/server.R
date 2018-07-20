@@ -27,18 +27,33 @@ shinyServer(function(input, output, session) {
   })
 
   observeEvent(input$loadButton, {
-    codigo <- code.carga(nombre.filas = input$rowname, ruta = input$file1$datapath,
-                         separador = input$sep, sep.decimal = input$dec, encabezado = input$header)
-    updateAceEditor(session, "fieldCodeData", value = codigo)
+    codigo.carga <- code.carga(nombre.filas = input$rowname, ruta = input$file1$datapath,
+                               separador = input$sep, sep.decimal = input$dec, encabezado = input$header)
 
      tryCatch({
-       isolate(eval(parse(text = codigo)))
+       isolate(eval(parse(text = codigo.carga)))
      }, error = function(e) {
        showNotification(paste0("Error al cargar los Datos: ", e), duration = 10, type = "error")
        datos <<- NULL
        datos.originales <<- NULL
        return(NULL)
      })
+
+    if(any(is.na(datos))){
+      codigo.na <- code.NA(deleteNA = input$deleteNA)
+      tryCatch({
+        isolate(eval(parse(text = codigo.na)))
+      }, error = function(e) {
+        showNotification(paste0("Error al eliminar NAs: ", e), duration = 10, type = "error")
+        datos <<- NULL
+        datos.originales <<- NULL
+        return(NULL)
+      })
+    } else {
+      codigo.na <- ""
+    }
+
+    updateAceEditor(session, "fieldCodeData", value = paste0(codigo.carga, "\n", codigo.na))
 
     toggleClass(condition = (is.null(datos) || ncol(datos) < 1),
                 class = "disabled", selector = "#sidebarItemExpanded li[class^=treeview]")
@@ -101,7 +116,7 @@ shinyServer(function(input, output, session) {
     if(length(var.noactivas) > 0)
       isolate(eval(parse(text = code.desactivar(var.noactivas))))
 
-    updateAceEditor(session, "fieldCodeTrans", value = code.res)
+    updateAceEditor(session, "fieldCodeTrans", value = paste0(code.res, "\n", code.desactivar(var.noactivas)))
 
     updateSelectizeInput(session, "sel.normal", choices = colnames(var.numericas(datos)))
     updateSelectizeInput(session, "select.var", choices = colnames(var.numericas(datos)))

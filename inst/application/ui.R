@@ -26,6 +26,7 @@ library(reshape)
 library(corrplot)
 library(dendextend)
 library(scatterplot3d)
+library(modeest)
 library(stringr)
 cod.deshabilitar <-
   'shinyjs.init = function() {
@@ -75,6 +76,8 @@ shinyUI(dashboardPage(title="PROMiDAT",
                        checkboxInput('rowname', 'Incluir nombre de filas', TRUE),
                        radioButtons('sep', 'Seperador', c(Coma=',', 'Punto y Coma'=';', Tab='\t'), selected = 'Coma'),
                        radioButtons('dec', 'Separador Decimal', c('Punto'='.', 'Coma'=","), selected = 'Punto'),
+                       switchInput(inputId = "deleteNA", onStatus = "success", offStatus = "danger", value = T, width = "100%",
+                                   label = "Eliminar NA", onLabel = "SI", offLabel = "NO", labelWidth = "100%"),
                        fileInput('file1', label = 'Cargar Archivo', placeholder = "", buttonLabel = "Subir", width = "100%",
                                  accept = c('text/csv', 'text/comma-separated-values, text/plain', '.csv')),
                        actionButton("loadButton", "Cargar", width = "100%"),
