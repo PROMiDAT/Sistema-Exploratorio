@@ -3,6 +3,7 @@ gg_color_hue <- function(n) {
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
 
+contador <<- 0
 datos <<- NULL
 datos.originales <<- NULL
 centros <<- NULL
@@ -52,17 +53,19 @@ code.carga <- function(nombre.filas = T, ruta = NULL, separador = ";", sep.decim
   }
   res <- paste0("datos.originales <<- read.table('", ruta, "', header=", encabezado, ", sep='",
                 separador, "', dec = '", sep.decimal, "'", ifelse(nombre.filas, ", row.names = 1", ""),
-                ") \ndatos <<- datos.originales")
+                ")\ndatos <<- datos.originales")
   return(res)
 }
 
 code.NA <- function(deleteNA = T) {
-  res <- ifelse(deleteNA, "datos <<- na.omit(datos)",
-         paste0("for (variable in colnames(datos)) {\n",
-                "  if(any(is.na(datos[, variable]))){\n",
-                "    ifelse(class(datos[, variable]) %in% c('numeric', 'integer'),\n",
-                "           datos[, variable][is.na(datos[, variable])] <<- mean(datos[, variable], na.rm = T),\n",
-                "           datos[, variable][is.na(datos[, variable])] <<- modeest::mfv(datos[, variable], na.rm = T))",
+  res <- ifelse(deleteNA, "datos.originales <<- na.omit(datos.originales)",
+         paste0("for (variable in colnames(datos.originales)) {\n",
+                "  if(any(is.na(datos.originales[, variable]))){\n",
+                "    ifelse(class(datos.originales[, variable]) %in% c('numeric', 'integer'),\n",
+                "           datos.originales[, variable][is.na(datos.originales[, variable])] <<- \n",
+                "                                              mean(datos.originales[, variable], na.rm = T),\n",
+                "           datos.originales[, variable][is.na(datos.originales[, variable])] <<- \n",
+                "                                     modeest::mfv(datos.originales[, variable], na.rm = T))",
                 "\n   }\n}"))
   return(res)
 }
@@ -145,13 +148,24 @@ default.normal <- function(data = "datos", vars = NULL, color = "#00FF22AA"){
   if(is.null(vars)){
     return(NULL)
   } else {
-    return(paste0("hist(", data, "[, '", vars, "'], col = '", color,
-"', border=F, main = paste0('Test de normalidad de la variable ','", vars,"'), axes=F, freq = F)
-axis(1, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
-axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
-curve(dnorm(x, mean = mean(", data, "[, '", vars, "']), sd = sd(", data, "[, '", vars, "'])), add=T, col='blue', lwd=2)
-legend('bottom', legend = 'Curva Normal', col = 'blue', lty=1, cex=1.5)"))
+    return(paste0("promedio <- mean(", data, "[, '", vars, "']) \n",
+                  "desviacion <- sd(", data, "[, '", vars, "']) \n",
+                  "values <- hist(", data, "[, '", vars, "'], plot = F)$density \n",
+                  "hist(", data, "[, '", vars, "'], col = '#00FF22AA', border=F, axes=F,\n",
+                  "  freq = F, ylim = range(0, max(desviacion, values)), \n",
+                  "  main = paste0('Test de normalidad de la variable ','", vars, "')) \n",
+                  "axis(1, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025) \n",
+                  "axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025) \n",
+                  "curve(dnorm(x, mean = promedio, sd = desviacion), add=T, col='blue', lwd=2)\n",
+                  "legend('bottom', legend = 'Curva Normal', col = 'blue', lty=1, cex=1.5)"))
   }
+}
+
+default.calc.normal <- function(data = "datos"){
+  return(paste0("calc <- lapply(var.numericas(datos), function(i) modeest::skewness(i)[1]) \n",
+                "calc <- as.data.frame(calc) \n",
+                "calc <- rbind(calc,  lapply(calc, function(i) ifelse(i > 0, 'Positiva', 'Negativa'))) \n",
+                "calc <- t(calc)\ncolnames(calc) <- c('Cálculo de Fisher', 'Asimetría')\ncalc"))
 }
 
 default.disp <- function(data = "datos", vars = NULL, color = "#FF0000AA"){
@@ -403,19 +417,21 @@ if(", sel, " == 'Todos'){
 }
 
 cluster.cat <- function(var = "input$sel.kcat.var", cant = "input$cant.cluster"){
-  return(paste0("hc.clusters <- cutree(hc.modelo, k=", cant, ")
-NDatos <- cbind(datos, grupo = hc.clusters)
-                ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) +
-                facet_wrap(~grupo) + theme(text = element_text(size = 10), axis.text.x = element_blank()) +
-                scale_fill_discrete(name='Variable') + labs(x = '', y = '')"))
+  return(paste0("hc.clusters <- cutree(hc.modelo, k=", cant, ") \n",
+                "NDatos <- cbind(datos, Cluster = hc.clusters) \n",
+                "ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + \n",
+                "  facet_wrap(~Cluster, labeller = label_both) + \n",
+                "  theme(text = element_text(size = 10), axis.text.x = element_blank()) + \n",
+                "  scale_fill_discrete(name='Variable') + labs(x = '', y = '')"))
 }
 
 cluster.kcat <- function(var = "input$sel.kcat.var"){
-  return(paste0("NDatos <- cbind(datos, grupo = k.modelo$cluster)
-ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) +
-  facet_wrap(~grupo) + theme(text = element_text(size = 10), axis.text.x = element_blank()) +
-  scale_fill_discrete(name='Variable') + labs(x = '', y = '')"))
-}
+  return(paste0("NDatos <- cbind(datos, Cluster = k.modelo$cluster)\n",
+                "ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + \n",
+                "  facet_wrap(~Cluster, labeller = label_both) + \n",
+                "  theme(text = element_text(size = 10), axis.text.x = element_blank()) +\n",
+                "  scale_fill_discrete(name='Variable') + labs(x = '', y = '')"))
+  }
 
 cluster.radar <- function(){
   return(paste0("coord_radar <<- function (theta = 'x', start = 0, direction = 1) {

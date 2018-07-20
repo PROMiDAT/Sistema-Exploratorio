@@ -89,7 +89,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
                        hr(),
                        actionButton("transButton", "Aplicar", width = "100%"),
                        hr(),
-                       aceEditor("fieldCodeTrans", mode = "r", theme = "monokai", value = "", height = "10vh",  readOnly = T)
+                       aceEditor("fieldCodeTrans", mode = "r", theme = "monokai", value = "", height = "10vh",  readOnly = F)
                      )
               )),
               column(width = 7,
@@ -127,9 +127,16 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                                                            value = "#00FF22AA", allowTransparent = T),
                                                                  circle = F, status = "danger", icon = icon("gear"), width = "100%",
                                                                  tooltip = tooltipOptions(title = "Clic para ver opciones"), right = T))),
-                            tabPanel(title = "Gráfico Normalidad", value = "tabNormal", plotOutput('plot.normal', height = "72vh")),
-                            tabPanel(title = "Test de Normalidad", value = "tabNormal", verbatimTextOutput('calculo.normal')))),
-              aceEditor("fieldCodeNormal", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
+                            tabPanel(title = "Gráfico Normalidad", value = "tabNormalPlot", plotOutput('plot.normal', height = "72vh")),
+                            tabPanel(title = "Test de Normalidad", value = "tabNormalCalc", DT::dataTableOutput('calculo.normal')))),
+              conditionalPanel(
+                "input.BoxNormal == 'tabNormalPlot'",
+                aceEditor("fieldCodeNormal", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
+              ),
+              conditionalPanel(
+                "input.BoxNormal == 'tabNormalCalc'",
+                aceEditor("fieldCalcNormal", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
+              )
       ),
 
       #Dispersión

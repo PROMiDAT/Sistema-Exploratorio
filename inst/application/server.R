@@ -32,6 +32,10 @@ shinyServer(function(input, output, session) {
 
      tryCatch({
        isolate(eval(parse(text = codigo.carga)))
+       if(ncol(datos) < 1){
+         showNotification(paste0("Error al cargar los Datos: Revisar separadores"), duration = 10, type = "error")
+         return(NULL)
+       }
      }, error = function(e) {
        showNotification(paste0("Error al cargar los Datos: ", e), duration = 10, type = "error")
        datos <<- NULL
@@ -40,7 +44,7 @@ shinyServer(function(input, output, session) {
      })
 
     if(any(is.na(datos))){
-      codigo.na <- code.NA(deleteNA = input$deleteNA)
+      codigo.na <- paste0(code.NA(deleteNA = input$deleteNA), "\n", "datos <<- datos.originales")
       tryCatch({
         isolate(eval(parse(text = codigo.na)))
       }, error = function(e) {
@@ -97,14 +101,14 @@ shinyServer(function(input, output, session) {
     var.noactivas <- c()
     code.res <- "datos <<- datos.originales \n"
     for (var in colnames(datos.originales)) {
-      if(input[[paste0("box", var)]]) {
-        if(input[[paste0("sel", var)]] == "categorico" & class(datos.originales[, var]) %in% c("numeric","integer")) {
+      if(input[[paste0("box", var, contador)]]) {
+        if(input[[paste0("sel", var, contador)]] == "categorico" & class(datos.originales[, var]) %in% c("numeric","integer")) {
           code.res <- paste0(code.res, code.trans(var, "categorico"), "\n")
         }
-        if(input[[paste0("sel", var)]] == "numerico" & !(class(datos.originales[, var]) %in% c("numeric","integer"))) {
+        if(input[[paste0("sel", var, contador)]] == "numerico" & !(class(datos.originales[, var]) %in% c("numeric","integer"))) {
           code.res <- paste0(code.res, code.trans(var, "numerico"), "\n")
         }
-        if(input[[paste0("sel", var)]] == "disyuntivo"){
+        if(input[[paste0("sel", var, contador)]] == "disyuntivo"){
           code.res <- paste0(code.res, code.trans(var, "disyuntivo"), "\n")
         }
       } else {
@@ -157,24 +161,19 @@ shinyServer(function(input, output, session) {
   })
   output$contents = DT::renderDT(mostrarData(), server = F)
 
-  var.numericas <- function(data){
-    if(is.null(data)) return(NULL)
-    res <- base::subset(data, select = sapply(data, class) %in% c('numeric', 'integer'))
-    return(res)
-  }
-
-  update.trans <- eventReactive(c(input$loadButton), {
+  update.trans <- eventReactive(input$loadButton, {
+    contador <<- contador + 1
     if(!is.null(datos) && ncol(datos) > 0) {
       res <-  data.frame(Variables = colnames(datos), Tipo = c(1:ncol(datos)), Activa = c(1:ncol(datos)))
+      res$Tipo <- sapply(colnames(datos), function(i) paste0('<select id="sel', i, contador, '"> <option value="categorico">Categórico</option>
+                                                           <option value="numerico" ', ifelse(class(datos[, i]) %in% c("numeric","integer"),
+                                                                                              ' selected="selected"', ''),
+                                                             '>Numérico</option> <option value="disyuntivo">Disyuntivo</option> </select>'))
+      res$Activa <- sapply(colnames(datos), function(i) paste0('<input type="checkbox" id="box', i, contador, '" checked/>'))
     }else{
       res <-  as.data.frame(NULL)
       showNotification("Tiene que cargar los datos", duration = 10, type = "error")
     }
-    res$Tipo <- sapply(colnames(datos), function(i) paste0('<select id="sel', i, '"> <option value="categorico">Categórico</option>
-                                                           <option value="numerico" ', ifelse(class(datos[, i]) %in% c("numeric","integer"),
-                                                                                              ' selected="selected"', ''),
-                                                           '>Numérico</option> <option value="disyuntivo">Disyuntivo</option> </select>'))
-    res$Activa <- sapply(colnames(datos), function(i) paste0('<input type="checkbox" id="box', i, '" checked/>'))
     return(res)
   })
 
@@ -227,6 +226,8 @@ shinyServer(function(input, output, session) {
   output$plot.normal = renderPlot({
     return(obj.normal())
   })
+
+  output$calculo.normal = DT::renderDataTable(obj.calc.normal())
 
   output$plot.disp = renderPlot({
     return(obj.disp())
@@ -364,15 +365,32 @@ shinyServer(function(input, output, session) {
     data.frame(unclass(summary(datos)), check.names = FALSE, stringsAsFactors = FALSE)
   })
 
-  obj.normal <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeNormal, input$sel.normal, input$col.normal), {
+  observeEvent(c(input$loadButton, input$transButton, input$sel.normal, input$col.normal), {
+    cod.normal <<- default.normal(data = "datos", vars = input$sel.normal, color = input$col.normal)
+    updateAceEditor(session, "fieldCodeNormal", value = cod.normal)
+  })
+
+  obj.normal <- eventReactive(input$fieldCodeNormal, {
     tryCatch({
-      cod.normal <<- default.normal(data = "datos", vars = input$sel.normal, color = input$col.normal)
-      updateAceEditor(session, "fieldCodeNormal", value = cod.normal)
-      res <- isolate(eval(parse(text = cod.normal)))
-      codigo.reporte[[paste0("normalidad.", input$sel.normal)]] <<- paste0("## Test de Normalidad \n ```{r}\n", cod.normal, "\n```")
+      res <- isolate(eval(parse(text = input$fieldCodeNormal)))
+      codigo.reporte[[paste0("normalidad.", input$sel.normal)]] <<- paste0("## Test de Normalidad \n ```{r}\n", input$fieldCodeNormal, "\n```")
       return(res)
     }, error = function(e){
       showNotification(paste0("ERROR AL GENERAR TEST DE NORMALIDAD: ", e), duration = 10, type = "error")
+    })
+  })
+
+  observeEvent(c(input$loadButton, input$transButton), {
+    cod.normal <<- default.calc.normal()
+    updateAceEditor(session, "fieldCalcNormal", value = cod.normal)
+  })
+
+  obj.calc.normal <- eventReactive(input$fieldCalcNormal, {
+    tryCatch({
+      res <- isolate(eval(parse(text = input$fieldCalcNormal)))
+      return(res)
+    }, error = function(e){
+      showNotification(paste0("ERROR AL CALCULAR TEST DE NORMALIDAD: ", e), duration = 10, type = "error")
     })
   })
 
@@ -770,7 +788,4 @@ shinyServer(function(input, output, session) {
     }
   )
 })
-
-
-
 
