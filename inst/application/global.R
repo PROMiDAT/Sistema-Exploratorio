@@ -194,37 +194,37 @@ def.k.model <- function(data = "datos", cant = "as.numeric(input$cant.kmeans.clu
 }
 
 pca.individuos <- function(ind.cos = 0, color = '#696969'){
-  return(paste0("fviz_pca_ind(pca.modelo, pointsize = 2, pointshape = 16,
-             col.ind = '", color, "', select.ind = list(cos2 = ", ind.cos, "))"))
+  return(paste0("plot(fviz_pca_ind(pca.modelo, pointsize = 2, pointshape = 16,
+             col.ind = '", color, "', select.ind = list(cos2 = ", ind.cos, ")))"))
 }
 
 pca.variables <- function(var.cos = 0, color = 'steelblue'){
-  return(paste0("fviz_pca_var(pca.modelo, col.var= '", color, "', select.var = list(cos2 = ", var.cos, "))"))
+  return(paste0("plot(fviz_pca_var(pca.modelo, col.var= '", color, "', select.var = list(cos2 = ", var.cos, ")))"))
 }
 
 pca.sobreposicion <- function(ind.cos = 0, var.cos = 0, col.ind = '#696969', col.var = 'steelblue'){
-  return(paste0("fviz_pca_biplot(pca.modelo, pointsize = 2, pointshape = 16, col.var = '", col.var, "',
-                 col.ind = '", col.ind, "', select.ind = list(cos2 = ", ind.cos, ") , select.var = list(cos2 = ", var.cos, "))"))
+  return(paste0("plot(fviz_pca_biplot(pca.modelo, pointsize = 2, pointshape = 16, col.var = '", col.var, "',
+                 col.ind = '", col.ind, "', select.ind = list(cos2 = ", ind.cos, ") , select.var = list(cos2 = ", var.cos, ")))"))
 }
 
 code.pca.vee <- function(){
   # Varianza Explicada por cada eje
-  return("fviz_eig(pca.modelo, addlabels = TRUE, ylab = 'Porcentaje de Varianzas Explicadas',
-           xlab = 'Dimensiones', main = 'Varianza Explicada por cada eje')")
+  return("plot(fviz_eig(pca.modelo, addlabels = TRUE, ylab = 'Porcentaje de Varianzas Explicadas',
+           xlab = 'Dimensiones', main = 'Varianza Explicada por cada eje'))")
 }
 
 code.pca.cci <- function(){
   # Cosenos cuadrados de los individuos
-  return("fviz_cos2(pca.modelo, choice = 'ind', axes = 1:2) +
+  return("plot(fviz_cos2(pca.modelo, choice = 'ind', axes = 1:2) +
          labs(y = 'Cos2 - Calidad de la Representación',
-         title = 'Cosenos cuadrados de los individuos')")
+         title = 'Cosenos cuadrados de los individuos'))")
 }
 
 code.pca.ccv <- function(){
   # Cosenos cuadrados de las variables
-  return("fviz_cos2(pca.modelo, choice = 'var', axes = 1:2) +
+  return("plot(fviz_cos2(pca.modelo, choice = 'var', axes = 1:2) +
          labs(y = 'Cos2 - Calidad de la Representación',
-         title = 'Cosenos cuadrados de los variables')")
+         title = 'Cosenos cuadrados de los variables'))")
 }
 
 code.pca.cvp <- function(){
@@ -235,16 +235,16 @@ code.pca.cvp <- function(){
 
 code.pca.pc1 <- function(){
   # Contributions of variables to PC1
-  return("fviz_contrib(pca.modelo, choice = 'var', axes = 1, top = 10) +
+  return("plot(fviz_contrib(pca.modelo, choice = 'var', axes = 1, top = 10) +
          labs(y = 'Contribuciones (%)',
-              title = 'Contribuciones de las variables para Dim-1')")
+              title = 'Contribuciones de las variables para Dim-1'))")
 }
 
 code.pca.pc2 <- function(){
   # Contributions of variables to PC2
-  return("fviz_contrib(pca.modelo, choice = 'var', axes = 2, top = 10) +
+  return("plot(fviz_contrib(pca.modelo, choice = 'var', axes = 2, top = 10) +
          labs(y = 'Contribuciones (%)',
-              title = 'Contribuciones de las variables para Dim-2')")
+              title = 'Contribuciones de las variables para Dim-2'))")
 }
 
 modelo.cor <- function(data = "datos"){
@@ -282,11 +282,11 @@ default.func.cat <- function(){
   return(paste0("distribucion.categorico <<- function(var, color = 'input$col.dist'){
   colores <- sapply(c(1:length(levels(var))), function(i) rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 180, maxColorValue = 255))
   data <- data.frame(label = levels(var), value = summary(var))
-  ggplot(data, aes(label, value)) +
+  plot(ggplot(data, aes(label, value)) +
   geom_bar(stat = 'identity', fill = colores) +
       geom_text(aes(label = value, y = value), vjust = -0.5, size = 4) +
       theme_minimal() +
-      labs(title = 'Distribución', y = 'Cantidad de casos', x = 'Categorias')
+      labs(title = 'Distribución', y = 'Cantidad de casos', x = 'Categorias'))
 }"))
 }
 
@@ -317,23 +317,23 @@ codo.jambu <<- function(data. = NULL, k. = NA_integer_, nstart. = 200, iter.max.
 
   best_model <- models[[model_index]]
   res.plot <- ggplot() + geom_point(aes(x = k., y = tot_withinss), size = 2) +
-  geom_line(aes(x = k., y = tot_withinss), size = 1) +
-  geom_vline(xintercept = k.[model_index], linetype='dashed', color = 'blue', size=0.8) +
-  theme_minimal() + labs(x = 'k', y = 'Inercia Intra-Clase') +
-  scale_x_continuous(breaks = seq(1, length(k.), 1)) + scale_y_continuous(labels = scales::comma)
-  return(res.plot)
+    geom_line(aes(x = k., y = tot_withinss), size = 1) +
+    geom_vline(xintercept = k.[model_index], linetype='dashed', color = 'blue', size=0.8) +
+    theme_minimal() + labs(x = 'k', y = 'Inercia Intra-Clase') +
+    scale_x_continuous(breaks = seq(1, length(k.), 1)) + scale_y_continuous(labels = scales::comma)
+  return(plot(res.plot))
 }"))
 }
 
 cluster.mapa <- function(cant = "as.numeric(input$cant.cluster)", colores = "'steelblue'"){
   return(paste0("res.hcpc <- HCPC(pca.modelo, nb.clust = -1, consol = TRUE, min = ", cant, ", max = ", cant, ", graph = FALSE)
-fviz_pca_biplot(pca.modelo, col.ind = res.hcpc$data.clust$clust, palette = c(", paste(colores, collapse = ","), "), addEllipses = T,
-                label = 'var', col.var = 'steelblue', repel = TRUE, legend.title = 'Clúster')"))
+plot(fviz_pca_biplot(pca.modelo, col.ind = res.hcpc$data.clust$clust, palette = c(", paste(colores, collapse = ","), "), addEllipses = T,
+                label = 'var', col.var = 'steelblue', repel = TRUE, legend.title = 'Clúster'))"))
 }
 
 cluster.kmapa <- function(colores = "'steelblue'"){
-  return(paste0("fviz_pca_biplot(pca.modelo, col.ind = as.factor(k.modelo$cluster), palette = c(", paste(colores, collapse = ","), "),
-                 addEllipses = T, label = 'var', col.var = 'steelblue', repel = TRUE, legend.title = 'Clúster')"))
+  return(paste0("plot(fviz_pca_biplot(pca.modelo, col.ind = as.factor(k.modelo$cluster), palette = c(", paste(colores, collapse = ","), "),
+                 addEllipses = T, label = 'var', col.var = 'steelblue', repel = TRUE, legend.title = 'Clúster'))"))
 }
 
 default.centros <- function(){
@@ -374,63 +374,63 @@ default.vert <- function(){
 cluster.horiz <- function(sel = "1", colores = "'steelblue'", color = "red"){
   return(paste0("t.centros <- as.data.frame(t(centros$real))
 if(", sel, " == 'Todos'){
-    centros.horizontal.todos(t.centros) + scale_fill_manual(values = c(", paste(colores, collapse = ","), "))
+    plot(centros.horizontal.todos(t.centros) + scale_fill_manual(values = c(", paste(colores, collapse = ","), ")))
 } else {
-    ggplot(data = t.centros, aes(x = row.names(t.centros), y = t.centros[, as.numeric(", sel, ")])) +
+    plot(ggplot(data = t.centros, aes(x = row.names(t.centros), y = t.centros[, as.numeric(", sel, ")])) +
        geom_bar(stat = 'identity', fill = ", color, ") +
        scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') +
-       coord_flip() + theme_minimal()
+       coord_flip() + theme_minimal())
 }"))
 }
 
 cluster.khoriz <- function(sel = "1", colores = "'steelblue'", color = "red"){
   return(paste0("centros <- as.data.frame(t(k.modelo$centers))
 if(", sel, " == 'Todos'){
-   centros.horizontal.todos(centros) + scale_fill_manual(values = c(", paste(colores, collapse = ","), "))
+   plot(centros.horizontal.todos(centros) + scale_fill_manual(values = c(", paste(colores, collapse = ","), ")))
 } else{
-   ggplot(data = centros, aes(x = row.names(centros), y = centros[, as.numeric(", sel, ")])) +
+   plot(ggplot(data = centros, aes(x = row.names(centros), y = centros[, as.numeric(", sel, ")])) +
        geom_bar(stat = 'identity', fill = ", color, ") + scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') +
-       coord_flip() + theme_minimal()
+       coord_flip() + theme_minimal())
 }"))
 }
 
 cluster.vert <- function(sel = "input$sel.verticales", colores = "'steelblue'"){
   return(paste0("real <- centros$real
 if(", sel, " == 'Todos'){
-  centros.vertical.todos(real) + scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), "))
+  plot(centros.vertical.todos(real) + scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), ")))
 } else{
-  ggplot(data = real, aes(x = row.names(real), y = real[, ", sel, "], fill = row.names(real))) +
+  plot(ggplot(data = real, aes(x = row.names(real), y = real[, ", sel, "], fill = row.names(real))) +
          geom_bar(stat = 'identity') + labs(x = '', y = '') +
-         scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), "))
+         scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), ")))
 }"))
 }
 
 cluster.kvert <- function(sel = "input$sel.kmeans.verticales", colores = "'steelblue'"){
   return(paste0("centros <- as.data.frame(k.modelo$centers)
 if(", sel, " == 'Todos'){
-    centros.vertical.todos(centros) + scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), "))
+    plot(centros.vertical.todos(centros) + scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), ")))
 } else{
-    ggplot(data = centros, aes(x = row.names(centros), y = centros[, ", sel, "], fill = row.names(centros))) +
+    plot(ggplot(data = centros, aes(x = row.names(centros), y = centros[, ", sel, "], fill = row.names(centros))) +
          geom_bar(stat = 'identity') + labs(x = '', y = '') +
-         scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), "))
+         scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), ")))
 }"))
 }
 
 cluster.cat <- function(var = "input$sel.kcat.var", cant = "input$cant.cluster"){
   return(paste0("hc.clusters <- cutree(hc.modelo, k=", cant, ") \n",
                 "NDatos <- cbind(datos, Cluster = hc.clusters) \n",
-                "ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + \n",
+                "plot(ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + \n",
                 "  facet_wrap(~Cluster, labeller = label_both) + \n",
                 "  theme(text = element_text(size = 10), axis.text.x = element_blank()) + \n",
-                "  scale_fill_discrete(name='Variable') + labs(x = '', y = '')"))
+                "  scale_fill_discrete(name='Variable') + labs(x = '', y = ''))"))
 }
 
 cluster.kcat <- function(var = "input$sel.kcat.var"){
   return(paste0("NDatos <- cbind(datos, Cluster = k.modelo$cluster)\n",
-                "ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + \n",
+                "plot(ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + \n",
                 "  facet_wrap(~Cluster, labeller = label_both) + \n",
                 "  theme(text = element_text(size = 10), axis.text.x = element_blank()) +\n",
-                "  scale_fill_discrete(name='Variable') + labs(x = '', y = '')"))
+                "  scale_fill_discrete(name='Variable') + labs(x = '', y = ''))"))
   }
 
 cluster.radar <- function(){
@@ -477,10 +477,14 @@ def.kradar <- function(colores = "'steelblue'"){
                 "  scale_fill_manual('Clústeres', values = c(", paste(colores, collapse = ","), "))"))
 }
 
-def.reporte <- function(entradas){
+def.reporte <- function(titulo = "Sin Titulo", nombre = "PROMiDAT", entradas){
+  codigo.usuario <- ""
+  for (codigo in codigo.reporte) {
+    codigo.usuario <- paste0(codigo.usuario, "\n\n#### Interpretacion\n\n", codigo)
+  }
   return(paste0("---
-title: 'Untitled'
-author: 'PROMIDAT'
+title: '", titulo, "'
+author: '", nombre, "'
 date: ", Sys.Date(), "
 output:
   html_document:
@@ -548,187 +552,7 @@ datos.disyuntivos <- function(data, vars){
 # Carga de Datos
 ```{r}
 head(datos)
-```
-
-# Estadísticas Básicas
-
-## Resumen Numérico
-```{r}
-summary(datos)
-```
-##### Interpretación
-
-## Test de Normalidad
-```{r}
-```
-
-## Dispersión
-```{r}
-```
-
-## Distribuciones
-```{r}
-```
-
-## Correlación
-```{r}
-", entradas$fieldCodeCor, "
-```
-##### Interpretación
-
-# ACP
-
-## Individuos
-```{r}
-", entradas$fieldCodeInd, "
-```
-##### Interpretación
-
-## Variables
-```{r}
-", entradas$fieldCodeVar, "
-```
-##### Interpretación
-
-## Sobreposición
-```{r}
-", entradas$fieldCodeBi, "
-```
-##### Interpretación
-
-## Inercia y Valores Propios
-
-### Varianza Explicada por cada eje
-```{r}
-", code.pca.vee(), "
-```
-##### Interpretación
-
-### Cosenos cuadrados de los individuos
-```{r}
-", code.pca.cci(), "
-```
-##### Interpretación
-
-### Cosenos cuadrados de los variables
-```{r}
-", code.pca.ccv(), "
-```
-##### Interpretación
-
-### Correlación variables-componentes
-```{r}
-", code.pca.cvp(), "
-```
-##### Interpretación
-
-### Contribución de las Variables Dim-1
-```{r}
-", code.pca.pc1(), "
-```
-##### Interpretación
-
-### Contribución de las Variables Dim-2
-```{r}
-", code.pca.pc2(), "
-```
-
-##### Interpretación
-
-# Cluster Jerárquico
-```{r}
-", entradas$fieldCodeModelo, "
-```
-
-##### Interpretación
-
-## Diagrama
-```{r}
-", entradas$fieldCodeDiag, "
-```
-##### Interpretación
-
-## Mapa
-```{r}
-", entradas$fieldCodeMapa, "
-```
-
-##### Interpretación
-
-## Interpretación Horizontal
-```{r}
-", entradas$fieldCodeHoriz, "
-```
-
-##### Interpretación
-
-## Interpretación Vertical
-```{r}
-", entradas$fieldCodeVert, "
-```
-
-##### Interpretación
-
-## Gráfico Radar
-```{r}
-", entradas$fieldCodeRadar, "
-```
-
-##### Interpretación
-
-## Interpretación Categórico
-```{r}
-", entradas$fieldCodeBarras, "
-```
-##### Interpretación
-
-# K-Medias
-
-## Inercia
-
-## Codo de Jambu
-```{r}
-", entradas$fieldCodeJambu, "
-```
-
-##### Interpretación
-
-## Mapa
-```{r}
-", entradas$fieldCodeKmapa, "
-```
-
-##### Interpretación
-
-## Interpretación Horizontal
-```{r}
-", entradas$fieldCodeKhoriz, "
-```
-
-##### Interpretación
-
-## Interpretación Vertical
-```{r}
-", entradas$fieldCodeKvert, "
-```
-
-##### Interpretación
-
-## Gráfico Radar
-```{r}
-", entradas$fieldCodeKradar, "
-```
-
-##### Interpretación
-
-## Interpretación Categórico
-```{r}
-", entradas$fieldCodeKbarras, "
-```
-
-##### Interpretación
-
-"))
+```", codigo.usuario, ""))
 }
 
 cod.resum <- function(data = "datos") {return(paste0("summary(", data, ")"))}

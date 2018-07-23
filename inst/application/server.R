@@ -24,9 +24,11 @@ shinyServer(function(input, output, session) {
     addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=agrupacion]")
     addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=kmedias]")
     addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=reporte]")
+    close.menu()
   })
 
   observeEvent(input$loadButton, {
+    codigo.reporte <<- list()
     codigo.carga <- code.carga(nombre.filas = input$rowname, ruta = input$file1$datapath,
                                separador = input$sep, sep.decimal = input$dec, encabezado = input$header)
 
@@ -91,10 +93,26 @@ shinyServer(function(input, output, session) {
       updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
       updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
       updateAceEditor(session, "fieldCodeJambu", value = def.code.jambu())
+
+      updateAceEditor(session, "fieldCodeResum", value = cod.resum())
+      updateAceEditor(session, "fieldFuncNum", value = func.dya.num)
+      updateAceEditor(session, "fieldFuncCat", value = func.dya.cat)
+
+      updateAceEditor(session, "fieldCodeCentr", value = func.centros)
+      updateAceEditor(session, "fieldFuncHoriz", value = func.horiz)
+      updateAceEditor(session, "fieldFuncVert", value = func.vert)
+      updateAceEditor(session, "fieldFuncRadar", value = func.radar)
+
+      updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
+      updateAceEditor(session, "fieldFuncKhoriz", value = func.khoriz)
+      updateAceEditor(session, "fieldFuncKvert", value = func.kvert)
+      updateAceEditor(session, "fieldFuncKradar", value = func.kradar)
     }, error = function(e) {
       print(paste0("ERROR EN EVALUAR: ", e))
       return(datos <- NULL)
     })
+
+    close.menu(is.null(datos))
   })
 
   observeEvent(input$transButton, {
@@ -137,6 +155,19 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
     updateAceEditor(session, "fieldCodeJambu", value = def.code.jambu())
 
+    updateAceEditor(session, "fieldCodeResum", value = cod.resum())
+    updateAceEditor(session, "fieldFuncNum", value = func.dya.num)
+    updateAceEditor(session, "fieldFuncCat", value = func.dya.cat)
+
+    updateAceEditor(session, "fieldCodeCentr", value = func.centros)
+    updateAceEditor(session, "fieldFuncHoriz", value = func.horiz)
+    updateAceEditor(session, "fieldFuncVert", value = func.vert)
+    updateAceEditor(session, "fieldFuncRadar", value = func.radar)
+
+    updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
+    updateAceEditor(session, "fieldFuncKhoriz", value = func.khoriz)
+    updateAceEditor(session, "fieldFuncKvert", value = func.kvert)
+    updateAceEditor(session, "fieldFuncKradar", value = func.kradar)
     tryCatch({
       isolate(eval(parse(text = default.centros())))
       isolate(eval(parse(text = modelo.cor())))
@@ -146,6 +177,8 @@ shinyServer(function(input, output, session) {
     }, error = function(e) {
       return(datos <- NULL)
     })
+
+    close.menu(is.null(datos))
   })
 
   mostrarData <- eventReactive(c(input$loadButton, input$transButton), {
@@ -188,11 +221,13 @@ shinyServer(function(input, output, session) {
 
   observeEvent(c(input$switch.scale, input$slider.npc), {
     tryCatch({
-      updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
-      isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
-      output$txtpca <- renderPrint(print(unclass(pca.modelo)))
+      if(!is.null(datos)){
+        updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
+        isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
+        output$txtpca <- renderPrint(print(unclass(pca.modelo)))
+      }
     }, error = function(e) {
-      print(paste0("ERROR EN PCA: ", e))
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
       return(NULL)
     })
   })
@@ -373,7 +408,7 @@ shinyServer(function(input, output, session) {
   obj.normal <- eventReactive(input$fieldCodeNormal, {
     tryCatch({
       res <- isolate(eval(parse(text = input$fieldCodeNormal)))
-      codigo.reporte[[paste0("normalidad.", input$sel.normal)]] <<- paste0("## Test de Normalidad \n ```{r}\n", input$fieldCodeNormal, "\n```")
+      codigo.reporte[[paste0("normalidad.", input$sel.normal)]] <<- paste0("## Test de Normalidad \n```{r}\n", input$fieldCodeNormal, "\n```")
       return(res)
     }, error = function(e){
       showNotification(paste0("ERROR AL GENERAR TEST DE NORMALIDAD: ", e), duration = 10, type = "error")
@@ -404,7 +439,7 @@ shinyServer(function(input, output, session) {
         updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
         res <- isolate(eval(parse(text = cod.disp)))
         codigo.reporte[[paste0("normalidad.", paste(input$select.var, collapse = "."))]] <<-
-          paste0("## Dispersión \n ```{r}\n", cod.disp, "\n```")
+          paste0("## Dispersión \n```{r}\n", cod.disp, "\n```")
         return(res)
       }
     }, error = function(e){
@@ -412,52 +447,61 @@ shinyServer(function(input, output, session) {
     })
   })
 
-  obj.cor <- eventReactive(c(input$loadButton, input$transButton, input$fieldModelCor, input$fieldCodeCor, input$cor.metodo, input$cor.tipo), {
+  observeEvent(c(input$loadButton, input$transButton, input$fieldModelCor, input$cor.metodo, input$cor.tipo), {
+    cod.cor <<- correlaciones(metodo = input$cor.metodo, tipo = input$cor.tipo)
+    updateAceEditor(session, "fieldCodeCor", value = cod.cor)
+  })
+
+  obj.cor <- eventReactive(input$fieldCodeCor, {
     tryCatch({
-      cod.cor <<- correlaciones(metodo = input$cor.metodo, tipo = input$cor.tipo)
-      updateAceEditor(session, "fieldCodeCor", value = cod.cor)
-      res <- isolate(eval(parse(text = cod.cor)))
-      codigo.reporte[["correlacion"]] <<- paste0("## Correlación \n ```{r}\n", cod.cor, "\n```")
+      res <- isolate(eval(parse(text = input$fieldCodeCor)))
+      codigo.reporte[["correlacion"]] <<- paste0("## Correlación \n```{r}\n", input$fieldCodeCor, "\n```")
       return(res)
     }, error = function(e) {
       showNotification(paste0("ERROR EN Correlacion: ", e), duration = 10, type = "error")
     })
   })
 
-  obj.ind <- eventReactive(c(input$loadButton, input$transButton, input$pca.num, input$col.pca.ind,
-                             input$fieldCodeInd, input$fieldCodePCAModelo, input$ind.cos), {
+  observeEvent(c(input$pca.num, input$col.pca.ind, input$ind.cos), {
+    cod.pca[["individuos"]] <<- pca.individuos(ind.cos = input$ind.cos * 0.01, color = input$col.pca.ind)
+    updateAceEditor(session, "fieldCodeInd", value = cod.pca[["individuos"]])
+    cod.pca[["sobreposicion"]] <<- pca.sobreposicion(ind.cos = input$ind.cos * 0.01, var.cos = input$var.cos * 0.01,
+                                                     col.ind = input$col.pca.ind, col.var = input$col.pca.var)
+    updateAceEditor(session, "fieldCodeBi", value = cod.pca[["sobreposicion"]])
+  })
+
+  obj.ind <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeInd, input$fieldCodePCAModelo), {
     tryCatch({
-      cod.pca[["individuos"]] <<- pca.individuos(ind.cos = input$ind.cos * 0.01, color = input$col.pca.ind)
-      updateAceEditor(session, "fieldCodeInd", value = cod.pca[["individuos"]])
       res <- isolate(eval(parse(text = cod.pca[["individuos"]])))
-      codigo.reporte[["pca.ind"]] <<- paste0("## ACP de los individuos \n ```{r}\n", cod.pca[["individuos"]], "\n```")
+      codigo.reporte[["pca.ind"]] <<- paste0("## ACP de los individuos \n```{r}\n", cod.pca[["individuos"]], "\n```")
       return(res)
     }, error = function(e) {
       showNotification(paste0("ERROR EN PCA (Individuos): ", e), duration = 10, type = "error")
     })
   })
 
-  obj.var <- eventReactive(c(input$loadButton, input$transButton, input$pca.num, input$var.cos,
-                             input$fieldCodeVar, input$fieldCodePCAModelo, input$col.pca.var), {
+  observeEvent(c(input$pca.num, input$var.cos, input$col.pca.var), {
+    cod.pca[["variables"]] <<- pca.variables(var.cos = input$var.cos * 0.01, color = input$col.pca.var)
+    updateAceEditor(session, "fieldCodeVar", value = cod.pca[["variables"]])
+    cod.pca[["sobreposicion"]] <<- pca.sobreposicion(ind.cos = input$ind.cos * 0.01, var.cos = input$var.cos * 0.01,
+                                                     col.ind = input$col.pca.ind, col.var = input$col.pca.var)
+    updateAceEditor(session, "fieldCodeBi", value = cod.pca[["sobreposicion"]])
+  })
+
+  obj.var <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeVar, input$fieldCodePCAModelo), {
     tryCatch({
-      cod.pca[["variables"]] <<- pca.variables(var.cos = input$var.cos * 0.01, color = input$col.pca.var)
-      updateAceEditor(session, "fieldCodeVar", value = cod.pca[["variables"]])
       res <- isolate(eval(parse(text = cod.pca[["variables"]])))
-      codigo.reporte[["pca.var"]] <<- paste0("## ACP de las variables \n ```{r}\n", cod.pca[["variables"]], "\n```")
+      codigo.reporte[["pca.var"]] <<- paste0("## ACP de las variables \n```{r}\n", cod.pca[["variables"]], "\n```")
       return(res)
     }, error = function(e) {
       showNotification(paste0("ERROR EN PCA (Variables): ", e), duration = 10, type = "error")
     })
   })
 
-  obj.biplot <- eventReactive(c(input$loadButton, input$transButton, input$pca.num, input$fieldCodeBi, input$fieldCodePCAModelo,
-                                input$ind.cos, input$col.pca.ind, input$var.cos, input$col.pca.var), {
+  obj.biplot <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeBi, input$fieldCodePCAModelo), {
     tryCatch({
-      cod.pca[["sobreposicion"]] <<- pca.sobreposicion(ind.cos = input$ind.cos * 0.01, var.cos = input$var.cos * 0.01,
-                                                     col.ind = input$col.pca.ind, col.var = input$col.pca.var)
-      updateAceEditor(session, "fieldCodeBi", value = cod.pca[["sobreposicion"]])
       res <- isolate(eval(parse(text = cod.pca[["sobreposicion"]])))
-      codigo.reporte[["pca.bi"]] <<- paste0("## ACP Sobreposición \n ```{r}\n", cod.pca[["sobreposicion"]], "\n```")
+      codigo.reporte[["pca.bi"]] <<- paste0("## ACP Sobreposición \n```{r}\n", cod.pca[["sobreposicion"]], "\n```")
       return(res)
     }, error = function(e) {
       showNotification(paste0("ERROR EN PCA (Sobreposición): ", e), duration = 10, type = "error")
@@ -465,46 +509,95 @@ shinyServer(function(input, output, session) {
   })
 
   obj.vee <- eventReactive(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
-    codigo <- code.pca.vee()
-    updateAceEditor(session, "fieldCodeAyuda", value = codigo)
-    return(isolate(eval(parse(text = codigo))))
+    tryCatch({
+      codigo <- code.pca.vee()
+      updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+      res <- isolate(eval(parse(text = codigo)))
+      codigo.reporte[["vee"]] <<- paste0("## Varianza Explicada para cada Eje \n```{r}\n", codigo, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.cci <- eventReactive(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
-    codigo <- code.pca.cci()
-    updateAceEditor(session, "fieldCodeAyuda", value = codigo)
-    return(isolate(eval(parse(text = codigo))))
+    tryCatch({
+      codigo <- code.pca.cci()
+      updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+      res <- isolate(eval(parse(text = codigo)))
+      codigo.reporte[["cci"]] <<- paste0("## Cosenos Cuadrados de los individuos \n```{r}\n", codigo, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.ccv <- eventReactive(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
-    codigo <- code.pca.ccv()
-    updateAceEditor(session, "fieldCodeAyuda", value = codigo)
-    return(isolate(eval(parse(text = codigo))))
+    tryCatch({
+      codigo <- code.pca.ccv()
+      updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+      res <- isolate(eval(parse(text = codigo)))
+      codigo.reporte[["ccv"]] <<- paste0("## Cosenos Cuadrados de las Variables \n```{r}\n", codigo, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.cvc <- eventReactive(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
-    codigo <- code.pca.cvp()
-    updateAceEditor(session, "fieldCodeAyuda", value = codigo)
-    return(isolate(eval(parse(text = codigo))))
+    tryCatch({
+      codigo <- code.pca.cvp()
+      updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+      res <- isolate(eval(parse(text = codigo)))
+      codigo.reporte[["cvc"]] <<- paste0("## Correlación Variables con los Componenetes \n```{r}\n", codigo, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.cp1 <- eventReactive(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
-    codigo <- code.pca.pc1()
-    updateAceEditor(session, "fieldCodeAyuda", value = codigo)
-    return(isolate(eval(parse(text = codigo))))
+    tryCatch({
+      codigo <- code.pca.pc1()
+      updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+      res <- isolate(eval(parse(text = codigo)))
+      codigo.reporte[["cp1"]] <<- paste0("## Contribución de las variables de la Dimensión 1 \n```{r}\n", codigo, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.cp2 <- eventReactive(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
-    codigo <- code.pca.pc2()
-    updateAceEditor(session, "fieldCodeAyuda", value = codigo)
-    return(isolate(eval(parse(text = codigo))))
+    tryCatch({
+      codigo <- code.pca.pc2()
+      updateAceEditor(session, "fieldCodeAyuda", value = codigo)
+      res <- isolate(eval(parse(text = codigo)))
+      codigo.reporte[["cp2"]] <<- paste0("## Contribución de las variables de la Dimensión 2 \n```{r}\n", codigo, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.dya.num <- eventReactive(c(input$loadButton, input$transButton, input$fieldFuncNum, input$fieldCodeNum), {
-    cod.dya.num  <<- input$fieldCodeNum
-    func.dya.num <<- input$fieldFuncNum
-    isolate(eval(parse(text = func.dya.num)))
-    return(isolate(eval(parse(text = cod.dya.num))))
+    tryCatch({
+      cod.dya.num  <<- input$fieldCodeNum
+      func.dya.num <<- input$fieldFuncNum
+      isolate(eval(parse(text = func.dya.num)))
+      res <- isolate(eval(parse(text = cod.dya.num)))
+      codigo.reporte[["dya.num"]] <<- paste0("## Distribución y atipicidad \n```{r}\n", cod.dya.num, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.dya.cat <- eventReactive(c(input$loadButton, input$transButton, input$fieldFuncCat, input$fieldCodeCat), {
@@ -512,55 +605,102 @@ shinyServer(function(input, output, session) {
       cod.dya.cat  <<- input$fieldCodeCat
       func.dya.cat <<- input$fieldFuncCat
       isolate(eval(parse(text = func.dya.cat)))
-      return(isolate(eval(parse(text = cod.dya.cat))))
+      res <- isolate(eval(parse(text = cod.dya.cat)))
+      codigo.reporte[["cp1"]] <<- paste0("## Distribución \n```{r}\n", cod.dya.cat, "\n```")
+      return(res)
     }, error = function(e){
-      showNotification(paste0("ERROR Distribución Categorico: ", e), duration = 10, type = "error")
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
     })
   })
 
   obj.diagrama <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeDiag, input$fieldCodeModelo), {
-    code.diagrama <<- input$fieldCodeDiag
-    isolate(eval(parse(text = code.diagrama)))
+    tryCatch({
+      code.diagrama <<- input$fieldCodeDiag
+      res <- isolate(eval(parse(text = code.diagrama)))
+      codigo.reporte[["diagrama"]] <<- paste0("## Dendograma \n```{r}\n", code.diagrama, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.mapa <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeMapa, input$fieldCodeModelo, input$fieldCodePCAModelo), {
-    code.mapa <<- input$fieldCodeMapa
-    isolate(eval(parse(text = code.mapa)))
+    tryCatch({
+      code.mapa <<- input$fieldCodeMapa
+      res <- isolate(eval(parse(text = code.mapa)))
+      codigo.reporte[["mapa"]] <<- paste0("## Mapa \n```{r}\n", code.mapa, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.horiz <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeHoriz,
                                input$fieldFuncHoriz, input$fieldCodeCentr, input$fieldCodeModelo), {
-    code.horiz <<- input$fieldCodeHoriz
-    func.horiz <<- input$fieldFuncHoriz
-    func.centros <<- input$fieldCodeCentr
-    isolate(eval(parse(text = func.horiz)))
-    isolate(eval(parse(text = func.centros)))
-    return(isolate(eval(parse(text = code.horiz))))
+    tryCatch({
+      code.horiz <<- input$fieldCodeHoriz
+      func.horiz <<- input$fieldFuncHoriz
+      func.centros <<- input$fieldCodeCentr
+      isolate(eval(parse(text = func.horiz)))
+      isolate(eval(parse(text = func.centros)))
+      res <- isolate(eval(parse(text = code.horiz)))
+      codigo.reporte[["horiz"]] <<- paste0("## Interpretación Horizontal \n```{r}\n", code.horiz, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
-  obj.vert <- eventReactive(c(input$loadButton, input$transButton,
-                              input$fieldCodeVert, input$fieldCodeVert, input$fieldCodeCentr, input$fieldCodeModelo), {
-    code.vert <<- input$fieldCodeVert
-    func.vert <<- input$fieldFuncVert
-    func.centros <<- input$fieldCodeCentr
-    isolate(eval(parse(text = func.vert)))
-    isolate(eval(parse(text = func.centros)))
-    return(isolate(eval(parse(text = code.vert))))
+  obj.vert <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeVert, input$fieldCodeCentr, input$fieldCodeModelo), {
+    tryCatch({
+      code.vert <<- input$fieldCodeVert
+      func.vert <<- input$fieldFuncVert
+      func.centros <<- input$fieldCodeCentr
+      isolate(eval(parse(text = func.vert)))
+      isolate(eval(parse(text = func.centros)))
+      res <- isolate(eval(parse(text = code.vert)))
+      codigo.reporte[["vert"]] <<- paste0("## Interpretación Vertical \n```{r}\n", code.vert, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
-  obj.radar <- eventReactive(c(input$loadButton, input$transButton,
-                               input$fieldCodeRadar, input$fieldFuncRadar, input$fieldCodeCentr, input$fieldCodeModelo), {
-    code.radar <<- input$fieldCodeRadar
-    func.radar <<- input$fieldFuncRadar
-    func.centros <<- input$fieldCodeCentr
-    isolate(eval(parse(text = func.centros)))
-    isolate(eval(parse(text = func.radar)))
-    return(isolate(eval(parse(text = code.radar))))
+  obj.radar <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeRadar,
+                               input$fieldFuncRadar, input$fieldCodeCentr, input$fieldCodeModelo), {
+    tryCatch({
+      code.radar <<- input$fieldCodeRadar
+      func.radar <<- input$fieldFuncRadar
+      func.centros <<- input$fieldCodeCentr
+      isolate(eval(parse(text = func.centros)))
+      isolate(eval(parse(text = func.radar)))
+      res <- isolate(eval(parse(text = code.radar)))
+      codigo.reporte[["radar"]] <<- paste0("## Gráfico Radar \n```{r}\n", code.radar, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.bar.cat <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeBarras, input$fieldCodeModelo), {
-    code.cat <<- input$fieldCodeBarras
-    return(isolate(eval(parse(text = code.cat))))
+    tryCatch({
+      code.cat <<- input$fieldCodeBarras
+      res <- isolate(eval(parse(text = code.cat)))
+      codigo.reporte[["bar.cat"]] <<- paste0("## Interpretación Variables Categóricas \n```{r}\n", code.cat, "\n```")
+      return(res)
+    }, warning = function(w){
+      showNotification(paste0("ADVERTENCIA: ", w), duration = 10, type = "warning")
+      return(NULL)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.inercia <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeKModelo), {
@@ -568,57 +708,80 @@ shinyServer(function(input, output, session) {
   })
 
   obj.jambu <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeJambu, input$fieldCodeKModelo, input$fieldFuncJambu), {
-    isolate(eval(parse(text = input$fieldFuncJambu)))
-    return(isolate(eval(parse(text = input$fieldCodeJambu))))
+    tryCatch({
+      isolate(eval(parse(text = input$fieldFuncJambu)))
+      res <- isolate(eval(parse(text = input$fieldCodeJambu)))
+      codigo.reporte[["jambu"]] <<- paste0("## Codo de Jambu \n```{r}\n", input$fieldCodeJambu, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.kmapa <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeKmapa, input$fieldCodeKModelo, input$fieldCodePCAModelo), {
-    code.kmapa <<- input$fieldCodeKmapa
-    isolate(eval(parse(text = code.kmapa)))
+    tryCatch({
+      code.kmapa <<- input$fieldCodeKmapa
+      res <- isolate(eval(parse(text = code.kmapa)))
+      codigo.reporte[["kmapa"]] <<- paste0("## Mapa (K-medias) \n```{r}\n", code.kmapa, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.khoriz <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeKhoriz, input$fieldFuncKhoriz, input$fieldCodeKModelo), {
-    code.khoriz <<- input$fieldCodeKhoriz
-    func.khoriz <<- input$fieldFuncKhoriz
-    isolate(eval(parse(text = func.khoriz)))
-    return(isolate(eval(parse(text = code.khoriz))))
+    tryCatch({
+      code.khoriz <<- input$fieldCodeKhoriz
+      func.khoriz <<- input$fieldFuncKhoriz
+      isolate(eval(parse(text = func.khoriz)))
+      res <- isolate(eval(parse(text = code.khoriz)))
+      codigo.reporte[["khoriz"]] <<- paste0("## Interpretación Horizontal (K-medias) \n```{r}\n", code.khoriz, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.kvert <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeKvert, input$fieldFuncKvert, input$fieldCodeKModelo), {
-    code.kvert <<- input$fieldCodeKvert
-    func.kvert <<- input$fieldFuncKvert
-    isolate(eval(parse(text = func.kvert)))
-    return(isolate(eval(parse(text = code.kvert))))
+    tryCatch({
+      code.kvert <<- input$fieldCodeKvert
+      func.kvert <<- input$fieldFuncKvert
+      isolate(eval(parse(text = func.kvert)))
+      res <- isolate(eval(parse(text = code.kvert)))
+      codigo.reporte[["kvert"]] <<- paste0("## Interpretación Vertical (K-medias) \n```{r}\n", code.kvert, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   obj.kradar <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeKradar, input$fieldFuncKradar, input$fieldCodeKModelo), {
-    code.kradar <<- input$fieldCodeKradar
-    func.kradar <<- input$fieldFuncKradar
-    isolate(eval(parse(text = func.kradar)))
-    return(isolate(eval(parse(text = code.kradar))))
+    tryCatch({
+      code.kradar <<- input$fieldCodeKradar
+      func.kradar <<- input$fieldFuncKradar
+      isolate(eval(parse(text = func.kradar)))
+      res <- isolate(eval(parse(text = code.kradar)))
+      codigo.reporte[["kradar"]] <<- paste0("## Gráfico Radar (K-medias) \n```{r}\n", code.kradar, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+    })
   })
 
   obj.kcat <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeKbarras, input$fieldCodeKModelo), {
-    code.kcat <<- input$fieldCodeKbarras
-    return(isolate(eval(parse(text = code.kcat))))
-  })
-
-  observe({
-    updateAceEditor(session, "fieldCodeResum", value = cod.resum())
-    updateAceEditor(session, "fieldFuncNum", value = func.dya.num)
-    updateAceEditor(session, "fieldFuncCat", value = func.dya.cat)
-
-    updateAceEditor(session, "fieldCodeCentr", value = func.centros)
-    updateAceEditor(session, "fieldFuncHoriz", value = func.horiz)
-    updateAceEditor(session, "fieldFuncVert", value = func.vert)
-    updateAceEditor(session, "fieldFuncRadar", value = func.radar)
-
-    updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
-    updateAceEditor(session, "fieldFuncKhoriz", value = func.khoriz)
-    updateAceEditor(session, "fieldFuncKvert", value = func.kvert)
-    updateAceEditor(session, "fieldFuncKradar", value = func.kradar)
-
-    updateAceEditor(session, "fieldCodeReport", value = def.reporte(input))
+    tryCatch({
+      code.kcat <<- input$fieldCodeKbarras
+      res <- isolate(eval(parse(text = code.kcat)))
+      codigo.reporte[["kcat"]] <<- paste0("## Interpretación Categórico (K-medias) \n```{r}\n", code.kcat, "\n```")
+      return(res)
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
   })
 
   observeEvent(c(input$sel.distribucion.num, input$col.dist), {
@@ -651,7 +814,7 @@ shinyServer(function(input, output, session) {
     code.diagrama <<- diagrama(cant = input$cant.cluster, colores = nuevos.colores)
     code.mapa <<- cluster.mapa(cant = input$cant.cluster, colores = nuevos.colores)
     code.horiz <<- cluster.horiz(sel = paste0("'", input$sel.cluster, "'"), colores = nuevos.colores, color = color)
-    code.vert <<- cluster.vert(sel = paste0("'", input$sel.cluster, "'"), colores = nuevos.colores)
+    code.vert <<- cluster.vert(sel = paste0("'", input$sel.verticales, "'"), colores = nuevos.colores)
     code.radar <<- def.radar(colores = nuevos.colores)
     code.cat <<- cluster.cat(var = input$sel.cat.var, cant = as.numeric(input$cant.cluster))
     updateAceEditor(session, "fieldCodeDiag", value = code.diagrama)
@@ -688,7 +851,7 @@ shinyServer(function(input, output, session) {
     code.diagrama <<- diagrama(cant = input$cant.cluster, colores = nuevos.colores)
     code.mapa <<- cluster.mapa(cant = input$cant.cluster, colores = nuevos.colores)
     code.horiz <<- cluster.horiz(sel = paste0("'", input$sel.cluster, "'"), colores = nuevos.colores, color = color)
-    code.vert <<- cluster.vert(sel = paste0("'", input$sel.cluster, "'"), colores = nuevos.colores)
+    code.vert <<- cluster.vert(sel = paste0("'", input$sel.verticales, "'"), colores = nuevos.colores)
     code.radar <<- def.radar(colores = nuevos.colores)
     code.cat <<- cluster.cat(var = input$sel.cat.var, cant = as.numeric(input$cant.cluster))
     updateAceEditor(session, "fieldCodeDiag", value = code.diagrama)
@@ -713,7 +876,7 @@ shinyServer(function(input, output, session) {
     color <- ifelse(input$sel.kmeans.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.kmeans.cluster)])
     code.kmapa <<- cluster.kmapa(colores = nuevos.colores)
     code.khoriz <<- cluster.khoriz(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores, color = color)
-    code.kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores)
+    code.kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.verticales, "'"), colores = nuevos.colores)
     code.kradar <<- def.kradar(colores = nuevos.colores)
     code.kcat <<- cluster.kcat(var = input$sel.kcat.var)
     updateAceEditor(session, "fieldCodeKmapa", value = code.kmapa)
@@ -748,7 +911,7 @@ shinyServer(function(input, output, session) {
     color <- ifelse(input$sel.kmeans.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.kmeans.cluster)])
     code.kmapa <<- cluster.kmapa(colores = nuevos.colores)
     code.khoriz <<- cluster.khoriz(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores, color = color)
-    code.kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores)
+    code.kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.verticales, "'"), colores = nuevos.colores)
     code.kradar <<- def.kradar(colores = nuevos.colores)
     code.kcat <<- cluster.kcat(var = input$sel.kcat.var)
     updateAceEditor(session, "fieldCodeKmapa", value = code.kmapa)
@@ -759,10 +922,15 @@ shinyServer(function(input, output, session) {
   })
 
   output$knitDoc <- renderUI({
-    obj.reporte()
+    return(obj.reporte())
   })
 
-  obj.reporte <- eventReactive(input$btnReporte, {
+  observeEvent(input$btnReporte, {
+    updateAceEditor(session, "fieldCodeReport", value = def.reporte(titulo = input$textTitulo, nombre = input$textNombre, input))
+  })
+
+  obj.reporte <- eventReactive(input$fieldCodeReport, {
+    updateAceEditor(session, "fieldCodeReport", value = input$fieldCodeReport)
     return(isolate(HTML(knit2html(text = input$fieldCodeReport, fragment.only = T, quiet = T))))
   })
 
@@ -787,5 +955,15 @@ shinyServer(function(input, output, session) {
       zip(file, files)
     }
   )
+
+  close.menu <- function(valor = T){
+    select <- 'a[href^="#shiny-tab-parte1"]'
+    if(valor){
+      shinyjs::hide(selector = "ul.menu-open");
+      shinyjs::disable(selector = select)
+    }else{
+      shinyjs::enable(selector = select)
+    }
+  }
 })
 
