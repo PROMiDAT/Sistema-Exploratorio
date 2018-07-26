@@ -28,6 +28,7 @@ library(dendextend)
 library(scatterplot3d)
 library(modeest)
 library(stringr)
+
 cod.deshabilitar <-
   'shinyjs.init = function() {
 $(".sidebar").on("click", ".disabled", function (e) {
