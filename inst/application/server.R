@@ -952,7 +952,7 @@ shinyServer(function(input, output, session) {
       file.rename(out, paste('data-', Sys.Date(), '.docx', sep=''))
       files <- c(paste('data-', Sys.Date(), '.docx', sep=''), files)
 
-      zip(file, files)
+      zip::zip(file, files)
     }
   )
 
