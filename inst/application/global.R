@@ -58,19 +58,20 @@ code.carga <- function(nombre.filas = T, ruta = NULL, separador = ";", sep.decim
 }
 
 code.NA <- function(deleteNA = T) {
-  res <- ifelse(deleteNA, "datos.originales <<- na.omit(datos.originales)",
-         paste0("for (variable in colnames(datos.originales)) {\n",
+  res <- ifelse(deleteNA, "datos.originales <<- na.omit(datos.originales)\n",
+         paste0("Mode <- function(x) {\n  x[which.max(summary(x))]\n}\n",
+                "for (variable in colnames(datos.originales)) {\n",
                 "  if(any(is.na(datos.originales[, variable]))){\n",
                 "    ifelse(class(datos.originales[, variable]) %in% c('numeric', 'integer'),\n",
                 "           datos.originales[, variable][is.na(datos.originales[, variable])] <<- \n",
                 "                                              mean(datos.originales[, variable], na.rm = T),\n",
                 "           datos.originales[, variable][is.na(datos.originales[, variable])] <<- \n",
-                "                                     modeest::mfv(datos.originales[, variable], na.rm = T))",
+                "                                     Mode(datos.originales[, variable]))",
                 "\n   }\n}"))
   return(res)
 }
 
-code.trans <- function(variable, nuevo.tipo){
+code.trans <- function(variable, nuevo.tipo) {
   if(nuevo.tipo == "categorico"){
       return(paste0("datos[, '", variable, "'] <<- as.factor(datos[, '", variable, "'])"))
   } else if(nuevo.tipo == "numerico") {
@@ -480,7 +481,7 @@ def.kradar <- function(colores = "'steelblue'"){
 def.reporte <- function(titulo = "Sin Titulo", nombre = "PROMiDAT", entradas){
   codigo.usuario <- ""
   for (codigo in codigo.reporte) {
-    codigo.usuario <- paste0(codigo.usuario, "\n\n#### Interpretacion\n\n", codigo)
+    codigo.usuario <- paste0(codigo.usuario, "\n\n#### Interpretación\n\n", codigo)
   }
   return(paste0("---
 title: '", titulo, "'

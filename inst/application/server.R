@@ -15,6 +15,9 @@ shinyServer(function(input, output, session) {
   options(DT.options = list(aLengthMenu = c(10, 30, 50), iDisplayLength = 10, scrollX = TRUE))
 
   session$onSessionEnded(function() {
+    borrar <- ls(envir = .GlobalEnv)
+    borrar <- c(borrar[!(borrar %in% .GlobalEnv$foto)], "foto")
+    rm(envir = .GlobalEnv, list = borrar)
     stopApp()
   })
 
