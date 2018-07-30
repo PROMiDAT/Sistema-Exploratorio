@@ -136,7 +136,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
               ),
               conditionalPanel(
                 "input.BoxNormal == 'tabNormalCalc'",
-                aceEditor("fieldCalcNormal", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
+                aceEditor("fieldCalcNormal", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled", readOnly = T)
               )
       ),
 

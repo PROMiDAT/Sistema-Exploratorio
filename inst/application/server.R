@@ -115,6 +115,7 @@ shinyServer(function(input, output, session) {
       return(datos <- NULL)
     })
 
+    output$contents = DT::renderDT(mostrarData(), server = F)
     close.menu(is.null(datos))
   })
 
@@ -181,10 +182,11 @@ shinyServer(function(input, output, session) {
       return(datos <- NULL)
     })
 
+    output$contents = DT::renderDT(mostrarData(), server = F)
     close.menu(is.null(datos))
   })
 
-  mostrarData <- eventReactive(c(input$loadButton, input$transButton), {
+  mostrarData <- function() {
     nombre.columnas <- c("ID", colnames(datos))
     tipo.columnas <- c("", sapply(colnames(datos),
                            function(i) ifelse(class(datos[,i]) %in% c("numeric", "integer"), "Numérico", "Categórico")))
@@ -194,8 +196,8 @@ shinyServer(function(input, output, session) {
     ))
     return(DT::datatable(datos, selection = 'none', editable = TRUE, extensions = 'Buttons', container = sketch,
               options = list(dom = 'Bfrtip', buttons = list(list(extend = 'csv', filename = "datos", text = 'Descargar')))))
-  })
-  output$contents = DT::renderDT(mostrarData(), server = F)
+  }
+  output$contents = DT::renderDT(NULL, server = F)
 
   update.trans <- eventReactive(input$loadButton, {
     contador <<- contador + 1
@@ -418,13 +420,15 @@ shinyServer(function(input, output, session) {
     })
   })
 
-  observeEvent(c(input$loadButton, input$transButton), {
-    cod.normal <<- default.calc.normal()
-    updateAceEditor(session, "fieldCalcNormal", value = cod.normal)
-  })
+  #observeEvent({c(input$loadButton, input$transButton)}, {
+  #  cod.normal <<- default.calc.normal()
+  #  updateAceEditor(session, "fieldCalcNormal", value = cod.normal)
+  #})
 
-  obj.calc.normal <- eventReactive(input$fieldCalcNormal, {
+  obj.calc.normal <- eventReactive(c(input$loadButton, input$transButton), {
     tryCatch({
+      cod.normal <<- default.calc.normal()
+      updateAceEditor(session, "fieldCalcNormal", value = cod.normal)
       res <- isolate(eval(parse(text = input$fieldCalcNormal)))
       return(res)
     }, error = function(e){
