@@ -598,7 +598,7 @@ shinyServer(function(input, output, session) {
       func.dya.num <<- input$fieldFuncNum
       isolate(eval(parse(text = func.dya.num)))
       res <- isolate(eval(parse(text = cod.dya.num)))
-      codigo.reporte[["dya.num"]] <<- paste0("## Distribución y atipicidad \n```{r}\n", cod.dya.num, "\n```")
+      codigo.reporte[[paste0("dya.num.", input$sel.distribucion.num)]] <<- paste0("## Distribución y atipicidad \n```{r}\n", cod.dya.num, "\n```")
       return(res)
     }, error = function(e) {
       showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
@@ -612,7 +612,7 @@ shinyServer(function(input, output, session) {
       func.dya.cat <<- input$fieldFuncCat
       isolate(eval(parse(text = func.dya.cat)))
       res <- isolate(eval(parse(text = cod.dya.cat)))
-      codigo.reporte[["cp1"]] <<- paste0("## Distribución \n```{r}\n", cod.dya.cat, "\n```")
+      codigo.reporte[[paste0("dya.cat.", input$sel.distribucion.cat)]] <<- paste0("## Distribución \n```{r}\n", cod.dya.cat, "\n```")
       return(res)
     }, error = function(e){
       showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
