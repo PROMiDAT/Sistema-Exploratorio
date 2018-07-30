@@ -166,7 +166,8 @@ default.normal <- function(data = "datos", vars = NULL, color = "#00FF22AA"){
 default.calc.normal <- function(data = "datos"){
   return(paste0("calc <- lapply(var.numericas(datos), function(i) modeest::skewness(i)[1]) \n",
                 "calc <- as.data.frame(calc) \n",
-                "calc <- rbind(calc,  lapply(calc, function(i) ifelse(i > 0, 'Positiva', 'Negativa'))) \n",
+                "calc <- rbind(calc, lapply(calc, function(i) ifelse(i > 0, 'Positiva', \n",
+                "                                                           ifelse(i < 0, 'Negativa', 'Sin Asimetría')))) \n",
                 "calc <- t(calc)\ncolnames(calc) <- c('Cálculo de Fisher', 'Asimetría')\ncalc"))
 }
 
