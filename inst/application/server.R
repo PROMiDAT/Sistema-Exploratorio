@@ -427,9 +427,8 @@ shinyServer(function(input, output, session) {
 
   obj.calc.normal <- eventReactive(c(input$loadButton, input$transButton), {
     tryCatch({
-      cod.normal <<- default.calc.normal()
-      updateAceEditor(session, "fieldCalcNormal", value = cod.normal)
-      res <- isolate(eval(parse(text = input$fieldCalcNormal)))
+      res <- isolate(eval(parse(text = default.calc.normal())))
+      updateAceEditor(session, "fieldCalcNormal", value = default.calc.normal())
       return(res)
     }, error = function(e){
       showNotification(paste0("ERROR AL CALCULAR TEST DE NORMALIDAD: ", e), duration = 10, type = "error")
