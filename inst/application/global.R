@@ -152,6 +152,7 @@ default.normal <- function(data = "datos", vars = NULL, color = "#00FF22AA"){
     return(paste0("promedio <- mean(", data, "[, '", vars, "']) \n",
                   "desviacion <- sd(", data, "[, '", vars, "']) \n",
                   "values <- dnorm(", data, "[, '", vars, "'], mean = promedio, sd = desviacion) \n",
+                  "values <- c(values, hist(", data, "[, '", vars, "'])$density) \n",
                   "hist(", data, "[, '", vars, "'], col = '#00FF22AA', border=F, axes=F,\n",
                   "  freq = F, ylim = range(0, max(values)), \n",
                   "  main = paste0('Test de normalidad de la variable ','", vars, "')) \n",
