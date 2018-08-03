@@ -14,6 +14,17 @@ correlacion <<- NULL
 codigo.reporte <<- list()
 def.colores <<- gg_color_hue(10)
 
+campo.codigo <- function(runid, refid, fieldid, ...){
+  tags$div(class = "box box-solid bg-black",
+           tags$div(style = "text-align:right;padding-right: 10px;",
+                    tags$button(id = runid, type = "button", class = "run-button action-button",
+                                icon("play"), tags$a("Ejecutar", style = "color:white"))),#,
+                    #tags$button(id = refid, type = "button", class = "run-button action-button",
+                    #            icon("undo"), tags$a("Recuperar", style = "color:white"))),
+           tags$div(class = "box-body",
+                    aceEditor(fieldid, mode = "r", theme = "monokai", value = "", ...)))
+}
+
 colnames.empty <- function(res){
   res <- colnames(res)
   if(is.null(res))
@@ -103,7 +114,7 @@ resumen.numerico <- function(data, variable){
                           Maximo = list(id = "maximo", Label = "Máximo",
                                         Value = format(max(data[, variable]), scientific = FALSE), color = "purple"),
                           DS <- list(id = "ds", Label = "Desviación Estandar",
-                                     Value = format(max(data[, variable]), scientific = FALSE), color = "yellow"))
+                                     Value = format(sd(data[, variable]), scientific = FALSE), color = "yellow"))
 
   for (calculo in datos.numericos) {
     salida <- paste0(salida, "<div class='shiny-html-output col-sm-6 shiny-bound-output' id='", calculo$id,

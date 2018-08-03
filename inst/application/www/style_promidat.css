@@ -98,6 +98,19 @@
     color: white;
 }
 
+.run-button {
+    padding-top: 5px;
+    padding-left: 10px;
+    background: transparent;
+    color: green;
+    border: 0px;
+    font-size: 15px;
+}
+
+.run-button:active {
+  transform: translateY(4px);
+}
+
 input[type="radio"] {
   -webkit-appearance: none;
   -moz-appearance: none;

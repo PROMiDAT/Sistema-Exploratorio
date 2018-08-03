@@ -45,16 +45,17 @@ shinyUI(dashboardPage(title="PROMiDAT",
     sidebarMenu(id = "principal",
                 tags$div(style="padding-top:10px;"),
                 menuItem("Datos", tabName = "cargar", icon = icon("dashboard")),
-                menuItem("Estadísticas Básicas", tabName = "parte1", icon = icon("th"),
-                         menuSubItem("Resumen Numérico", tabName = "resumen", icon = icon("th")),
-                         menuSubItem("Test de Normalidad", tabName = "normalidad", icon = icon("th")),
-                         menuSubItem("Dispersión", tabName = "dispersion", icon = icon("th")),
-                         menuSubItem("Distribuciones", tabName = "distribucion", icon = icon("th")),
-                         menuSubItem("Correlación", tabName = "correlacion", icon = icon("th"))),
-                menuItem("ACP", tabName = "acp", icon = icon("th")),
-                menuItem("Cluster Jerárquico", tabName = "agrupacion", icon = icon("th")),
-                menuItem("K-Medias", tabName = "kmedias", icon = icon("th")),
-                menuItem("Generar Reporte", tabName = "reporte", icon = icon("th"))
+                menuItem("Estadísticas Básicas", tabName = "parte1", icon = icon("th-list"),
+                         menuSubItem("Resumen Numérico", tabName = "resumen", icon = icon("sort-numeric-asc")),
+                         menuSubItem("Test de Normalidad", tabName = "normalidad", icon = icon("bar-chart")),
+                         menuSubItem("Dispersión", tabName = "dispersion", icon = icon("line-chart")),
+                         menuSubItem("Distribuciones", tabName = "distribucion", icon = icon("area-chart")),
+                         menuSubItem("Correlación", tabName = "correlacion", icon = icon("table"))),
+                menuItem("ACP", tabName = "acp", icon = icon("pie-chart")),
+                menuItem("Cluster Jerárquico", tabName = "agrupacion", icon = icon("sitemap")),
+                menuItem("K-Medias", tabName = "kmedias", icon = icon("object-group")),
+                menuItem("Generar Reporte", tabName = "reporte", icon = icon("save-file", lib = "glyphicon")),
+                menuItem("Acerca De", tabName = "acercaDe", icon = icon("info"))
     )
   ),
 
@@ -90,7 +91,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
                        hr(),
                        actionButton("transButton", "Aplicar", width = "100%"),
                        hr(),
-                       aceEditor("fieldCodeTrans", mode = "r", theme = "monokai", value = "", height = "10vh",  readOnly = F)
+                       aceEditor("fieldCodeTrans", mode = "r", theme = "monokai", value = "", height = "10vh", readOnly = T)
                      )
               )),
               column(width = 7,
@@ -104,7 +105,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
               column(width = 7,
                      box(title = "Resumen Numérico", status = "primary",
                          width = 12, solidHeader = TRUE, collapsible = TRUE, DT::dataTableOutput("resumen.completo"), hr(),
-                         aceEditor("fieldCodeResum", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
+                         campo.codigo("run.resume", "ref.resume", "fieldCodeResum", height = "8vh")
                      )
               ),
               column(width = 5,
@@ -128,15 +129,15 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                                                            value = "#00FF22AA", allowTransparent = T),
                                                                  circle = F, status = "danger", icon = icon("gear"), width = "100%",
                                                                  tooltip = tooltipOptions(title = "Clic para ver opciones"), right = T))),
-                            tabPanel(title = "Gráfico Normalidad", value = "tabNormalPlot", plotOutput('plot.normal', height = "72vh")),
+                            tabPanel(title = "Gráfico Normalidad", value = "tabNormalPlot", plotOutput('plot.normal', height = "65vh")),
                             tabPanel(title = "Test de Normalidad", value = "tabNormalCalc", DT::dataTableOutput('calculo.normal')))),
               conditionalPanel(
                 "input.BoxNormal == 'tabNormalPlot'",
-                aceEditor("fieldCodeNormal", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
+                column(width = 12, campo.codigo("run.normal", "ref.normal", "fieldCodeNormal", height = "8vh"))
               ),
               conditionalPanel(
                 "input.BoxNormal == 'tabNormalCalc'",
-                aceEditor("fieldCalcNormal", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled", readOnly = T)
+                column(width = 12, campo.codigo("run.calc.normal", "ref.calc.normal", "fieldCalcNormal", height = "8vh"))
               )
       ),
 
@@ -154,9 +155,9 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                                                           value = "#FF0000AA", allowTransparent = T),
                                                                 circle = F, status = "danger", icon = icon("gear"), width = "100%",
                                                                 tooltip = tooltipOptions(title = "Clic para ver opciones"), right = T))),
-                     tabPanel(title = "Dispersión", value = "tabDisp", plotOutput('plot.disp', height = "72vh"))
+                     tabPanel(title = "Dispersión", value = "tabDisp", plotOutput('plot.disp', height = "65vh"))
               )),
-              aceEditor("fieldCodeDisp", mode = "r", theme = "monokai", value = "", height = "8vh", autoComplete = "enabled")
+              column(width = 12, campo.codigo("run.disp", "ref.disp", "fieldCodeDisp", height = "8vh"))
       ),
 
       #Correlaciones
@@ -170,11 +171,10 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                            circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                            tooltip = tooltipOptions(title = "Clic para ver opciones")),
                             #withSpinner(plotOutput('plot.cor', height = "84vh"), type = 7, color = "#CBB051"),
-                            tabPanel(title = 'Correlación', value = "correlacion", plotOutput('plot.cor', height = "76vh"),
-                                     fluidRow(column(width = 4, aceEditor("fieldModelCor", mode = "r", theme = "monokai", value = "",
-                                                                          height = "6vh", autoComplete = "enabled")),
-                                              column(width = 8, aceEditor("fieldCodeCor", mode = "r", theme = "monokai", value = "",
-                                                                          height = "6vh", autoComplete = "enabled")))),
+                            tabPanel(title = 'Correlación', value = "correlacion", plotOutput('plot.cor', height = "67vh"),
+                                     fluidRow(column(width = 4, aceEditor("fieldModelCor", height = "6vh", mode = "r",
+                                                                          theme = "monokai", value = "", readOnly = T)),
+                                              column(width = 8, campo.codigo("run.code.cor", "ref.code.cor", "fieldCodeCor", height = "6vh")))),
                             tabPanel(title = 'Resultados Numéricos', value = "cor.salida", verbatimTextOutput("txtcor")))
               )
       ),
@@ -203,37 +203,36 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                              ),
                                              circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                              tooltip = tooltipOptions(title = "Clic para ver opciones")),
-                            tabPanel(title = 'Individuos', value = "individuos", plotOutput('plot.ind', height = "76vh")),
-                            tabPanel(title = 'Variables', value = "variables", plotOutput('plot.var', height = "76vh")),
-                            tabPanel(title = 'Sobreposición', value = "sobreposicion", plotOutput('plot.biplot', height = "76vh")),
+                            tabPanel(title = 'Individuos', value = "individuos", plotOutput('plot.ind', height = "70vh")),
+                            tabPanel(title = 'Variables', value = "variables", plotOutput('plot.var', height = "70vh")),
+                            tabPanel(title = 'Sobreposición', value = "sobreposicion", plotOutput('plot.biplot', height = "70vh")),
                             navbarMenu("Ayuda Interpretación",
                                        tabPanel("Varianza Explicada por cada eje", value = "tabVarExplicada",
-                                                plotOutput("plotVEE", height = "76vh")),
+                                                plotOutput("plotVEE", height = "70vh")),
                                        tabPanel("Cosenos cuadrados de los individuos", value = "tabIndCos",
-                                                plotOutput("plotCCI", height = "76vh")),
+                                                plotOutput("plotCCI", height = "70vh")),
                                        tabPanel("Cosenos cuadrados de las variables", value = "tabVarCos",
-                                                plotOutput("plotCCV", height = "76vh")),
+                                                plotOutput("plotCCV", height = "70vh")),
                                        tabPanel("Correlación variables-componentes", value = "tabCorVarComp",
-                                                plotOutput("plotCVC", height = "76vh")),
+                                                plotOutput("plotCVC", height = "70vh")),
                                        tabPanel("Contribución de las Variables Dim-1", value = "tabVarDim1",
-                                                plotOutput("plotCP1", height = "76vh")),
+                                                plotOutput("plotCP1", height = "70vh")),
                                        tabPanel("Contribución de las Variables Dim-2", value = "tabVarDim2",
-                                                plotOutput("plotCP2", height = "76vh"))),
+                                                plotOutput("plotCP2", height = "70vh"))),
                             tabPanel(title = "Resultados Numéricos", value = "pca.salida", verbatimTextOutput("txtpca"))
                      ),
-                     column(width = 5,
-                            aceEditor("fieldCodePCAModelo", mode = "r", theme = "monokai", value = "",
-                                      height = "5vh", readOnly = T, autoComplete = "enabled")),
+                     column(width = 5, aceEditor("fieldCodePCAModelo", height = "5vh", mode = "r",
+                                                 theme = "monokai", value = "", readOnly = T)),
                      column(width = 7,
                             conditionalPanel(
                               condition = "input.tabPCA == 'individuos'",
-                              aceEditor("fieldCodeInd", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")),
+                              campo.codigo("run.pca.ind", "ref.pca.ind", "fieldCodeInd", height = "5vh")),
                             conditionalPanel(
                               condition = "input.tabPCA == 'variables'",
-                              aceEditor("fieldCodeVar", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")),
+                              campo.codigo("run.pca.var", "ref.pca.var", "fieldCodeVar", height = "5vh")),
                             conditionalPanel(
                               condition = "input.tabPCA == 'sobreposicion'",
-                              aceEditor("fieldCodeBi", mode = "r", theme = "monokai", value = "", height = "5vh", autoComplete = "enabled")),
+                              campo.codigo("run.pca.bi", "ref.pca.bi", "fieldCodeBi", height = "5vh")),
                             conditionalPanel(
                               condition = "input.tabPCA == 'tabVarExplicada' || input.tabPCA == 'tabIndCos' || input.tabPCA == 'tabVarCos' ||
                                            input.tabPCA == 'tabCorVarComp' || input.tabPCA == 'tabVarDim1' || input.tabPCA == 'tabVarDim2'",
@@ -260,10 +259,10 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                      dropdownButton(h4("Código"),
                                                     h5("Grafico de la Distribución (Numéricas)"),
                                                     aceEditor("fieldFuncNum", mode = "r", theme = "monokai", value = "",
-                                                              height = "20vh", autoComplete = "enabled"),
+                                                              height = "20vh", autoComplete = "enabled", readOnly = T),
                                                     h5("Grafico de la Distribución (Categóricas)"),
                                                     aceEditor("fieldFuncCat", mode = "r", theme = "monokai", value = "",
-                                                              height = "20vh", autoComplete = "enabled"),
+                                                              height = "20vh", autoComplete = "enabled", readOnly = T),
                                                     circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
                                                     tooltip = tooltipOptions(title = "Clic para ver el código"))),
                               column(width = 2,
@@ -273,14 +272,11 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                     circle = F, status = "danger", icon = icon("gear"), width = "100%", right = T,
                                                    tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
                             tabPanel(title = 'Numéricas', value = "numericas", plotOutput('plot.num', height = "65vh"),
-                                     fluidRow(column(width = 6,
-                                              aceEditor("fieldCodeNum", mode = "r", theme = "monokai",
-                                                        value = "", height = "15vh", autoComplete = "enabled")),
-                                       column(width = 6,
-                                              DT::dataTableOutput("mostrar.atipicos")))
+                                     fluidRow(column(width = 6, campo.codigo("run.dya.num", "ref.dya.num", "fieldCodeNum", height = "8vh")),
+                                       column(width = 6, DT::dataTableOutput("mostrar.atipicos")))
                             ),
-                            tabPanel(title = 'Categóricas', value = "categoricas", plotOutput('plot.cat', height = "76vh"),
-                                     aceEditor("fieldCodeCat", mode = "r", theme = "monokai", value = "", height = "6vh", autoComplete = "enabled")
+                            tabPanel(title = 'Categóricas', value = "categoricas", plotOutput('plot.cat', height = "67vh"),
+                                     campo.codigo("run.dya.cat", "ref.dya.cat", "fieldCodeCat", height = "6vh")
                             )
                      )
               )
@@ -304,22 +300,22 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                 tags$div(class = "option-var-ind", dropdownButton(h4("Código"),
                                       h5("Calculo de los centros"),
                                       aceEditor("fieldCodeCentr", mode = "r", theme = "monokai",
-                                                value = "", height = "25vh", autoComplete = "enabled"),
+                                                value = "", height = "25vh", autoComplete = "enabled", readOnly = T),
                                       conditionalPanel(
                                         condition = "input.tabjerar == 'Horizontal'",
                                         h5("Grafica todas las variables en Horizontal"),
                                         aceEditor("fieldFuncHoriz", mode = "r", theme = "monokai",
-                                                  value = "", height = "20vh", autoComplete = "enabled")),
+                                                  value = "", height = "20vh", autoComplete = "enabled", readOnly = T)),
                                       conditionalPanel(
                                         condition = "input.tabjerar == 'Vertical'",
                                         h5("Grafica todas las variables en Vertical"),
                                         aceEditor("fieldFuncVert", mode = "r", theme = "monokai",
-                                                  value = "", height = "18vh", autoComplete = "enabled")),
+                                                  value = "", height = "18vh", autoComplete = "enabled", readOnly = T)),
                                       conditionalPanel(
                                         condition = "input.tabjerar == 'Radar'",
                                         h5("Grafica todas las variables en Radar"),
                                         aceEditor("fieldFuncRadar", mode = "r", theme = "monokai",
-                                                  value = "", height = "30vh", autoComplete = "enabled")),
+                                                  value = "", height = "30vh", autoComplete = "enabled", readOnly = T)),
                                       circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
                                       tooltip = tooltipOptions(title = "Clic para ver el código"))),
 
@@ -353,38 +349,37 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                                                                NULL, value = "#000080", allowTransparent = T))),
                                           circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                           tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
-                            tabPanel(title = 'Diagrama', plotOutput('plot.diag', height = "71vh")),
-                            tabPanel(title = 'Mapa', plotOutput('plot.mapa', height = "71vh")),
-                            tabPanel(title = 'Horizontal', plotOutput('plot.horiz', height = "70vh")),
-                            tabPanel(title = 'Vertical', plotOutput('plot.vert', height = "70vh")),
-                            tabPanel(title = 'Radar', plotOutput('plot.radar', height = "71vh")),
-                            tabPanel(title = 'Interpretación Categórico', value = "hcbarras", plotOutput('plot.bar.cat', height = "71vh")),
+                            tabPanel(title = 'Diagrama', plotOutput('plot.diag', height = "65vh")),
+                            tabPanel(title = 'Mapa', plotOutput('plot.mapa', height = "65vh")),
+                            tabPanel(title = 'Horizontal', plotOutput('plot.horiz', height = "65vh")),
+                            tabPanel(title = 'Vertical', plotOutput('plot.vert', height = "65vh")),
+                            tabPanel(title = 'Radar', plotOutput('plot.radar', height = "65vh")),
+                            tabPanel(title = 'Interpretación Categórico', value = "hcbarras", plotOutput('plot.bar.cat', height = "65vh")),
                             tabPanel(title = 'Resultados Numéricos', value = "salida.hc", verbatimTextOutput("txthc"),
                                      hr(), verbatimTextOutput("txtcentros"))
                      ),
                      fluidRow(
-                       column(width = 6,
-                              aceEditor("fieldCodeModelo", mode = "r", theme = "monokai",
-                                        value = "", height = "11vh", readOnly = T, autoComplete = "enabled")),
+                       column(width = 6, aceEditor("fieldCodeModelo", height = "8vh",mode = "r",
+                                                   theme = "monokai", value = "", readOnly = T)),
                        column(width = 6,
                               conditionalPanel(
                                 condition = "input.tabjerar == 'Diagrama'",
-                                aceEditor("fieldCodeDiag", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                                campo.codigo("run.hc.diag", "ref.hc.diag", "fieldCodeDiag", height = "8vh")),
                               conditionalPanel(
                                 condition = "input.tabjerar == 'Mapa'",
-                                aceEditor("fieldCodeMapa", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                                campo.codigo("run.hc.mapa", "ref.hc.mapa", "fieldCodeMapa", height = "8vh")),
                               conditionalPanel(
                                 condition = "input.tabjerar == 'Horizontal'",
-                                aceEditor("fieldCodeHoriz", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                                campo.codigo("run.hc.horiz", "ref.hc.horiz", "fieldCodeHoriz", height = "8vh")),
                               conditionalPanel(
                                 condition = "input.tabjerar == 'Vertical'",
-                                aceEditor("fieldCodeVert", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                                campo.codigo("run.hc.vert", "ref.hc.vert", "fieldCodeVert", height = "8vh")),
                               conditionalPanel(
                                 condition = "input.tabjerar == 'Radar'",
-                                aceEditor("fieldCodeRadar", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                                campo.codigo("run.hc.radar", "ref.hc.radar", "fieldCodeRadar", height = "8vh")),
                               conditionalPanel(
                                 condition = "input.tabjerar == 'hcbarras'",
-                                aceEditor("fieldCodeBarras", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled"))
+                                campo.codigo("run.hc.barras", "ref.hc.barras", "fieldCodeBarras", height = "8vh"))
                        ))
               )
       ),
@@ -409,22 +404,22 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                              condition = "input.tabkmedias == 'codoJambu'",
                                              h5("Calculo del Codo de Jambu"),
                                              aceEditor("fieldFuncJambu", mode = "r", theme = "monokai",
-                                                       value = "", height = "40vh", autoComplete = "enabled")),
+                                                       value = "", height = "40vh", autoComplete = "enabled", readOnly = T)),
                                            conditionalPanel(
                                              condition = "input.tabkmedias == 'Horizontal'",
                                              h5("Grafica todas las variables en Horizontal"),
                                              aceEditor("fieldFuncKhoriz", mode = "r", theme = "monokai",
-                                                       value = "", height = "25vh", autoComplete = "enabled")),
+                                                       value = "", height = "25vh", autoComplete = "enabled", readOnly = T)),
                                            conditionalPanel(
                                              condition = "input.tabkmedias == 'Vertical'",
                                              h5("Grafica todas las variables en Vertical"),
                                              aceEditor("fieldFuncKvert", mode = "r", theme = "monokai",
-                                                       value = "", height = "25vh", autoComplete = "enabled")),
+                                                       value = "", height = "25vh", autoComplete = "enabled"), readOnly = T),
                                            conditionalPanel(
                                              condition = "input.tabkmedias == 'Radar'",
                                              h5("Grafica todas las variables en Radar"),
                                              aceEditor("fieldFuncKradar", mode = "r", theme = "monokai",
-                                                       value = "", height = "40vh", autoComplete = "enabled")),
+                                                       value = "", height = "40vh", autoComplete = "enabled"), readOnly = T),
                                            circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
                                            tooltip = tooltipOptions(title = "Clic para ver el código"))),
                                 tags$div(class = "option-var-ind",
@@ -459,37 +454,36 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                         circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                                         tooltip = tooltipOptions(title = "Clic para ver opciones")))),
                             tabPanel(title = 'Inercia', fluidRow(uiOutput('resumen.kmedias'))),
-                            tabPanel(title = 'Codo Jambu', value = "codoJambu", plotOutput('plot.jambu', height = "71vh")),
-                            tabPanel(title = 'Mapa', plotOutput('plot.kmapa', height = "71vh")),
-                            tabPanel(title = 'Horizontal', plotOutput('plot.khoriz', height = "70vh")),
-                            tabPanel(title = 'Vertical', plotOutput('plot.kvert', height = "70vh")),
-                            tabPanel(title = 'Radar', plotOutput('plot.kradar', height = "71vh")),
-                            tabPanel(title = 'Interpretación Categórico', value = "kbarras", plotOutput('plot.kcat', height = "71vh")),
+                            tabPanel(title = 'Codo Jambu', value = "codoJambu", plotOutput('plot.jambu', height = "65vh")),
+                            tabPanel(title = 'Mapa', plotOutput('plot.kmapa', height = "65vh")),
+                            tabPanel(title = 'Horizontal', plotOutput('plot.khoriz', height = "65vh")),
+                            tabPanel(title = 'Vertical', plotOutput('plot.kvert', height = "65vh")),
+                            tabPanel(title = 'Radar', plotOutput('plot.kradar', height = "65vh")),
+                            tabPanel(title = 'Interpretación Categórico', value = "kbarras", plotOutput('plot.kcat', height = "65vh")),
                             tabPanel(title = 'Resultados Numéricos', value = "salida.k", verbatimTextOutput("txtk"))
                      ),
                      fluidRow(
-                       column(width = 6,
-                              aceEditor("fieldCodeKModelo", mode = "r", theme = "monokai",
-                                        value = "", height = "11vh", readOnly = T, autoComplete = "enabled")),
+                       column(width = 6, aceEditor("fieldCodeKModelo", height = "8vh", mode = "r",
+                                                   theme = "monokai", value = "", readOnly = T)),
                        column(width = 6,
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'codoJambu'",
-                                aceEditor("fieldCodeJambu", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                                campo.codigo("run.k.jambu", "ref.k.jambu", "fieldCodeJambu", height = "8vh")),
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'Mapa'",
-                                aceEditor("fieldCodeKmapa", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                                campo.codigo("run.k.mapa", "ref.k.mapa", "fieldCodeKmapa", height = "8vh")),
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'Horizontal'",
-                                aceEditor("fieldCodeKhoriz", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                                campo.codigo("run.k.horiz", "ref.k.horiz", "fieldCodeKhoriz", height = "8vh")),
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'Vertical'",
-                                aceEditor("fieldCodeKvert", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                                campo.codigo("run.k.vert", "ref.k.vert", "fieldCodeKvert", height = "8vh")),
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'Radar'",
-                                aceEditor("fieldCodeKradar", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled")),
+                                campo.codigo("run.k.radar", "ref.k.radar", "fieldCodeKradar", height = "8vh")),
                               conditionalPanel(
                                 condition = "input.tabkmedias == 'kbarras'",
-                                aceEditor("fieldCodeKbarras", mode = "r", theme = "monokai", value = "", height = "11vh", autoComplete = "enabled"))
+                                campo.codigo("run.k.barras", "ref.k.barras", "fieldCodeKbarras", height = "8vh"))
                      ))
               )
       ),
@@ -507,7 +501,14 @@ shinyUI(dashboardPage(title="PROMiDAT",
               column(width = 7,
                      box(title = "Vista Previa", width = 12, height = "90vh", status = "primary", solidHeader = TRUE,
                          collapsible = TRUE, div(style = 'overflow-x: scroll; overflow-y: scroll; height: 80vh;',
-                                                 withSpinner(htmlOutput("knitDoc"), type = 7, color = "#CBB051")))))
+                                                 withSpinner(htmlOutput("knitDoc"), type = 7, color = "#CBB051"))))
+      ),
+
+      tabItem(tabName = "acercaDe",
+              img(src="Logo.png", style="padding-bottom:20px;margin-left: auto;margin-right: auto;display: block;width: 50%;"),
+              infoBox("Todos los derechos reservados a", "PROMiDAT S.A", icon = icon("copyright"), fill = T, color = "yellow", width = "100%"),
+              infoBox("Versión del Sistema", "1.2.0", icon = icon("file-code-o"), fill = T, color = "yellow", width = "100%")
+      )
     ) #tabItems
   ) #dashboardBody
 )) #UI
