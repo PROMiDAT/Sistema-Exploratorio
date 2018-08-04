@@ -18,12 +18,44 @@ shinyServer(function(input, output, session) {
     rm(envir = .GlobalEnv, list = borrar)
     stopApp()
   })
+  
+  #' Carga Inicial
+  #' @author Diego
+  #' @return functions
+  #' @export
+  #'
+  isolate(eval(parse(text = def.func.jambu())))
+  isolate(eval(parse(text = func.dya.num)))
+  isolate(eval(parse(text = func.dya.cat)))
+  
+  isolate(eval(parse(text = func.centros)))
+  isolate(eval(parse(text = func.horiz)))
+  isolate(eval(parse(text = func.vert)))
+  isolate(eval(parse(text = func.radar)))
+  
+  isolate(eval(parse(text = func.khoriz)))
+  isolate(eval(parse(text = func.kvert)))
+  isolate(eval(parse(text = func.kradar)))
+  
+  updateAceEditor(session, "fieldModelCor", value = modelo.cor())
+  updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
+  updateAceEditor(session, "fieldFuncNum", value = func.dya.num)
+  updateAceEditor(session, "fieldFuncCat", value = func.dya.cat)
 
+  updateAceEditor(session, "fieldCodeCentr", value = func.centros)
+  updateAceEditor(session, "fieldFuncHoriz", value = func.horiz)
+  updateAceEditor(session, "fieldFuncVert", value = func.vert)
+  updateAceEditor(session, "fieldFuncRadar", value = func.radar)
+  
+  updateAceEditor(session, "fieldFuncKhoriz", value = func.khoriz)
+  updateAceEditor(session, "fieldFuncKvert", value = func.kvert)
+  updateAceEditor(session, "fieldFuncKradar", value = func.kradar)
+  
+  
   updatePlot <- reactiveValues(calc.normal=default.calc.normal(), normal=NULL, disp=NULL, pca.ind=NULL, pca.var=NULL, pca.bi=NULL, cor=NULL,
                                pca.vee=NULL, pca.cci=NULL, pca.ccv=NULL, pca.cvc=NULL, pca.pc1=NULL, pca.pc2=NULL,
                                dya.num=NULL, dya.cat=NULL, diag=NULL, mapa=NULL, horiz=NULL, vert=NULL, radar=NULL,
                                cat=NULL, jambu=NULL, kmapa=NULL, khoriz=NULL, kvert=NULL, kradar=NULL, kcat=NULL)
-
 
   observe({
     addClass(class = "disabled", selector = "#sidebarItemExpanded li[class^=treeview]")
@@ -35,11 +67,10 @@ shinyServer(function(input, output, session) {
   })
 
   observeEvent(input$loadButton, {
-    codigo.reporte <<- list()
-    codigo.carga <- code.carga(nombre.filas = input$rowname, ruta = input$file1$datapath,
-                               separador = input$sep, sep.decimal = input$dec, encabezado = input$header)
-
      tryCatch({
+       codigo.reporte <<- list()
+       codigo.carga <- code.carga(nombre.filas = input$rowname, ruta = input$file1$datapath,
+                                  separador = input$sep, sep.decimal = input$dec, encabezado = input$header)
        isolate(eval(parse(text = codigo.carga)))
        if(ncol(datos) < 1){
          showNotification(paste0("Error al cargar los Datos: Revisar separadores"), duration = 10, type = "error")
@@ -53,8 +84,8 @@ shinyServer(function(input, output, session) {
      })
 
     if(any(is.na(datos))){
-      codigo.na <- paste0(code.NA(deleteNA = input$deleteNA), "\n", "datos <<- datos.originales")
       tryCatch({
+        codigo.na <- paste0(code.NA(deleteNA = input$deleteNA), "\n", "datos <<- datos.originales")
         isolate(eval(parse(text = codigo.na)))
       }, error = function(e) {
         showNotification(paste0("Error al eliminar NAs: ", e), duration = 10, type = "error")
@@ -80,12 +111,8 @@ shinyServer(function(input, output, session) {
                 class = "disabled", selector = "#sidebarItemExpanded li a[data-value=reporte]")
 
     tryCatch({
-      isolate(eval(parse(text = default.centros())))
       isolate(eval(parse(text = modelo.cor())))
-      isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
-      output$txtpca <- renderPrint(print(unclass(pca.modelo)))
       output$txtcor <- renderPrint(print(correlacion))
-
       updateSelectizeInput(session, "sel.normal", choices = colnames(var.numericas(datos)))
       updateSelectizeInput(session, "select.var", choices = colnames(var.numericas(datos)))
       updateSelectInput(session, "sel.distribucion.num", choices = colnames(var.numericas(datos)))
@@ -95,24 +122,6 @@ shinyServer(function(input, output, session) {
       updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(datos))))
       updateSelectInput(session, "sel.kcat.var", choices = colnames(var.categoricas(datos)))
       updateSelectInput(session, "sel.cat.var", choices = colnames(var.categoricas(datos)))
-
-      updateAceEditor(session, "fieldModelCor", value = modelo.cor())
-      updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
-      updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
-      updateAceEditor(session, "fieldCodeJambu", value = def.code.jambu())
-
-      updateAceEditor(session, "fieldCodeResum", value = cod.resum())
-      updateAceEditor(session, "fieldFuncNum", value = func.dya.num)
-      updateAceEditor(session, "fieldFuncCat", value = func.dya.cat)
-
-      updateAceEditor(session, "fieldCodeCentr", value = func.centros)
-      updateAceEditor(session, "fieldFuncHoriz", value = func.horiz)
-      updateAceEditor(session, "fieldFuncVert", value = func.vert)
-      updateAceEditor(session, "fieldFuncRadar", value = func.radar)
-
-      updateAceEditor(session, "fieldFuncKhoriz", value = func.khoriz)
-      updateAceEditor(session, "fieldFuncKvert", value = func.kvert)
-      updateAceEditor(session, "fieldFuncKradar", value = func.kradar)
     }, error = function(e) {
       print(paste0("ERROR EN EVALUAR: ", e))
       return(datos <- NULL)
@@ -120,7 +129,7 @@ shinyServer(function(input, output, session) {
 
     output$contents = DT::renderDT(mostrarData(), server = F)
     close.menu(is.null(datos))
-  })
+  }, priority = 4)
 
   observeEvent(input$transButton, {
     var.noactivas <- c()
@@ -146,48 +155,39 @@ shinyServer(function(input, output, session) {
       isolate(eval(parse(text = code.desactivar(var.noactivas))))
 
     updateAceEditor(session, "fieldCodeTrans", value = paste0(code.res, "\n", code.desactivar(var.noactivas)))
-
-    updateSelectizeInput(session, "sel.normal", choices = colnames(var.numericas(datos)))
-    updateSelectizeInput(session, "select.var", choices = colnames(var.numericas(datos)))
-    updateSelectInput(session, "sel.distribucion.num", choices = colnames(var.numericas(datos)))
-    updateSelectInput(session, "sel.distribucion.cat", choices = colnames(var.categoricas(datos)))
-    updateSelectInput(session, "sel.resumen", choices = colnames(datos))
-    updateSelectInput(session, "sel.verticales", choices = c("Todos", colnames(var.numericas(datos))))
-    updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(datos))))
-    updateSelectInput(session, "sel.kcat.var", choices = colnames(var.categoricas(datos)))
-    updateSelectInput(session, "sel.cat.var", choices = colnames(var.categoricas(datos)))
-
-    updateAceEditor(session, "fieldModelCor", value = modelo.cor())
-    updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
-    updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
-    updateAceEditor(session, "fieldCodeJambu", value = def.code.jambu())
-
-    updateAceEditor(session, "fieldCodeResum", value = cod.resum())
-    updateAceEditor(session, "fieldFuncNum", value = func.dya.num)
-    updateAceEditor(session, "fieldFuncCat", value = func.dya.cat)
-
-    updateAceEditor(session, "fieldCodeCentr", value = func.centros)
-    updateAceEditor(session, "fieldFuncHoriz", value = func.horiz)
-    updateAceEditor(session, "fieldFuncVert", value = func.vert)
-    updateAceEditor(session, "fieldFuncRadar", value = func.radar)
-
-    updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
-    updateAceEditor(session, "fieldFuncKhoriz", value = func.khoriz)
-    updateAceEditor(session, "fieldFuncKvert", value = func.kvert)
-    updateAceEditor(session, "fieldFuncKradar", value = func.kradar)
+    
     tryCatch({
-      isolate(eval(parse(text = default.centros())))
       isolate(eval(parse(text = modelo.cor())))
-      isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
-      output$txtpca <- renderPrint(print(unclass(pca.modelo)))
       output$txtcor <- renderPrint(print(correlacion))
+      updateSelectizeInput(session, "sel.normal", choices = colnames(var.numericas(datos)))
+      updateSelectizeInput(session, "select.var", choices = colnames(var.numericas(datos)))
+      updateSelectInput(session, "sel.distribucion.num", choices = colnames(var.numericas(datos)))
+      updateSelectInput(session, "sel.distribucion.cat", choices = colnames(var.categoricas(datos)))
+      updateSelectInput(session, "sel.resumen", choices = colnames(datos))
+      updateSelectInput(session, "sel.verticales", choices = c("Todos", colnames(var.numericas(datos))))
+      updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(datos))))
+      updateSelectInput(session, "sel.kcat.var", choices = colnames(var.categoricas(datos)))
+      updateSelectInput(session, "sel.cat.var", choices = colnames(var.categoricas(datos)))
     }, error = function(e) {
       return(datos <- NULL)
     })
 
     output$contents = DT::renderDT(mostrarData(), server = F)
     close.menu(is.null(datos))
-  })
+  }, priority = 4)
+  
+  observeEvent(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
+    tryCatch({
+      if(!is.null(datos)){
+        updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
+        isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
+        output$txtpca <- renderPrint(print(unclass(pca.modelo)))
+      }
+    }, error = function(e) {
+      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
+      return(NULL)
+    })
+  }, priority = 2)
 
   mostrarData <- function() {
     nombre.columnas <- c("ID", colnames(datos))
@@ -226,19 +226,6 @@ shinyServer(function(input, output, session) {
                                                    $this.addClass('shiny-input-checkbox');});
                                                   Shiny.unbindAll(table.table().node());
                                                   Shiny.bindAll(table.table().node());"))
-
-  observeEvent(c(input$switch.scale, input$slider.npc), {
-    tryCatch({
-      if(!is.null(datos)){
-        updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
-        isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
-        output$txtpca <- renderPrint(print(unclass(pca.modelo)))
-      }
-    }, error = function(e) {
-      showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
-      return(NULL)
-    })
-  })
 
   #' Resumen numérico
   #' @author Diego
@@ -364,7 +351,7 @@ shinyServer(function(input, output, session) {
         showNotification(paste0("ERROR EN PCA (Individuos): ", e), duration = 10, type = "error")
       })
     })
-  })
+  }, priority = 3)
 
   observeEvent(input$run.pca.ind, {
     updatePlot$pca.ind <- isolate(input$fieldCodeInd)
@@ -392,7 +379,7 @@ shinyServer(function(input, output, session) {
         showNotification(paste0("ERROR EN PCA (Variables): ", e), duration = 10, type = "error")
       })
     })
-  })
+  }, priority = 3)
 
   observeEvent(input$run.pca.var, {
     updatePlot$pca.var <- input$fieldCodeVar
@@ -420,7 +407,7 @@ shinyServer(function(input, output, session) {
         showNotification(paste0("ERROR EN PCA (Sobreposición): ", e), duration = 10, type = "error")
       })
     })
-  })
+  }, priority = 3)
 
   observeEvent(input$run.pca.bi, {
     updatePlot$pca.bi <- input$fieldCodeBi
@@ -632,8 +619,6 @@ shinyServer(function(input, output, session) {
     output$plot.num = renderPlot({
       tryCatch({
         cod.dya.num  <<- updatePlot$dya.num
-        func.dya.num <<- input$fieldFuncNum
-        isolate(eval(parse(text = func.dya.num)))
         res <- isolate(eval(parse(text = cod.dya.num)))
         updateAceEditor(session, "fieldCodeNum", value = cod.dya.num)
         codigo.reporte[[paste0("dya.num.", input$sel.distribucion.num)]] <<-
@@ -672,8 +657,6 @@ shinyServer(function(input, output, session) {
     output$plot.cat = renderPlot({
       tryCatch({
         cod.dya.cat  <<- updatePlot$dya.cat
-        func.dya.cat <<- input$fieldFuncCat
-        isolate(eval(parse(text = func.dya.cat)))
         res <- isolate(eval(parse(text = cod.dya.cat)))
         updateAceEditor(session, "fieldCodeCat", value = cod.dya.cat)
         codigo.reporte[[paste0("dya.cat.", input$sel.distribucion.cat)]] <<-
@@ -692,6 +675,42 @@ shinyServer(function(input, output, session) {
 
   observeEvent(input$sel.distribucion.cat, {
     updatePlot$dya.cat <<- def.code.cat(data = "datos", variable = paste0("'", input$sel.distribucion.cat, "'"))
+  })
+  
+  #' Actualización del Modelo Clusterización Jerarquica
+  #' @author Diego
+  #' @return plot
+  #' @export
+  #'
+  observeEvent(c(input$loadButton, input$transButton, input$cant.cluster, input$sel.dist.method, input$sel.hc.method), {
+    codigo <- def.model(data = "datos", cant = input$cant.cluster,
+                        dist.method = input$sel.dist.method, hc.method = input$sel.hc.method)
+    tryCatch ({
+      if(!is.null(datos)){
+        isolate(eval(parse(text = codigo)))
+        output$txthc <- renderPrint(print(unclass(hc.modelo)))
+        output$txtcentros <- renderPrint(print(unclass(centros)))
+      }
+    }, error = function(e) {
+      print(paste0("ERROR EN HC: ", e))
+      return(NULL)
+    })
+    
+    nuevos.colores <- sapply(1:input$cant.cluster, function(i) paste0("'", input[[paste0("hcColor", i)]], "'"))
+    color <- ifelse(input$sel.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.cluster)])
+    updatePlot$diag <<- diagrama(cant = input$cant.cluster, colores = nuevos.colores)
+    updatePlot$mapa <<- cluster.mapa(cant = input$cant.cluster, colores = nuevos.colores)
+    updatePlot$horiz <<- cluster.horiz(sel = paste0("'", input$sel.cluster, "'"), colores = nuevos.colores, color = color)
+    updatePlot$vert <<- cluster.vert(sel = paste0("'", input$sel.verticales, "'"), colores = nuevos.colores)
+    updatePlot$radar <<- def.radar(colores = nuevos.colores)
+    updatePlot$cat <<- cluster.cat(var = input$sel.cat.var, cant = as.numeric(input$cant.cluster))
+    updateAceEditor(session, "fieldCodeModelo", value = codigo)
+    updateAceEditor(session, "fieldCodeDiag", value = updatePlot$diag)
+    updateAceEditor(session, "fieldCodeMapa", value = updatePlot$mapa)
+    updateAceEditor(session, "fieldCodeHoriz", value = updatePlot$horiz)
+    updateAceEditor(session, "fieldCodeVert", value = updatePlot$vert)
+    updateAceEditor(session, "fieldCodeRadar", value = updatePlot$radar)
+    updateAceEditor(session, "fieldCodeBarras", value = updatePlot$cat)
   })
 
   #' Gráfico de Clusterización Jerarquica (Diagrama)
@@ -751,10 +770,6 @@ shinyServer(function(input, output, session) {
     output$plot.horiz = renderPlot({
       tryCatch({
         code.horiz <<- updatePlot$horiz
-        func.horiz <<- input$fieldFuncHoriz
-        func.centros <<- input$fieldCodeCentr
-        isolate(eval(parse(text = func.horiz)))
-        isolate(eval(parse(text = func.centros)))
         res <- isolate(eval(parse(text = code.horiz)))
         codigo.reporte[["horiz"]] <<-
           paste0("## Interpretación Horizontal \n```{r}\n", code.horiz, "\n```")
@@ -786,10 +801,6 @@ shinyServer(function(input, output, session) {
     output$plot.vert = renderPlot({
       tryCatch({
         code.vert <<- updatePlot$vert
-        func.vert <<- input$fieldFuncVert
-        func.centros <<- input$fieldCodeCentr
-        isolate(eval(parse(text = func.vert)))
-        isolate(eval(parse(text = func.centros)))
         res <- isolate(eval(parse(text = code.vert)))
         codigo.reporte[["vert"]] <<-
           paste0("## Interpretación Vertical \n```{r}\n", code.vert, "\n```")
@@ -820,10 +831,6 @@ shinyServer(function(input, output, session) {
     output$plot.radar = renderPlot({
       tryCatch({
         code.radar <<- updatePlot$radar
-        func.radar <<- input$fieldFuncRadar
-        func.centros <<- input$fieldCodeCentr
-        isolate(eval(parse(text = func.centros)))
-        isolate(eval(parse(text = func.radar)))
         res <- isolate(eval(parse(text = code.radar)))
         codigo.reporte[["radar"]] <<-
           paste0("## Gráfico Radar \n```{r}\n", code.radar, "\n```")
@@ -870,6 +877,40 @@ shinyServer(function(input, output, session) {
     updatePlot$cat <<- cluster.cat(var = input$sel.cat.var)
     updateAceEditor(session, "fieldCodeBarras", value = updatePlot$cat)
   })
+  
+  
+  #' Actializacion del Modelo K-medias
+  #' @author Diego
+  #' @return plot
+  #' @export
+  #'
+  #'
+  observeEvent(c(input$loadButton, input$transButton, input$cant.kmeans.cluster, input$num.iter, input$slider.nstart), {
+    tryCatch ({
+      codigo <- def.k.model(data = "datos", cant = input$cant.kmeans.cluster,
+                            iter.max = input$num.iter, nstart = input$slider.nstart)
+      isolate(eval(parse(text = codigo)))
+      updateAceEditor(session, "fieldCodeKModelo", value = codigo)
+      output$txtk <- renderPrint(print(unclass(k.modelo)))
+    }, error = function(e) {
+      return(NULL)
+    })
+    
+    nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i) paste0("'", input[[paste0("kColor", i)]], "'"))
+    color <- ifelse(input$sel.kmeans.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.kmeans.cluster)])
+    updatePlot$jambu <<- def.code.jambu()
+    updatePlot$kmapa <<- cluster.kmapa(colores = nuevos.colores)
+    updatePlot$khoriz <<- cluster.khoriz(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores, color = color)
+    updatePlot$kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.verticales, "'"), colores = nuevos.colores)
+    updatePlot$kradar <<- def.kradar(colores = nuevos.colores)
+    updatePlot$kcat <<- cluster.kcat(var = input$sel.kcat.var)
+    updateAceEditor(session, "fieldCodeJambu", value = updatePlot$jambu)
+    updateAceEditor(session, "fieldCodeKmapa", value = updatePlot$kmapa)
+    updateAceEditor(session, "fieldCodeKhoriz", value = updatePlot$khoriz)
+    updateAceEditor(session, "fieldCodeKvert", value = updatePlot$kvert)
+    updateAceEditor(session, "fieldCodeKradar", value = updatePlot$kradar)
+    updateAceEditor(session, "fieldCodeKbarras", value = updatePlot$kcat)
+  })
 
   #' Inercia K-medias
   #' @author Diego
@@ -894,7 +935,6 @@ shinyServer(function(input, output, session) {
     output$plot.jambu = renderPlot({
       tryCatch({
         code.jambu <<- updatePlot$jambu
-        isolate(eval(parse(text = input$fieldFuncJambu)))
         isolate(eval(parse(text = code.jambu)))
         res <- isolate(eval(parse(text = code.jambu)))
         codigo.reporte[["jambu"]] <<-
@@ -944,8 +984,6 @@ shinyServer(function(input, output, session) {
     output$plot.khoriz = renderPlot({
       tryCatch({
         code.khoriz <<- updatePlot$khoriz
-        func.khoriz <<- input$fieldFuncKhoriz
-        isolate(eval(parse(text = func.khoriz)))
         res <- isolate(eval(parse(text = code.khoriz)))
         codigo.reporte[["khoriz"]] <<-
           paste0("## Interpretación Horizontal (K-medias) \n```{r}\n", code.khoriz, "\n```")
@@ -977,8 +1015,6 @@ shinyServer(function(input, output, session) {
     output$plot.kvert = renderPlot({
       tryCatch({
         code.kvert <<- updatePlot$kvert
-        func.kvert <<- input$fieldFuncKvert
-        isolate(eval(parse(text = func.kvert)))
         res <- isolate(eval(parse(text = code.kvert)))
         codigo.reporte[["kvert"]] <<-
           paste0("## Interpretación Vertical (K-medias) \n```{r}\n", code.kvert, "\n```")
@@ -1009,8 +1045,6 @@ shinyServer(function(input, output, session) {
     output$plot.kradar = renderPlot({
       tryCatch({
         code.kradar <<- updatePlot$kradar
-        func.kradar <<- input$fieldFuncKradar
-        isolate(eval(parse(text = func.kradar)))
         res <- isolate(eval(parse(text = code.kradar)))
         codigo.reporte[["kradar"]] <<-
           paste0("## Gráfico Radar (K-medias) \n```{r}\n", code.kradar, "\n```")
@@ -1086,37 +1120,6 @@ shinyServer(function(input, output, session) {
     }
   })
 
-  observeEvent(c(input$loadButton, input$transButton, input$cant.cluster, input$sel.dist.method, input$sel.hc.method), {
-    codigo <- def.model(data = "datos", cant = input$cant.cluster,
-                        dist.method = input$sel.dist.method, hc.method = input$sel.hc.method)
-    tryCatch ({
-      if(!is.null(datos)){
-        isolate(eval(parse(text = codigo)))
-        output$txthc <- renderPrint(print(unclass(hc.modelo)))
-        output$txtcentros <- renderPrint(print(unclass(centros)))
-      }
-    }, error = function(e) {
-      print(paste0("ERROR EN HC: ", e))
-      return(NULL)
-    })
-
-    nuevos.colores <- sapply(1:input$cant.cluster, function(i) paste0("'", input[[paste0("hcColor", i)]], "'"))
-    color <- ifelse(input$sel.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.cluster)])
-    updatePlot$diag <<- diagrama(cant = input$cant.cluster, colores = nuevos.colores)
-    updatePlot$mapa <<- cluster.mapa(cant = input$cant.cluster, colores = nuevos.colores)
-    updatePlot$horiz <<- cluster.horiz(sel = paste0("'", input$sel.cluster, "'"), colores = nuevos.colores, color = color)
-    updatePlot$vert <<- cluster.vert(sel = paste0("'", input$sel.verticales, "'"), colores = nuevos.colores)
-    updatePlot$radar <<- def.radar(colores = nuevos.colores)
-    updatePlot$cat <<- cluster.cat(var = input$sel.cat.var, cant = as.numeric(input$cant.cluster))
-    updateAceEditor(session, "fieldCodeModelo", value = codigo)
-    updateAceEditor(session, "fieldCodeDiag", value = updatePlot$diag)
-    updateAceEditor(session, "fieldCodeMapa", value = updatePlot$mapa)
-    updateAceEditor(session, "fieldCodeHoriz", value = updatePlot$horiz)
-    updateAceEditor(session, "fieldCodeVert", value = updatePlot$vert)
-    updateAceEditor(session, "fieldCodeRadar", value = updatePlot$radar)
-    updateAceEditor(session, "fieldCodeBarras", value = updatePlot$cat)
-  })
-
   observeEvent(c(input$hcColor1, input$hcColor2, input$hcColor3, input$hcColor4, input$hcColor5,
                  input$hcColor6, input$hcColor7, input$hcColor8, input$hcColor9, input$hcColor10), {
     nuevos.colores <- sapply(1:input$cant.cluster, function(i) paste0("'", input[[paste0("hcColor", i)]], "'"))
@@ -1133,33 +1136,6 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldCodeVert", value = updatePlot$vert)
     updateAceEditor(session, "fieldCodeRadar", value = updatePlot$radar)
     updateAceEditor(session, "fieldCodeBarras", value = updatePlot$cat)
-  })
-
-  observeEvent(c(input$loadButton, input$cant.kmeans.cluster, input$transButton, input$num.iter, input$slider.nstart), {
-    tryCatch ({
-      codigo <- def.k.model(data = "datos", cant = input$cant.kmeans.cluster,
-                            iter.max = input$num.iter, nstart = input$slider.nstart)
-      isolate(eval(parse(text = codigo)))
-      output$txtk <- renderPrint(print(unclass(k.modelo)))
-    }, error = function(e) {
-      return(NULL)
-    })
-
-    nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i) paste0("'", input[[paste0("kColor", i)]], "'"))
-    color <- ifelse(input$sel.kmeans.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.kmeans.cluster)])
-    updatePlot$jambu <<- def.code.jambu()
-    updatePlot$kmapa <<- cluster.kmapa(colores = nuevos.colores)
-    updatePlot$khoriz <<- cluster.khoriz(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores, color = color)
-    updatePlot$kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.verticales, "'"), colores = nuevos.colores)
-    updatePlot$kradar <<- def.kradar(colores = nuevos.colores)
-    updatePlot$kcat <<- cluster.kcat(var = input$sel.kcat.var)
-    updateAceEditor(session, "fieldCodeJambu", value = updatePlot$jambu)
-    updateAceEditor(session, "fieldCodeKmapa", value = updatePlot$kmapa)
-    updateAceEditor(session, "fieldCodeKhoriz", value = updatePlot$khoriz)
-    updateAceEditor(session, "fieldCodeKvert", value = updatePlot$kvert)
-    updateAceEditor(session, "fieldCodeKradar", value = updatePlot$kradar)
-    updateAceEditor(session, "fieldCodeKbarras", value = updatePlot$kcat)
-    updateAceEditor(session, "fieldCodeKModelo", value = codigo)
   })
 
   observeEvent(c(input$kColor1, input$kColor2, input$kColor3, input$kColor4, input$kColor5,

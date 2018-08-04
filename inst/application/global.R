@@ -102,19 +102,26 @@ code.desactivar <- function(variables){
 resumen.numerico <- function(data, variable){
   salida <- ""
   datos.numericos <- list(Q1 = list(id = "q1", Label = "Primer Cuartil",
-                                    Value = format(quantile(data[, variable], .25), scientific = FALSE), color = "green"),
+                                    Value = format(round(quantile(data[, variable], .25), 3), scientific = F),
+                                    color = "green"),
                           Mediana = list(id = "mediana", Label = "Mediana",
-                                         Value = format(median(data[, variable]), scientific = FALSE), color = "orange"),
+                                         Value = format(round(median(data[, variable]), 3), scientific = F),
+                                         color = "orange"),
                           Q3 = list(id = "q3", Label = "Tercer Cuartil",
-                                    Value = format(quantile(data[, variable], .75), scientific = FALSE), color = "maroon"),
+                                    Value = format(round(quantile(data[, variable], .75), 3), scientific = F),
+                                    color = "maroon"),
                           Minimo = list(id = "minimo", Label = "Mínimo",
-                                        Value = format(min(data[, variable]), scientific = FALSE), color = "red"),
+                                        Value = format(round(min(data[, variable]), 3), scientific = F),
+                                        color = "red"),
                           Promedio = list(id = "promedio", Label = "Promedio",
-                                          Value = format(mean(data[, variable]), scientific = FALSE), color = "blue"),
+                                          Value = format(round(mean(data[, variable]), 3), scientific = F),
+                                          color = "blue"),
                           Maximo = list(id = "maximo", Label = "Máximo",
-                                        Value = format(max(data[, variable]), scientific = FALSE), color = "purple"),
+                                        Value = format(round(max(data[, variable]), 3), scientific = F),
+                                        color = "purple"),
                           DS <- list(id = "ds", Label = "Desviación Estandar",
-                                     Value = format(sd(data[, variable]), scientific = FALSE), color = "yellow"))
+                                     Value = format(round(sd(data[, variable]), 3), scientific = FALSE, nsmall = 3),
+                                     color = "yellow"))
 
   for (calculo in datos.numericos) {
     salida <- paste0(salida, "<div class='shiny-html-output col-sm-6 shiny-bound-output' id='", calculo$id,
@@ -591,7 +598,6 @@ func.radar <- cluster.radar()
 code.radar <- def.radar()
 code.cat <- cluster.cat()
 
-#code.jambu <- def.func.jambu()
 code.kmapa <- cluster.kmapa()
 code.khoriz <- cluster.khoriz()
 code.kvert <- cluster.kvert()

@@ -506,8 +506,8 @@ shinyUI(dashboardPage(title="PROMiDAT",
 
       tabItem(tabName = "acercaDe",
               img(src="Logo.png", style="padding-bottom:20px;margin-left: auto;margin-right: auto;display: block;width: 50%;"),
-              infoBox("Todos los derechos reservados a", "PROMiDAT S.A", icon = icon("copyright"), fill = T, color = "yellow", width = "100%"),
-              infoBox("Versión del Sistema", "1.2.0", icon = icon("file-code-o"), fill = T, color = "yellow", width = "100%")
+              infoBox("Todos los derechos reservados a", "PROMiDAT S.A.", icon = icon("copyright"), fill = T, color = "yellow", width = "100%"),
+              infoBox("Versión del Sistema", "1.2.1", icon = icon("file-code-o"), fill = T, color = "yellow", width = "100%")
       )
     ) #tabItems
   ) #dashboardBody
