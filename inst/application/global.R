@@ -18,34 +18,39 @@ campo.codigo <- function(runid, refid, fieldid, ...){
   tags$div(class = "box box-solid bg-black",
            tags$div(style = "text-align:right;padding-right: 10px;",
                     tags$button(id = runid, type = "button", class = "run-button action-button",
-                                icon("play"), tags$a("Ejecutar", style = "color:white"))),#,
-                    #tags$button(id = refid, type = "button", class = "run-button action-button",
-                    #            icon("undo"), tags$a("Recuperar", style = "color:white"))),
+                                icon("play"), tags$a("Ejecutar", style = "color:white"))),
            tags$div(class = "box-body",
                     aceEditor(fieldid, mode = "r", theme = "monokai", value = "", ...)))
 }
 
-colnames.empty <- function(res){
+colnames.empty <- function(res) {
   res <- colnames(res)
-  if(is.null(res))
+  if (is.null(res)) {
     return("")
+  }
   return(res)
 }
 
 var.numericas <- function(data){
-  if(is.null(data)) return(NULL)
+  if(is.null(data)) {
+    return(NULL)
+  }
   res <- base::subset(data, select = sapply(data, class) %in% c('numeric', 'integer'))
   return(res)
 }
 
 var.categoricas <- function(data){
-  if(is.null(data)) return(NULL)
+  if(is.null(data)) {
+    return(NULL)
+  }
   res <- base::subset(data, select = !sapply(data, class) %in% c('numeric', 'integer'))
   return(res)
 }
 
 datos.disyuntivos <- function(data, vars){
-  if(is.null(data)) return(NULL)
+  if(is.null(data)) {
+    return(NULL)
+  }
   cualitativas <- base::subset(data, select = colnames(data) %in% c(vars))
   data <- data[, !colnames(data) %in% vars]
   for (variable in colnames(cualitativas)) {
