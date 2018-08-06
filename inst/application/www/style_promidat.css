@@ -51,6 +51,11 @@
     background-color: #777777;
 }
 
+.bg-promidat{
+  background-color: #CBB051;
+  color: #fff
+}
+
 #plot-container {
     position: relative;
 }

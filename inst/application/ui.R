@@ -187,6 +187,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                              switchInput(inputId = "switch.scale", onStatus = "success", offStatus = "danger", value = T,
                                                          label = "Centrar y Reducir", onLabel = "SI", offLabel = "NO", labelWidth = "100%"),
                                              sliderInput("slider.npc", "Número de Dimensiones: ", min = 2, max = 10, value = 5),
+                                             sliderTextInput("slider.ejes", "Seleccionar Ejes:", choices = c(1:10), selected = c(1,2), grid = T),
                                              conditionalPanel(condition = "input.tabPCA == 'individuos' || input.tabPCA == 'sobreposicion'",
                                                colourpicker::colourInput("col.pca.ind", "Seleccionar Color (Individuos):",
                                                                          value = "#696969", allowTransparent = T)
@@ -506,8 +507,8 @@ shinyUI(dashboardPage(title="PROMiDAT",
 
       tabItem(tabName = "acercaDe",
               img(src="Logo.png", style="padding-bottom:20px;margin-left: auto;margin-right: auto;display: block;width: 50%;"),
-              infoBox("Todos los derechos reservados a", "PROMiDAT S.A.", icon = icon("copyright"), fill = T, color = "yellow", width = "100%"),
-              infoBox("Versión del Sistema", "1.2.2", icon = icon("file-code-o"), fill = T, color = "yellow", width = "100%")
+              infoBoxPROMiDAT("Todos los derechos reservados a", "PROMiDAT S.A.", icono = icon("copyright")),
+              infoBoxPROMiDAT("Versión del Sistema", "1.2.3", icono = icon("file-code-o"))
       )
     ) #tabItems
   ) #dashboardBody

@@ -23,6 +23,16 @@ campo.codigo <- function(runid, refid, fieldid, ...){
                     aceEditor(fieldid, mode = "r", theme = "monokai", value = "", ...)))
 }
 
+infoBoxPROMiDAT <- function(titulo, valor, icono){
+  tags$div(class = "info-box bg-promidat",
+           tags$span(class = "info-box-icon", icono),
+           tags$div(class="info-box-content",
+                    tags$span(class = "info-box-text", titulo),
+                    tags$span(class = "info-box-number", valor)
+           )
+  )
+}
+
 colnames.empty <- function(res) {
   res <- colnames(res)
   if (is.null(res)) {
@@ -219,18 +229,21 @@ def.k.model <- function(data = "datos", cant = "as.numeric(input$cant.kmeans.clu
   return(paste0("k.modelo <<- kmeans(var.numericas(", data, "), centers = ", cant,", iter.max = ", iter.max,", nstart = ", nstart,")"))
 }
 
-pca.individuos <- function(ind.cos = 0, color = '#696969'){
-  return(paste0("plot(fviz_pca_ind(pca.modelo, pointsize = 2, pointshape = 16,
-             col.ind = '", color, "', select.ind = list(cos2 = ", ind.cos, ")))"))
+pca.individuos <- function(ind.cos = 0, color = '#696969', ejes = c(1, 2)){
+  return(paste0("plot(fviz_pca_ind(pca.modelo, pointsize = 2, pointshape = 16, axes = c(", paste(ejes, collapse = ","), "),\n",
+                "     col.ind = '", color, "', select.ind = list(cos2 = ", ind.cos, ")))"))
 }
 
-pca.variables <- function(var.cos = 0, color = 'steelblue'){
-  return(paste0("plot(fviz_pca_var(pca.modelo, col.var= '", color, "', select.var = list(cos2 = ", var.cos, ")))"))
+pca.variables <- function(var.cos = 0, color = 'steelblue', ejes = c(1, 2)){
+  return(paste0("plot(fviz_pca_var(pca.modelo, col.var= '", color, "',\n",
+                "     select.var = list(cos2 = ", var.cos, "),",
+                "axes = c(", paste(ejes, collapse = ","), ")))"))
 }
 
-pca.sobreposicion <- function(ind.cos = 0, var.cos = 0, col.ind = '#696969', col.var = 'steelblue'){
-  return(paste0("plot(fviz_pca_biplot(pca.modelo, pointsize = 2, pointshape = 16, col.var = '", col.var, "',
-                 col.ind = '", col.ind, "', select.ind = list(cos2 = ", ind.cos, ") , select.var = list(cos2 = ", var.cos, ")))"))
+pca.sobreposicion <- function(ind.cos = 0, var.cos = 0, col.ind = '#696969', col.var = 'steelblue', ejes = c(1, 2)){
+  return(paste0("plot(fviz_pca_biplot(pca.modelo, pointsize = 2, pointshape = 16, col.var = '", col.var, "', \n",
+                "     col.ind = '", col.ind, "', select.ind = list(cos2 = ", ind.cos, "), ",
+                "select.var = list(cos2 = ", var.cos, "), axes = c(", paste(ejes, collapse = ","), ")))"))
 }
 
 code.pca.vee <- function(){

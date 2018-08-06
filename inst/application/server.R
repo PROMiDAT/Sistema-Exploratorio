@@ -18,7 +18,7 @@ shinyServer(function(input, output, session) {
     rm(envir = .GlobalEnv, list = borrar)
     stopApp()
   })
-  
+
   #' Carga Inicial
   #' @author Diego
   #' @return functions
@@ -27,16 +27,16 @@ shinyServer(function(input, output, session) {
   isolate(eval(parse(text = def.func.jambu())))
   isolate(eval(parse(text = func.dya.num)))
   isolate(eval(parse(text = func.dya.cat)))
-  
+
   isolate(eval(parse(text = func.centros)))
   isolate(eval(parse(text = func.horiz)))
   isolate(eval(parse(text = func.vert)))
   isolate(eval(parse(text = func.radar)))
-  
+
   isolate(eval(parse(text = func.khoriz)))
   isolate(eval(parse(text = func.kvert)))
   isolate(eval(parse(text = func.kradar)))
-  
+
   updateAceEditor(session, "fieldModelCor", value = modelo.cor())
   updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
   updateAceEditor(session, "fieldFuncNum", value = func.dya.num)
@@ -46,12 +46,12 @@ shinyServer(function(input, output, session) {
   updateAceEditor(session, "fieldFuncHoriz", value = func.horiz)
   updateAceEditor(session, "fieldFuncVert", value = func.vert)
   updateAceEditor(session, "fieldFuncRadar", value = func.radar)
-  
+
   updateAceEditor(session, "fieldFuncKhoriz", value = func.khoriz)
   updateAceEditor(session, "fieldFuncKvert", value = func.kvert)
   updateAceEditor(session, "fieldFuncKradar", value = func.kradar)
-  
-  
+
+
   updatePlot <- reactiveValues(calc.normal=default.calc.normal(), normal=NULL, disp=NULL, pca.ind=NULL, pca.var=NULL, pca.bi=NULL, cor=NULL,
                                pca.vee=NULL, pca.cci=NULL, pca.ccv=NULL, pca.cvc=NULL, pca.pc1=NULL, pca.pc2=NULL,
                                dya.num=NULL, dya.cat=NULL, diag=NULL, mapa=NULL, horiz=NULL, vert=NULL, radar=NULL,
@@ -155,7 +155,7 @@ shinyServer(function(input, output, session) {
       isolate(eval(parse(text = code.desactivar(var.noactivas))))
 
     updateAceEditor(session, "fieldCodeTrans", value = paste0(code.res, "\n", code.desactivar(var.noactivas)))
-    
+
     tryCatch({
       isolate(eval(parse(text = modelo.cor())))
       output$txtcor <- renderPrint(print(correlacion))
@@ -175,13 +175,14 @@ shinyServer(function(input, output, session) {
     output$contents = DT::renderDT(mostrarData(), server = F)
     close.menu(is.null(datos))
   }, priority = 4)
-  
+
   observeEvent(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
     tryCatch({
       if(!is.null(datos)){
         updateAceEditor(session, "fieldCodePCAModelo", value = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))
         isolate(eval(parse(text = def.pca.model(scale.unit = input$switch.scale, npc = input$slider.npc))))
         output$txtpca <- renderPrint(print(unclass(pca.modelo)))
+        updateSliderTextInput(session, "slider.ejes", choices = c(1:input$slider.npc), selected = c(1,2))
       }
     }, error = function(e) {
       showNotification(paste0("ERROR: ", e), duration = 10, type = "error")
@@ -357,8 +358,8 @@ shinyServer(function(input, output, session) {
     updatePlot$pca.ind <- isolate(input$fieldCodeInd)
   })
 
-  observeEvent(c(input$col.pca.ind, input$ind.cos), {
-    updatePlot$pca.ind <- isolate(pca.individuos(ind.cos = input$ind.cos * 0.01, color = input$col.pca.ind))
+  observeEvent(c(input$col.pca.ind, input$ind.cos, input$slider.ejes), {
+    updatePlot$pca.ind <- isolate(pca.individuos(ind.cos = input$ind.cos * 0.01, color = input$col.pca.ind, ejes = input$slider.ejes))
   })
 
   #' Gráfico de PCA (Variables)
@@ -385,8 +386,8 @@ shinyServer(function(input, output, session) {
     updatePlot$pca.var <- input$fieldCodeVar
   })
 
-  observeEvent(c(input$var.cos, input$col.pca.var), {
-    updatePlot$pca.var <- pca.variables(var.cos = input$var.cos * 0.01, color = input$col.pca.var)
+  observeEvent(c(input$var.cos, input$col.pca.var, input$slider.ejes), {
+    updatePlot$pca.var <- pca.variables(var.cos = input$var.cos * 0.01, color = input$col.pca.var, ejes = input$slider.ejes)
   })
 
   #' Gráfico de PCA (Sobreposición)
@@ -413,9 +414,10 @@ shinyServer(function(input, output, session) {
     updatePlot$pca.bi <- input$fieldCodeBi
   })
 
-  observeEvent(c(input$col.pca.ind, input$ind.cos, input$var.cos, input$col.pca.var), {
+  observeEvent(c(input$col.pca.ind, input$ind.cos, input$var.cos, input$col.pca.var, input$slider.ejes), {
     updatePlot$pca.bi <- pca.sobreposicion(ind.cos = input$ind.cos * 0.01, var.cos = input$var.cos * 0.01,
-                                           col.ind = input$col.pca.ind, col.var = input$col.pca.var)
+                                           col.ind = input$col.pca.ind, col.var = input$col.pca.var,
+                                           ejes = input$slider.ejes)
   })
 
   #' Gráfico de PCA (Varianza Explicada para cada Eje)
@@ -676,7 +678,7 @@ shinyServer(function(input, output, session) {
   observeEvent(input$sel.distribucion.cat, {
     updatePlot$dya.cat <<- def.code.cat(data = "datos", variable = paste0("'", input$sel.distribucion.cat, "'"))
   })
-  
+
   #' Actualización del Modelo Clusterización Jerarquica
   #' @author Diego
   #' @return plot
@@ -688,6 +690,7 @@ shinyServer(function(input, output, session) {
     tryCatch ({
       if(!is.null(datos)){
         isolate(eval(parse(text = codigo)))
+        updateAceEditor(session, "fieldCodeModelo", value = codigo)
         output$txthc <- renderPrint(print(unclass(hc.modelo)))
         output$txtcentros <- renderPrint(print(unclass(centros)))
       }
@@ -695,7 +698,7 @@ shinyServer(function(input, output, session) {
       print(paste0("ERROR EN HC: ", e))
       return(NULL)
     })
-    
+
     nuevos.colores <- sapply(1:input$cant.cluster, function(i) paste0("'", input[[paste0("hcColor", i)]], "'"))
     color <- ifelse(input$sel.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.cluster)])
     updatePlot$diag <<- diagrama(cant = input$cant.cluster, colores = nuevos.colores)
@@ -704,7 +707,6 @@ shinyServer(function(input, output, session) {
     updatePlot$vert <<- cluster.vert(sel = paste0("'", input$sel.verticales, "'"), colores = nuevos.colores)
     updatePlot$radar <<- def.radar(colores = nuevos.colores)
     updatePlot$cat <<- cluster.cat(var = input$sel.cat.var, cant = as.numeric(input$cant.cluster))
-    updateAceEditor(session, "fieldCodeModelo", value = codigo)
     updateAceEditor(session, "fieldCodeDiag", value = updatePlot$diag)
     updateAceEditor(session, "fieldCodeMapa", value = updatePlot$mapa)
     updateAceEditor(session, "fieldCodeHoriz", value = updatePlot$horiz)
@@ -718,7 +720,7 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  observeEvent(c(input$loadButton, input$transButton), {
+  observeEvent(c(input$loadButton, input$transButton, input$fieldCodeModelo), {
     output$plot.diag = renderPlot({
       tryCatch({
         code.diagrama <<- updatePlot$diag
@@ -742,7 +744,7 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  observeEvent(c(input$loadButton, input$transButton), {
+  observeEvent(c(input$loadButton, input$transButton, input$fieldCodeModelo), {
     output$plot.mapa = renderPlot({
       tryCatch({
         code.mapa <<- updatePlot$mapa
@@ -766,7 +768,7 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  observeEvent(c(input$loadButton, input$transButton), {
+  observeEvent(c(input$loadButton, input$transButton, input$fieldCodeModelo), {
     output$plot.horiz = renderPlot({
       tryCatch({
         code.horiz <<- updatePlot$horiz
@@ -797,7 +799,7 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  observeEvent(c(input$loadButton, input$transButton), {
+  observeEvent(c(input$loadButton, input$transButton, input$fieldCodeModelo), {
     output$plot.vert = renderPlot({
       tryCatch({
         code.vert <<- updatePlot$vert
@@ -827,7 +829,7 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  observeEvent(c(input$loadButton, input$transButton), {
+  observeEvent(c(input$loadButton, input$transButton, input$fieldCodeModelo), {
     output$plot.radar = renderPlot({
       tryCatch({
         code.radar <<- updatePlot$radar
@@ -851,7 +853,7 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  observeEvent(c(input$loadButton, input$transButton), {
+  observeEvent(c(input$loadButton, input$transButton, input$fieldCodeModelo), {
     output$plot.bar.cat = renderPlot({
       tryCatch({
         code.cat <<- updatePlot$cat
@@ -877,8 +879,8 @@ shinyServer(function(input, output, session) {
     updatePlot$cat <<- cluster.cat(var = input$sel.cat.var)
     updateAceEditor(session, "fieldCodeBarras", value = updatePlot$cat)
   })
-  
-  
+
+
   #' Actializacion del Modelo K-medias
   #' @author Diego
   #' @return plot
@@ -895,7 +897,7 @@ shinyServer(function(input, output, session) {
     }, error = function(e) {
       return(NULL)
     })
-    
+
     nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i) paste0("'", input[[paste0("kColor", i)]], "'"))
     color <- ifelse(input$sel.kmeans.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.kmeans.cluster)])
     updatePlot$jambu <<- def.code.jambu()
@@ -956,7 +958,7 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  observeEvent(c(input$loadButton, input$transButton), {
+  observeEvent(c(input$loadButton, input$transButton, input$fieldCodeKModelo), {
     output$plot.kmapa = renderPlot({
       tryCatch({
         code.kmapa <<- updatePlot$kmapa
@@ -980,7 +982,7 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  observeEvent(c(input$loadButton, input$transButton), {
+  observeEvent(c(input$loadButton, input$transButton, input$fieldCodeKModelo), {
     output$plot.khoriz = renderPlot({
       tryCatch({
         code.khoriz <<- updatePlot$khoriz
@@ -1011,7 +1013,7 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  observeEvent(c(input$loadButton, input$transButton), {
+  observeEvent(c(input$loadButton, input$transButton, input$fieldCodeKModelo), {
     output$plot.kvert = renderPlot({
       tryCatch({
         code.kvert <<- updatePlot$kvert
@@ -1041,7 +1043,7 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  observeEvent(c(input$loadButton, input$transButton), {
+  observeEvent(c(input$loadButton, input$transButton, input$fieldCodeKModelo), {
     output$plot.kradar = renderPlot({
       tryCatch({
         code.kradar <<- updatePlot$kradar
@@ -1064,7 +1066,7 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
-  observeEvent(c(input$loadButton, input$transButton), {
+  observeEvent(c(input$loadButton, input$transButton, input$fieldCodeKModelo), {
     output$plot.kcat = renderPlot({
       tryCatch({
         code.kcat <<- updatePlot$kcat
