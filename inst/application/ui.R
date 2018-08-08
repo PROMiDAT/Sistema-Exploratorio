@@ -105,7 +105,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
               column(width = 7,
                      box(title = "Resumen Numérico", status = "primary",
                          width = 12, solidHeader = TRUE, collapsible = TRUE, DT::dataTableOutput("resumen.completo"), hr(),
-                         campo.codigo("run.resume", "ref.resume", "fieldCodeResum", height = "8vh")
+                         aceEditor("fieldCodeResum", mode = "r", theme = "monokai", value = "", height = "8vh", readOnly = T)
                      )
               ),
               column(width = 5,
@@ -201,6 +201,11 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                              ),
                                              conditionalPanel(condition = "input.tabPCA == 'variables' || input.tabPCA == 'sobreposicion'",
                                                sliderInput("var.cos", "Coseno de las Variables: ", min = 0, max = 100, value = 0)
+                                             ),
+                                             conditionalPanel(
+                                               condition = "input.tabPCA == 'tabCorVarComp'",
+                                               selectInput(inputId = "cvc.metodo", label = "Seleccionar Método",
+                                                           choices =  c("circle", "square", "ellipse", "number", "shade", "color", "pie"))
                                              ),
                                              circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                              tooltip = tooltipOptions(title = "Clic para ver opciones")),
@@ -348,6 +353,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                                                                NULL, value = "#EE82EE", allowTransparent = T)),
                                             shiny::column(width = 2, colourpicker::colourInput("hcColor10",
                                                                                                NULL, value = "#000080", allowTransparent = T))),
+                                          hr(), actionButton("HCbutton", label = "Agregar Cluster a tabla de datos", width = "100%"),
                                           circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                           tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
                             tabPanel(title = 'Diagrama', plotOutput('plot.diag', height = "65vh")),
@@ -452,6 +458,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                                                             NULL, value = "#EE82EE", allowTransparent = T)),
                                                           shiny::column(width = 2, colourpicker::colourInput("kColor10",
                                                                                             NULL, value = "#000080", allowTransparent = T))),
+                                                        hr(), actionButton("Kbutton", label = "Agregar Cluster a tabla de datos", width = "100%"),
                                                         circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                                         tooltip = tooltipOptions(title = "Clic para ver opciones")))),
                             tabPanel(title = 'Inercia', fluidRow(uiOutput('resumen.kmedias'))),
@@ -508,7 +515,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
       tabItem(tabName = "acercaDe",
               img(src="Logo.png", style="padding-bottom:20px;margin-left: auto;margin-right: auto;display: block;width: 50%;"),
               infoBoxPROMiDAT("Todos los derechos reservados a", "PROMiDAT S.A.", icono = icon("copyright")),
-              infoBoxPROMiDAT("Versión del Sistema", "1.2.4", icono = icon("file-code-o"))
+              infoBoxPROMiDAT("Versión del Sistema", "1.2.5", icono = icon("file-code-o"))
       )
     ) #tabItems
   ) #dashboardBody

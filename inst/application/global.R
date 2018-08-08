@@ -266,10 +266,11 @@ code.pca.ccv <- function(){
          title = 'Cosenos cuadrados de los variables'))")
 }
 
-code.pca.cvp <- function(){
+code.pca.cvp <- function(metodo = "circle"){
   # Correlación de las variables con las componentes principales
-  return("corrplot(pca.modelo$var$cos2, is.corr=FALSE, mar=c(0,0,1,0),
-         title = 'Correlación de las variables con las componentes principales')")
+  return(paste0("corrplot(pca.modelo$var$cor, is.corr=FALSE, mar=c(0,0,1,0),",
+                "shade.col=NA, tl.col='black', addCoef.col='black', method='", metodo,"',",
+                "title = 'Correlación de las variables con las componentes principales')"))
 }
 
 code.pca.pc1 <- function(){

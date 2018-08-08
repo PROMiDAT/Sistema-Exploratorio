@@ -35,6 +35,7 @@ shinyServer(function(input, output, session) {
   isolate(eval(parse(text = func.kvert)))
   isolate(eval(parse(text = func.kradar)))
 
+  updateAceEditor(session, "fieldCodeResum", value = "summary(datos)")
   updateAceEditor(session, "fieldModelCor", value = modelo.cor())
   updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
   updateAceEditor(session, "fieldFuncNum", value = func.dya.num)
@@ -231,15 +232,15 @@ shinyServer(function(input, output, session) {
   #' @return plot
   #' @export
   #'
+  output$resumen.completo = DT::renderDataTable({
+    return(obj.resum())
+  }, options = list(dom = 'ft', scrollX = TRUE), rownames = F)
+
   obj.resum <- eventReactive(c(input$loadButton, input$transButton), {
     codigo.reporte[["resumen"]] <<- c(paste0("## Resumen Numérico \n", "```{r} \n",
                                              "summary(datos) \n", "```"))
     data.frame(unclass(summary(datos)), check.names = FALSE, stringsAsFactors = FALSE)
   })
-
-  output$resumen.completo = DT::renderDataTable({
-    return(obj.resum())
-  }, options = list(dom = 'ft', scrollX = TRUE), rownames = F)
 
   output$resumen = renderUI({
     if(input$sel.resumen %in% colnames(var.numericas(datos))){
@@ -522,8 +523,8 @@ shinyServer(function(input, output, session) {
     })
   })
 
-  observeEvent(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc), {
-    updatePlot$pca.cvc <- code.pca.cvp()
+  observeEvent(c(input$loadButton, input$transButton, input$switch.scale, input$slider.npc, input$cvc.metodo), {
+    updatePlot$pca.cvc <- code.pca.cvp(input$cvc.metodo)
   })
 
   #' Gráfico de PCA (Contribución de las variables de la Dimensión 1)
@@ -1152,6 +1153,25 @@ shinyServer(function(input, output, session) {
     updateAceEditor(session, "fieldCodeKvert", value = updatePlot$kvert)
     updateAceEditor(session, "fieldCodeKradar", value = updatePlot$kradar)
     updateAceEditor(session, "fieldCodeKbarras", value = updatePlot$kcat)
+  })
+
+  observeEvent(input$HCbutton, {
+    C.Jerarquica <- cutree(hc.modelo, k=input$cant.cluster)
+    datos <<- cbind(datos, C.Jerarquica)
+    datos$C.Jerarquica <<- paste0("CJ", datos$C.Jerarquica)
+    datos$C.Jerarquica <<- as.factor(datos$C.Jerarquica)
+    output$contents = DT::renderDT(mostrarData(), server = F)
+    showNotification(paste0("Los clústeres fueron correctamente agregados."), duration = 5, type = "message")
+    updateSelectInput(session, "sel.distribucion.cat", choices = colnames(var.categoricas(datos)))
+  })
+
+  observeEvent(input$Kbutton, {
+    datos <<- cbind(datos, Kmedias = k.modelo$cluster)
+    datos$Kmedias <<- paste0("K", datos$Kmedias)
+    datos$Kmedias <<- as.factor(datos$Kmedias)
+    output$contents = DT::renderDT(mostrarData(), server = F)
+    showNotification(paste0("Los clústeres fueron correctamente agregados"), duration = 5, type = "message")
+    updateSelectInput(session, "sel.distribucion.cat", choices = colnames(var.categoricas(datos)))
   })
 
   output$knitDoc <- renderUI({
