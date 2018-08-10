@@ -305,23 +305,23 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                 ),
                                 tags$div(class = "option-var-ind", dropdownButton(h4("Código"),
                                       h5("Calculo de los centros"),
-                                      aceEditor("fieldCodeCentr", mode = "r", theme = "monokai",
-                                                value = "", height = "25vh", autoComplete = "enabled", readOnly = T),
+                                      aceEditor("fieldCodeCentr", mode = "r", theme = "monokai", value = "",
+                                                height = "25vh", autoComplete = "enabled", readOnly = T),
                                       conditionalPanel(
                                         condition = "input.tabjerar == 'Horizontal'",
                                         h5("Grafica todas las variables en Horizontal"),
-                                        aceEditor("fieldFuncHoriz", mode = "r", theme = "monokai",
-                                                  value = "", height = "20vh", autoComplete = "enabled", readOnly = T)),
+                                        aceEditor("fieldFuncHoriz", mode = "r", theme = "monokai", value = "",
+                                                  height = "20vh", autoComplete = "enabled", readOnly = T)),
                                       conditionalPanel(
                                         condition = "input.tabjerar == 'Vertical'",
                                         h5("Grafica todas las variables en Vertical"),
-                                        aceEditor("fieldFuncVert", mode = "r", theme = "monokai",
-                                                  value = "", height = "18vh", autoComplete = "enabled", readOnly = T)),
+                                        aceEditor("fieldFuncVert", mode = "r", theme = "monokai", value = "",
+                                                  height = "18vh", autoComplete = "enabled", readOnly = T)),
                                       conditionalPanel(
                                         condition = "input.tabjerar == 'Radar'",
                                         h5("Grafica todas las variables en Radar"),
-                                        aceEditor("fieldFuncRadar", mode = "r", theme = "monokai",
-                                                  value = "", height = "30vh", autoComplete = "enabled", readOnly = T)),
+                                        aceEditor("fieldFuncRadar", mode = "r", theme = "monokai", value = "",
+                                                  height = "30vh", autoComplete = "enabled", readOnly = T)),
                                       circle = F, status = "danger", icon = icon("code"), width = "400px", right = T,
                                       tooltip = tooltipOptions(title = "Clic para ver el código"))),
 
@@ -356,6 +356,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                           hr(), actionButton("HCbutton", label = "Agregar Cluster a tabla de datos", width = "100%"),
                                           circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                           tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
+                            tabPanel(title = 'Inercia', fluidRow(uiOutput('inercia.cj'))),
                             tabPanel(title = 'Diagrama', plotOutput('plot.diag', height = "65vh")),
                             tabPanel(title = 'Mapa', plotOutput('plot.mapa', height = "65vh")),
                             tabPanel(title = 'Horizontal', plotOutput('plot.horiz', height = "65vh")),
@@ -515,7 +516,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
       tabItem(tabName = "acercaDe",
               img(src="Logo.png", style="padding-bottom:20px;margin-left: auto;margin-right: auto;display: block;width: 50%;"),
               infoBoxPROMiDAT("Todos los derechos reservados a", "PROMiDAT S.A.", icono = icon("copyright")),
-              infoBoxPROMiDAT("Versión del Sistema", "1.2.5", icono = icon("file-code-o"))
+              infoBoxPROMiDAT("Versión del Sistema", "1.2.6", icono = icon("file-code-o"))
       )
     ) #tabItems
   ) #dashboardBody

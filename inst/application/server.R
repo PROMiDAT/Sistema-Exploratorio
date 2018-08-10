@@ -678,6 +678,20 @@ shinyServer(function(input, output, session) {
     updatePlot$dya.cat <<- def.code.cat(data = "datos", variable = paste0("'", input$sel.distribucion.cat, "'"))
   })
 
+  #' Inercia K-medias
+  #' @author Diego
+  #' @return plot
+  #' @export
+  #'
+  #'
+  output$inercia.cj = renderUI({
+    return(obj.inerciaCJ())
+  })
+
+  obj.inerciaCJ <- eventReactive(c(input$loadButton, input$transButton, input$fieldCodeModelo), {
+    return(HTML(inercia.cj(modelo, as.numeric(input$cant.cluster))))
+  })
+
   #' Actualización del Modelo Clusterización Jerarquica
   #' @author Diego
   #' @return plot

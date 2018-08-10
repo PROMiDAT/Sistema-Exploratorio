@@ -3,6 +3,56 @@ gg_color_hue <- function(n) {
   hcl(h = hues, l = 65, c = 100)[1:n]
 }
 
+centros.total <- function(DF){
+  apply(DF, 2, mean)
+}
+
+calc.inercia <- function(total, individuo){
+  return(inercia(0, 1, total, individuo))
+}
+
+inercia <- function(suma, i, total, individuo){
+  if(i > length(total)){
+    return(as.double(suma))
+  }
+  inercia(suma + ((total[i] - individuo[i])^2), i+1, total, individuo)
+}
+
+inercia.total <- function(DF){
+  inercia.total2(0, 1, DF, centros.total(DF))
+}
+inercia.total2 <- function(suma, i, DF, c.total){
+  if(i > length(DF[, 1])){
+    return(as.double(suma))
+  }
+  inercia.total2(suma + (calc.inercia(c.total, DF[i, ])), i+1, DF, c.total)
+}
+
+BP <- function(DF, modelo, cant){
+  BP2(0, 1, DF, centros.total(DF), cant, cutree(modelo, k = cant))
+}
+BP2 <- function(suma, i, DF, c.total, cant, clusters){
+  if(i > cant){
+    return(suma)
+  }
+  BP2(suma + (length(clusters[clusters == i]) *
+                calc.inercia(c.total, centros.total(DF[clusters == i, ]))),
+      i+1, DF, c.total, cant, clusters)
+}
+
+WP <- function(DF, modelo, cant){
+  clusters <- cutree(modelo, k = cant)
+  centros.cluster <- lapply(1:cant, function(i) centros.total(DF[clusters == i, ]))
+  WP2(0, 1, DF, clusters, centros.cluster)
+}
+WP2 <- function(suma, i, DF, clusters, centros.cluster){
+  if(i > nrow(DF)){
+    return(as.double(suma))
+  }
+  WP2(suma + calc.inercia(DF[i, ], centros.cluster[[clusters[i]]]),
+      i+1, DF, clusters, centros.cluster)
+}
+
 contador <<- 0
 datos <<- NULL
 datos.originales <<- NULL
@@ -156,6 +206,24 @@ resumen.categorico <- function(data, variable){
                      "'> <div class='small-box bg-", sample(color, 1), "'> <div class='inner'>",
                      "<h3>", datos.categoricos[i], "</h3> <p>", levels(data[, variable])[i],
                      "</p></div> <div class='icon-large'> <i class=''></i></div></div></div>")
+  }
+  return(salida)
+}
+
+inercia.cj <- function(cj, cant.clusters){
+  salida <- ""
+  datos.numericos <- list(WP = list(id = "WP", Label = "Inercia Intra-Clases",
+                                    Value = format(WP(var.numericas(datos), hc.modelo, cant.clusters), scientific = FALSE), color = "red"),
+                          BP = list(id = "BP", Label = "Inercia Inter-Clases",
+                                    Value = format(BP(var.numericas(datos), hc.modelo, cant.clusters), scientific = FALSE), color = "green"),
+                          total = list(id = "total", Label = "Inercia Total",
+                                       Value = format(inercia.total(var.numericas(datos)), scientific = FALSE), color = "blue"))
+
+  for (calculo in datos.numericos) {
+    salida <- paste0(salida, "<div class='shiny-html-output col-sm-4 shiny-bound-output' id='", calculo$id,
+                     "'> <div class='small-box bg-", calculo$color,"'> <div class='inner'>",
+                     "<h3>", calculo$Value, "</h3> <p>", calculo$Label, "</p></div> <div class='icon-large'> <i class='",
+                     calculo$icon, "'></i></div></div></div>")
   }
   return(salida)
 }

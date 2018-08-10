@@ -1,7 +1,7 @@
 Package: PROMIDAT.EXPLORATORIO.SHINY
 Type: Package
 Title: Shiny Exploratorio
-Version: 1.2.5
+Version: 1.2.6
 Author: Diego
 Maintainer: PROMiDAT <info@promidat.con>
 Description: Este paquete ayuda a realizar un análisis exploratorio sobre una base de datos mediante una interfaz gráfica.
