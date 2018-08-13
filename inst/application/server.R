@@ -56,6 +56,8 @@ shinyServer(function(input, output, session) {
                                dya.num=NULL, dya.cat=NULL, diag=NULL, mapa=NULL, horiz=NULL, vert=NULL, radar=NULL,
                                cat=NULL, jambu=NULL, kmapa=NULL, khoriz=NULL, kvert=NULL, kradar=NULL, kcat=NULL)
 
+  disp.ranges <- reactiveValues(x = NULL, y = NULL)
+
   observe({
     addClass(class = "disabled", selector = "#sidebarItemExpanded li[class^=treeview]")
     addClass(class = "disabled", selector = "#sidebarItemExpanded li a[data-value=acp]")
@@ -319,6 +321,48 @@ shinyServer(function(input, output, session) {
         showNotification(paste0("ERROR AL GENERAR DISPERSIÓN: ", e), duration = 10, type = "error")
       })
     })
+
+    output$plot.disp1 = renderPlot({
+      tryCatch({
+        cod.disp <<- updatePlot$disp
+        updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
+        res <- isolate(eval(parse(text = cod.disp)))
+        if(!is.null(cod.disp) && cod.disp != ""){
+          codigo.reporte[[paste0("normalidad.", paste(input$select.var, collapse = "."))]] <<-
+            paste0("## Dispersión \n```{r}\n", cod.disp, "\n```")
+        }
+        return(res)
+      }, error = function(e) {
+        showNotification(paste0("ERROR AL GENERAR DISPERSIÓN: ", e), duration = 10, type = "error")
+      })
+    })
+
+    output$plot.disp2 = renderPlot({
+      tryCatch({
+        cod.disp <<- updatePlot$disp
+        updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
+        res <- isolate(eval(parse(text = cod.disp)))
+        if(!is.null(cod.disp) && cod.disp != ""){
+          codigo.reporte[[paste0("normalidad.", paste(input$select.var, collapse = "."))]] <<-
+            paste0("## Dispersión \n```{r}\n", cod.disp, "\n```")
+        }
+        return(res)
+      }, error = function(e) {
+        showNotification(paste0("ERROR AL GENERAR DISPERSIÓN: ", e), duration = 10, type = "error")
+      })
+    })
+  })
+
+  observe({
+    brush <- input$zoom.disp
+    if (!is.null(brush)) {
+      disp.ranges$x <- c(brush$xmin, brush$xmax)
+      disp.ranges$y <- c(brush$ymin, brush$ymax)
+
+    } else {
+      disp.ranges$x <- NULL
+      disp.ranges$y <- NULL
+    }
   })
 
   observeEvent(input$run.disp, {

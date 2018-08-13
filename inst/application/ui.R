@@ -155,8 +155,15 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                                                           value = "#FF0000AA", allowTransparent = T),
                                                                 circle = F, status = "danger", icon = icon("gear"), width = "100%",
                                                                 tooltip = tooltipOptions(title = "Clic para ver opciones"), right = T))),
-                     tabPanel(title = "Dispersión", value = "tabDisp", plotOutput('plot.disp', height = "65vh"))
+                     tabPanel(title = "Dispersión", value = "tabDisp", plotOutput('plot.disp', height = "65vh", brush = brushOpts(
+                       id = "zoom.disp",
+                       resetOnNew = TRUE
+                     )))
               )),
+              #column(width = 4,
+              #       plotOutput('plot.disp1', height = "34vh"), hr(),
+              #       plotOutput('plot.disp.zoom', height = "34vh")
+              #),
               column(width = 12, campo.codigo("run.disp", "ref.disp", "fieldCodeDisp", height = "8vh"))
       ),
 
@@ -435,7 +442,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                         sliderInput(inputId = "cant.kmeans.cluster", min = 2, value = 2,
                                                                     label = "Cantidad de Clusters:", max = 10),
                                                         sliderInput("slider.nstart", "Ejecuciones en Formas Fuertes (nstart)",
-                                                                    value = 100, step = 1, min = 10, max = 100),
+                                                                    value = 100, step = 10, min = 1, max = 100),
                                                         numericInput("num.iter", label = "Número de Iteraciones", step = 100, value = 100),
                                                         selectInput(inputId = "sel.algoritmo", label = "Algoritmo", selectize = T,
                                                                     choices =  c("Hartigan-Wong", "Lloyd", "Forgy", "MacQueen")),
