@@ -900,10 +900,10 @@ shinyServer(function(input, output, session) {
   #' @export
   #'
   #'
-  observeEvent(c(input$loadButton, input$transButton, input$cant.kmeans.cluster, input$num.iter, input$slider.nstart), {
+  observeEvent(c(input$loadButton, input$transButton, input$cant.kmeans.cluster, input$num.iter, input$slider.nstart, input$sel.algoritmo), {
     tryCatch ({
-      codigo <- def.k.model(data = "datos", cant = input$cant.kmeans.cluster,
-                            iter.max = input$num.iter, nstart = input$slider.nstart)
+      codigo <- def.k.model(data = "datos", cant = input$cant.kmeans.cluster, iter.max = input$num.iter,
+                            nstart = input$slider.nstart, algorithm = input$sel.algoritmo)
       isolate(eval(parse(text = codigo)))
       updateAceEditor(session, "fieldCodeKModelo", value = codigo)
       output$txtk <- renderPrint(print(unclass(k.modelo)))

@@ -293,8 +293,9 @@ def.model <- function(data = "datos", cant = "as.numeric(input$cant.cluster)", d
 centros <<- calc.centros(var.numericas(", data, "), hc.modelo, ", cant, ")"))
 }
 
-def.k.model <- function(data = "datos", cant = "as.numeric(input$cant.kmeans.cluster)", iter.max = 200, nstart = 300){
-  return(paste0("k.modelo <<- kmeans(var.numericas(", data, "), centers = ", cant,", iter.max = ", iter.max,", nstart = ", nstart,")"))
+def.k.model <- function(data = "datos", cant = "as.numeric(input$cant.kmeans.cluster)", iter.max = 200, nstart = 300, algorithm = "Hartigan-Wong"){
+  return(paste0("k.modelo <<- kmeans(var.numericas(", data, "), centers = ", cant,
+                ", iter.max = ", iter.max,", nstart = ", nstart,", algorithm = '", algorithm ,"')"))
 }
 
 pca.individuos <- function(ind.cos = 0, color = '#696969', ejes = c(1, 2)){
