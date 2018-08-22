@@ -26,6 +26,7 @@ library(reshape)
 library(corrplot)
 library(dendextend)
 library(scatterplot3d)
+library(ggdendro)
 library(modeest)
 library(stringr)
 
@@ -38,7 +39,7 @@ return false;
 }'
 
 # Define UI for application that draws a histogram
-shinyUI(dashboardPage(title="PROMiDAT",
+shinyUI(dashboardPage(title="PROMiDAT - ExploreR",
   dashboardHeader(title = tags$a(href="http://promidat.com",
                                  img(src="Logo2.png", height=55, width="100%", style="padding-top:2px; padding-bottom:6px;"))),
   dashboardSidebar(
@@ -65,6 +66,14 @@ shinyUI(dashboardPage(title="PROMiDAT",
       tags$link(rel = "icon", type = "image", href = "http://www.promidat.org/theme/image.php/formal_white/theme/1438713216/favicon"),
       useShinyjs(),
       extendShinyjs(text = cod.deshabilitar, functions = "init")
+    ),
+    tags$script(HTML(
+      '$(document).ready(function() {
+          $("header").find("nav").append(\'<span class="header-title"> ExploreR </span>\');
+       })')),
+    conditionalPanel(
+      condition="($('html').hasClass('shiny-busy'))",
+      div(id = "loaderWrapper", div(id="loader"))
     ),
 
     tabItems(
@@ -96,7 +105,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
               )),
               column(width = 7,
                      box(title = "Datos", status = "primary", width = 12, solidHeader = TRUE, collapsible = TRUE,
-                       withSpinner(DT::DTOutput('contents'), type = 7, color = "#CBB051")
+                         DT::DTOutput('contents'), type = 7, color = "#CBB051"
               ))
       ),
 
@@ -143,7 +152,7 @@ shinyUI(dashboardPage(title="PROMiDAT",
 
       #Dispersión
       tabItem(tabName = "dispersion",
-              column(width = 12,
+              column(width = 8,
                      tabBox(id = "BoxDisp", width = NULL, title =
                               fluidRow(
                                 column(width = 9,
@@ -160,10 +169,10 @@ shinyUI(dashboardPage(title="PROMiDAT",
                        resetOnNew = TRUE
                      )))
               )),
-              #column(width = 4,
-              #       plotOutput('plot.disp1', height = "34vh"), hr(),
-              #       plotOutput('plot.disp.zoom', height = "34vh")
-              #),
+              column(width = 4,
+                     DT::dataTableOutput('mostrar.disp.zoom'), hr(),
+                     plotOutput('plot.disp.zoom')
+              ),
               column(width = 12, campo.codigo("run.disp", "ref.disp", "fieldCodeDisp", height = "8vh"))
       ),
 
@@ -177,7 +186,6 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                            selectInput(inputId = "cor.tipo", label = "Seleccionar Tipo", choices =  c("lower", "upper", "full")),
                                            circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                            tooltip = tooltipOptions(title = "Clic para ver opciones")),
-                            #withSpinner(plotOutput('plot.cor', height = "84vh"), type = 7, color = "#CBB051"),
                             tabPanel(title = 'Correlación', value = "correlacion", plotOutput('plot.cor', height = "67vh"),
                                      fluidRow(column(width = 4, aceEditor("fieldModelCor", height = "6vh", mode = "r",
                                                                           theme = "monokai", value = "", readOnly = T)),
@@ -216,9 +224,19 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                              ),
                                              circle = F, status = "danger", icon = icon("gear"), width = "300px", right = T,
                                              tooltip = tooltipOptions(title = "Clic para ver opciones")),
-                            tabPanel(title = 'Individuos', value = "individuos", plotOutput('plot.ind', height = "70vh")),
+                            tabPanel(title = 'Individuos', value = "individuos", fluidRow(column(width = 8,
+                                    plotOutput('plot.ind', height = "70vh", brush = brushOpts(
+                                      id = "zoom.ind",
+                                      resetOnNew = TRUE
+                                    ))),
+                                    column(width = 4, DT::dataTableOutput('mostrar.ind.zoom'), hr(), plotOutput('plot.ind.zoom')))),
                             tabPanel(title = 'Variables', value = "variables", plotOutput('plot.var', height = "70vh")),
-                            tabPanel(title = 'Sobreposición', value = "sobreposicion", plotOutput('plot.biplot', height = "70vh")),
+                            tabPanel(title = 'Sobreposición', value = "sobreposicion", fluidRow(column(width = 8,
+                                     plotOutput('plot.biplot', height = "70vh", brush = brushOpts(
+                                       id = "zoom.bi",
+                                       resetOnNew = TRUE
+                                     ))),
+                                     column(width = 4, DT::dataTableOutput('mostrar.bi.zoom'), hr(), plotOutput('plot.bi.zoom')))),
                             navbarMenu("Ayuda Interpretación",
                                        tabPanel("Varianza Explicada por cada eje", value = "tabVarExplicada",
                                                 plotOutput("plotVEE", height = "70vh")),
@@ -365,7 +383,11 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                           tooltip = tooltipOptions(title = "Clic para ver opciones")))), width = 12,
                             tabPanel(title = 'Inercia', fluidRow(uiOutput('inercia.cj'))),
                             tabPanel(title = 'Dendograma', plotOutput('plot.diag', height = "65vh")),
-                            tabPanel(title = 'Mapa', plotOutput('plot.mapa', height = "65vh")),
+                            tabPanel(title = 'Mapa', fluidRow(column(width = 8, plotOutput('plot.mapa', height = "65vh", brush = brushOpts(
+                              id = "zoom.mapa",
+                              resetOnNew = TRUE
+                            ))),
+                            column(width = 4, DT::dataTableOutput('mostrar.mapa.zoom'), hr(), plotOutput('plot.mapa.zoom', height = "35vh")))),
                             tabPanel(title = 'Horizontal', plotOutput('plot.horiz', height = "65vh")),
                             tabPanel(title = 'Vertical', plotOutput('plot.vert', height = "65vh")),
                             tabPanel(title = 'Radar', plotOutput('plot.radar', height = "65vh")),
@@ -439,10 +461,14 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                            tooltip = tooltipOptions(title = "Clic para ver el código"))),
                                 tags$div(class = "option-var-ind",
                                          dropdownButton(h4("Opciones"),
+                                                        conditionalPanel(
+                                                          condition = "input.tabkmedias == 'codoJambu'",
+                                                          sliderInput(inputId = "iteracionesK", min = 2, max = 20, value = 20,
+                                                                      label = "Cantidad de iteraciones para K")),
                                                         sliderInput(inputId = "cant.kmeans.cluster", min = 2, value = 2,
-                                                                    label = "Cantidad de Clusters:", max = 10),
+                                                                    label = "Cantidad de Clusters", max = 10),
                                                         sliderInput("slider.nstart", "Ejecuciones en Formas Fuertes (nstart)",
-                                                                    value = 1, step = 1, min = 1, max = 100),
+                                                                    value = 100, step = 1, min = 1, max = 100),
                                                         numericInput("num.iter", label = "Número de Iteraciones", step = 100, value = 100),
                                                         selectInput(inputId = "sel.algoritmo", label = "Algoritmo", selectize = T,
                                                                     choices =  c("Hartigan-Wong", "Lloyd", "Forgy", "MacQueen")),
@@ -473,7 +499,11 @@ shinyUI(dashboardPage(title="PROMiDAT",
                                                         tooltip = tooltipOptions(title = "Clic para ver opciones")))),
                             tabPanel(title = 'Inercia', fluidRow(uiOutput('resumen.kmedias'))),
                             tabPanel(title = 'Codo Jambu', value = "codoJambu", plotOutput('plot.jambu', height = "65vh")),
-                            tabPanel(title = 'Mapa', plotOutput('plot.kmapa', height = "65vh")),
+                            tabPanel(title = 'Mapa', fluidRow(column(width = 8, plotOutput('plot.kmapa', height = "65vh", brush = brushOpts(
+                              id = "zoom.kmapa",
+                              resetOnNew = TRUE
+                            ))),
+                            column(width = 4, DT::dataTableOutput('mostrar.kmapa.zoom'), hr(), plotOutput('plot.kmapa.zoom', height = "35vh")))),
                             tabPanel(title = 'Horizontal', plotOutput('plot.khoriz', height = "65vh")),
                             tabPanel(title = 'Vertical', plotOutput('plot.kvert', height = "65vh")),
                             tabPanel(title = 'Radar', plotOutput('plot.kradar', height = "65vh")),
@@ -519,14 +549,17 @@ shinyUI(dashboardPage(title="PROMiDAT",
               column(width = 7,
                      box(title = "Vista Previa", width = 12, height = "90vh", status = "primary", solidHeader = TRUE,
                          collapsible = TRUE, div(style = 'overflow-x: scroll; overflow-y: scroll; height: 80vh;',
-                                                 withSpinner(htmlOutput("knitDoc"), type = 7, color = "#CBB051"))))
+                                                 htmlOutput("knitDoc"), type = 7, color = "#CBB051")))
       ),
 
       tabItem(tabName = "acercaDe",
               img(src="Logo.png", style="padding-bottom:20px;margin-left: auto;margin-right: auto;display: block;width: 50%;"),
               infoBoxPROMiDAT("Todos los derechos reservados a", "PROMiDAT S.A.", icono = icon("copyright")),
-              infoBoxPROMiDAT("Versión del Sistema", "1.2.7", icono = icon("file-code-o"))
+              infoBoxPROMiDAT("Versión del Sistema", "1.3.0", icono = icon("file-code-o"))
       )
     ) #tabItems
   ) #dashboardBody
 )) #UI
+
+
+

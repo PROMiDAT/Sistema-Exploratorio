@@ -58,6 +58,7 @@ datos <<- NULL
 datos.originales <<- NULL
 centros <<- NULL
 hc.modelo <<- NULL
+hc.clusters <<- NULL
 pca.modelo <<- NULL
 k.modelo <<- NULL
 correlacion <<- NULL
@@ -289,8 +290,9 @@ def.pca.model <- function(data = "datos", scale.unit = T, npc = 5){
 }
 
 def.model <- function(data = "datos", cant = "as.numeric(input$cant.cluster)", dist.method = "euclidean", hc.method = "complete"){
-  return(paste0("hc.modelo <<- hclust(dist(var.numericas(", data, "), method = '", dist.method, "'), method = '", hc.method, "')
-centros <<- calc.centros(var.numericas(", data, "), hc.modelo, ", cant, ")"))
+  return(paste0("hc.modelo <<- hclust(dist(var.numericas(", data, "), method = '", dist.method, "'), method = '", hc.method, "')\n",
+                "hc.clusters <<- as.factor(cutree(hc.modelo, k = ", cant, "))\n",
+                "centros <<- calc.centros(var.numericas(", data, "), hc.clusters)"))
 }
 
 def.k.model <- function(data = "datos", cant = "as.numeric(input$cant.kmeans.cluster)", iter.max = 200, nstart = 300, algorithm = "Hartigan-Wong"){
@@ -400,13 +402,25 @@ default.func.cat <- function(){
 }
 
 diagrama <- function(cant = "as.numeric(input$cant.cluster)", colores = "'steelblue'"){
-  return(paste0("modelo <- color_branches(hc.modelo, k = ", cant, ", col = c(", paste(colores, collapse = ","), "))\n",
-                "modelo <- color_labels(modelo, k = ", cant, ", col = c(", paste(colores, collapse = ","), "))\n",
-                "plot(modelo)"))
+  return(paste0("dendograma <- dendro_data(hc.modelo, type='rectangle')\n",
+                "order.labels <- data.frame(label=names(hc.clusters), hc.clusters)\n",
+                "dendograma[['labels']] <- merge(dendograma[['labels']], order.labels, by='label')\n",
+                "ggplot() + geom_segment(data=segment(dendograma), aes(x=x, y=y, xend=xend, yend=yend)) +\n",
+                "  geom_text(data=label(dendograma), aes(x, y, label = label, hjust=1.1, color = hc.clusters), size = 4, angle = 90) +\n",
+                "  scale_color_manual(values = c(", paste(colores, collapse = ","), ")) + expand_limits(y=-2)"))
 }
 
-def.code.jambu <- function(data = "datos"){
-  return(paste0("codo.jambu(data. = var.numericas(", data, "), k. = 2:5)"))
+calc.maxK <- function(data){
+  n <- nrow(datos)
+  if(n < 40){
+    return(as.integer(n/2))
+  } else {
+    return(20)
+  }
+}
+
+def.code.jambu <- function(data = "datos", k = 20){
+  return(paste0("codo.jambu(data. = var.numericas(", data, "), k. = 2:", k, ")"))
 }
 
 def.func.jambu <- function(){
@@ -427,7 +441,7 @@ codo.jambu <<- function(data. = NULL, k. = NA_integer_, nstart. = 200, iter.max.
   best_model <- models[[model_index]]
   res.plot <- ggplot() + geom_point(aes(x = k., y = tot_withinss), size = 2) +
     geom_line(aes(x = k., y = tot_withinss), size = 1) +
-    geom_vline(xintercept = k.[model_index], linetype='dashed', color = 'blue', size=0.8) +
+    #geom_vline(xintercept = k.[model_index], linetype='dashed', color = 'blue', size=0.8) +
     theme_minimal() + labs(x = 'k', y = 'Inercia Intra-Clase') +
     scale_x_continuous(breaks = seq(1, length(k.), 1)) + scale_y_continuous(labels = scales::comma)
   return(plot(res.plot))
@@ -435,21 +449,21 @@ codo.jambu <<- function(data. = NULL, k. = NA_integer_, nstart. = 200, iter.max.
 }
 
 cluster.mapa <- function(cant = "as.numeric(input$cant.cluster)", colores = "'steelblue'"){
-  return(paste0("res.hcpc <- HCPC(pca.modelo, nb.clust = -1, consol = TRUE, min = ", cant, ", max = ", cant, ", graph = FALSE)
-plot(fviz_pca_biplot(pca.modelo, col.ind = res.hcpc$data.clust$clust, palette = c(", paste(colores, collapse = ","), "), addEllipses = T,
-                label = 'var', col.var = 'steelblue', repel = TRUE, legend.title = 'Clúster'))"))
+  return(paste0("plot(fviz_pca_biplot(pca.modelo, col.ind = hc.clusters,\n",
+                "                     palette = c(", paste(colores, collapse = ","), "),\n",
+                "                     addEllipses = T, col.var = 'steelblue', legend.title = 'Clúster'))"))
 }
 
 cluster.kmapa <- function(colores = "'steelblue'"){
-  return(paste0("plot(fviz_pca_biplot(pca.modelo, col.ind = as.factor(k.modelo$cluster), palette = c(", paste(colores, collapse = ","), "),
-                 addEllipses = T, label = 'var', col.var = 'steelblue', repel = TRUE, legend.title = 'Clúster'))"))
+  return(paste0("plot(fviz_pca_biplot(pca.modelo, col.ind = as.factor(k.modelo$cluster),\n",
+                "                     palette = c(", paste(colores, collapse = ","), "),\n",
+                "                     addEllipses = T, col.var = 'steelblue', legend.title = 'Clúster'))"))
 }
 
 default.centros <- function(){
-  return(paste0("calc.centros <<- function(data, modelo = NULL, cant.cluster, metodo = 'complete') {
-  if(is.null(modelo)) return(NULL)
-  clusters <- cutree(modelo, k=cant.cluster)
-  real <- lapply(unique(clusters), function(i) colMeans(data[clusters == i, ]))
+  return(paste0("calc.centros <<- function(data, clusteres) {
+  if(is.null(clusteres)) return(NULL)
+  real <- lapply(unique(clusteres), function(i) colMeans(data[clusteres == i, ]))
   real <- as.data.frame(do.call('rbind', real))
 
   porcentual <- apply(real, 2, function(i) scales::rescale(i, to = c(0, 100)))

@@ -13,7 +13,7 @@ shinyServer(function(input, output, session) {
   options(DT.options = list(aLengthMenu = c(10, 30, 50), iDisplayLength = 10, scrollX = TRUE))
 
   session$onSessionEnded(function() {
-    rm(envir = .GlobalEnv, list = ls(envir = .GlobalEnv))
+  #  rm(envir = .GlobalEnv, list = ls(envir = .GlobalEnv))
     stopApp()
   })
 
@@ -57,6 +57,10 @@ shinyServer(function(input, output, session) {
                                cat=NULL, jambu=NULL, kmapa=NULL, khoriz=NULL, kvert=NULL, kradar=NULL, kcat=NULL)
 
   disp.ranges <- reactiveValues(x = NULL, y = NULL)
+  ind.ranges <- reactiveValues(x = NULL, y = NULL)
+  bi.ranges <- reactiveValues(x = NULL, y = NULL)
+  mapa.ranges <- reactiveValues(x = NULL, y = NULL)
+  kmapa.ranges <- reactiveValues(x = NULL, y = NULL)
 
   observe({
     addClass(class = "disabled", selector = "#sidebarItemExpanded li[class^=treeview]")
@@ -68,7 +72,7 @@ shinyServer(function(input, output, session) {
   })
 
   observeEvent(input$loadButton, {
-     tryCatch({
+    tryCatch({
        codigo.reporte <<- list()
        codigo.carga <- code.carga(nombre.filas = input$rowname, ruta = input$file1$datapath,
                                   separador = input$sep, sep.decimal = input$dec, encabezado = input$header)
@@ -89,6 +93,7 @@ shinyServer(function(input, output, session) {
         codigo.na <- paste0(code.NA(deleteNA = input$deleteNA), "\n", "datos <<- datos.originales")
         isolate(eval(parse(text = codigo.na)))
       }, error = function(e) {
+        load.page(F)
         showNotification(paste0("Error al eliminar NAs: ", e), duration = 10, type = "error")
         datos <<- NULL
         datos.originales <<- NULL
@@ -123,6 +128,8 @@ shinyServer(function(input, output, session) {
       updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(datos))))
       updateSelectInput(session, "sel.kcat.var", choices = colnames(var.categoricas(datos)))
       updateSelectInput(session, "sel.cat.var", choices = colnames(var.categoricas(datos)))
+      nmax <- calc.maxK(datos)
+      updateSliderInput(session, "iteracionesK", max = nmax, value = nmax)
     }, error = function(e) {
       print(paste0("ERROR EN EVALUAR: ", e))
       return(datos <- NULL)
@@ -169,6 +176,8 @@ shinyServer(function(input, output, session) {
       updateSelectInput(session, "sel.kmeans.verticales", choices = c("Todos", colnames(var.numericas(datos))))
       updateSelectInput(session, "sel.kcat.var", choices = colnames(var.categoricas(datos)))
       updateSelectInput(session, "sel.cat.var", choices = colnames(var.categoricas(datos)))
+      nmax <- calc.maxK(datos)
+      updateSliderInput(session, "iteracionesK", max = nmax, value = nmax)
     }, error = function(e) {
       return(datos <- NULL)
     })
@@ -266,7 +275,7 @@ shinyServer(function(input, output, session) {
         codigo.reporte[[paste0("normalidad.", input$sel.normal)]] <<- paste0("## Test de Normalidad \n```{r}\n", cod.normal, "\n```")
         return(res)
       }, error = function(e){
-          showNotification(paste0("ERROR AL GENERAR TEST DE NORMALIDAD: ", e), duration = 10, type = "error")
+        showNotification(paste0("ERROR AL GENERAR TEST DE NORMALIDAD: ", e), duration = 10, type = "error")
       })
     })
   })
@@ -307,50 +316,40 @@ shinyServer(function(input, output, session) {
   #' @export
   #'
   observeEvent(c(input$loadButton, input$transButton), {
+
     output$plot.disp = renderPlot({
+       tryCatch({
+         cod.disp <<- updatePlot$disp
+         updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
+         if(!is.null(cod.disp) && cod.disp != ""){
+           codigo.reporte[[paste0("normalidad.", paste(input$select.var, collapse = "."))]] <<-
+             paste0("## Dispersión \n```{r}\n", cod.disp, "\n```")
+         }
+         return(isolate(eval(parse(text = cod.disp))))
+       }, error = function(e) {
+         showNotification(paste0("ERROR AL GENERAR DISPERSIÓN: ", e), duration = 10, type = "error")
+       })
+    })
+
+    output$plot.disp.zoom <- renderPlot({
       tryCatch({
         cod.disp <<- updatePlot$disp
-        updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
         res <- isolate(eval(parse(text = cod.disp)))
-        if(!is.null(cod.disp) && cod.disp != ""){
-          codigo.reporte[[paste0("normalidad.", paste(input$select.var, collapse = "."))]] <<-
-            paste0("## Dispersión \n```{r}\n", cod.disp, "\n```")
-        }
+        res <- res + coord_cartesian(xlim = disp.ranges$x, ylim = disp.ranges$y, expand = FALSE)
         return(res)
       }, error = function(e) {
-        showNotification(paste0("ERROR AL GENERAR DISPERSIÓN: ", e), duration = 10, type = "error")
+        return(NULL)
       })
     })
 
-    output$plot.disp1 = renderPlot({
+    output$mostrar.disp.zoom = DT::renderDataTable({
       tryCatch({
-        cod.disp <<- updatePlot$disp
-        updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
-        res <- isolate(eval(parse(text = cod.disp)))
-        if(!is.null(cod.disp) && cod.disp != ""){
-          codigo.reporte[[paste0("normalidad.", paste(input$select.var, collapse = "."))]] <<-
-            paste0("## Dispersión \n```{r}\n", cod.disp, "\n```")
-        }
-        return(res)
+        return(brushedPoints(datos[, input$select.var], input$zoom.disp))
       }, error = function(e) {
-        showNotification(paste0("ERROR AL GENERAR DISPERSIÓN: ", e), duration = 10, type = "error")
+        return(NULL)
       })
-    })
+    }, options = list(dom = 't', scrollX = TRUE, scrollY = "20vh", pageLength = nrow(datos)))
 
-    output$plot.disp2 = renderPlot({
-      tryCatch({
-        cod.disp <<- updatePlot$disp
-        updateAceEditor(session, "fieldCodeDisp", value = cod.disp)
-        res <- isolate(eval(parse(text = cod.disp)))
-        if(!is.null(cod.disp) && cod.disp != ""){
-          codigo.reporte[[paste0("normalidad.", paste(input$select.var, collapse = "."))]] <<-
-            paste0("## Dispersión \n```{r}\n", cod.disp, "\n```")
-        }
-        return(res)
-      }, error = function(e) {
-        showNotification(paste0("ERROR AL GENERAR DISPERSIÓN: ", e), duration = 10, type = "error")
-      })
-    })
   })
 
   observe({
@@ -383,7 +382,8 @@ shinyServer(function(input, output, session) {
   #' @export
   #'
   observeEvent(c(input$loadButton, input$transButton, input$fieldCodePCAModelo), {
-    output$plot.ind = renderPlot({
+
+   output$plot.ind = renderPlot({
       tryCatch({
         cod.pca[["individuos"]] <<- updatePlot$pca.ind
         res <- isolate(eval(parse(text = cod.pca[["individuos"]])))
@@ -394,8 +394,49 @@ shinyServer(function(input, output, session) {
       }, error = function(e) {
         showNotification(paste0("ERROR EN PCA (Individuos): ", e), duration = 10, type = "error")
       })
-    })
+   })
+
+   output$plot.ind.zoom <- renderPlot({
+     tryCatch({
+       ejex <- ind.ranges$x
+       ejey <- ind.ranges$y
+       if(is.null(ejex) & is.null(ejey)){
+         return(NULL)
+       } else {
+         cod.ind <<- updatePlot$pca.ind
+         res <- isolate(eval(parse(text = cod.ind)))
+         res <- res + coord_cartesian(xlim = ejex, ylim = ejey, expand = FALSE)
+         return(res)
+       }
+     }, error = function(e) {
+       return(NULL)
+     })
+   })
+
+   output$mostrar.ind.zoom = DT::renderDataTable({
+      tryCatch({
+        dimensiones <- as.data.frame(pca.modelo$ind$coord)
+        return(brushedPoints(df = dimensiones[, c(input$slider.ejes)], brush = input$zoom.ind,
+                             xvar = names(dimensiones)[input$slider.ejes[1]], yvar = names(dimensiones)[input$slider.ejes[2]]))
+      }, error = function(e) {
+        print(e)
+        return(NULL)
+      })
+   }, options = list(dom = 't', scrollX = TRUE, scrollY = "20vh", pageLength = nrow(datos)))
+
   }, priority = 3)
+
+  observe({
+    brush <- input$zoom.ind
+    if (!is.null(brush)) {
+      ind.ranges$x <- c(brush$xmin, brush$xmax)
+      ind.ranges$y <- c(brush$ymin, brush$ymax)
+
+    } else {
+      ind.ranges$x <- NULL
+      ind.ranges$y <- NULL
+    }
+  })
 
   observeEvent(input$run.pca.ind, {
     updatePlot$pca.ind <- isolate(input$fieldCodeInd)
@@ -411,6 +452,7 @@ shinyServer(function(input, output, session) {
   #' @export
   #'
   observeEvent(c(input$loadButton, input$transButton, input$fieldCodePCAModelo), {
+
     output$plot.var = renderPlot({
       tryCatch({
         cod.pca[["variables"]] <<- updatePlot$pca.var
@@ -423,6 +465,7 @@ shinyServer(function(input, output, session) {
         showNotification(paste0("ERROR EN PCA (Variables): ", e), duration = 10, type = "error")
       })
     })
+
   }, priority = 3)
 
   observeEvent(input$run.pca.var, {
@@ -439,6 +482,7 @@ shinyServer(function(input, output, session) {
   #' @export
   #'
   observeEvent(c(input$loadButton, input$transButton, input$fieldCodePCAModelo),{
+
     output$plot.biplot = renderPlot({
       tryCatch({
         cod.pca[["sobreposicion"]] <<- updatePlot$pca.bi
@@ -451,7 +495,48 @@ shinyServer(function(input, output, session) {
         showNotification(paste0("ERROR EN PCA (Sobreposición): ", e), duration = 10, type = "error")
       })
     })
+
+    output$plot.bi.zoom <- renderPlot({
+      tryCatch({
+        ejex <- bi.ranges$x
+        ejey <- bi.ranges$y
+        if(is.null(ejex) & is.null(ejey)){
+          return(NULL)
+        } else {
+          cod.bi <<- updatePlot$pca.bi
+          res <- isolate(eval(parse(text = cod.bi)))
+          res <- res + coord_cartesian(xlim = ejex, ylim = ejey, expand = FALSE)
+          return(res)
+        }
+      }, error = function(e) {
+        return(NULL)
+      })
+    })
+
+    output$mostrar.bi.zoom = DT::renderDataTable({
+      tryCatch({
+        dimensiones <- as.data.frame(pca.modelo$ind$coord)
+        return(brushedPoints(df = dimensiones[, c(input$slider.ejes)], brush = input$zoom.bi,
+                             xvar = names(dimensiones)[input$slider.ejes[1]], yvar = names(dimensiones)[input$slider.ejes[2]]))
+      }, error = function(e) {
+        print(e)
+        return(NULL)
+      })
+    }, options = list(dom = 't', scrollX = TRUE, scrollY = "20vh", pageLength = nrow(datos)))
+
   }, priority = 3)
+
+  observe({
+    brush <- input$zoom.bi
+    if (!is.null(brush)) {
+      bi.ranges$x <- c(brush$xmin, brush$xmax)
+      bi.ranges$y <- c(brush$ymin, brush$ymax)
+
+    } else {
+      bi.ranges$x <- NULL
+      bi.ranges$y <- NULL
+    }
+  })
 
   observeEvent(input$run.pca.bi, {
     updatePlot$pca.bi <- input$fieldCodeBi
@@ -691,7 +776,7 @@ shinyServer(function(input, output, session) {
     atipicos <- boxplot.stats(datos[, input$sel.distribucion.num])
     datos <- datos[datos[, input$sel.distribucion.num] %in% atipicos$out, input$sel.distribucion.num, drop = F]
     return(datos[order(datos[, input$sel.distribucion.num]), , drop = F])
-  }, options = list(dom = 't', scrollX = TRUE, scrollY = "10vh"))
+  }, options = list(dom = 't', scrollX = TRUE, scrollY = "10vh", pageLength = nrow(datos)))
 
   #' Gráfico de Distribuciones (Categóricas)
   #' @author Diego
@@ -802,6 +887,7 @@ shinyServer(function(input, output, session) {
   #' @export
   #'
   observeEvent(c(input$loadButton, input$transButton, input$fieldCodeModelo), {
+
     output$plot.mapa = renderPlot({
       tryCatch({
         code.mapa <<- updatePlot$mapa
@@ -814,6 +900,47 @@ shinyServer(function(input, output, session) {
         return(NULL)
       })
     })
+
+    output$plot.mapa.zoom <- renderPlot({
+      tryCatch({
+        ejex <- mapa.ranges$x
+        ejey <- mapa.ranges$y
+        if(is.null(ejex) & is.null(ejey)){
+          return(NULL)
+        } else {
+          cod.mapa <<- updatePlot$mapa
+          res <- isolate(eval(parse(text = cod.mapa)))
+          res <- res + coord_cartesian(xlim = ejex, ylim = ejey, expand = FALSE) + theme(legend.position="none")
+          return(res)
+        }
+      }, error = function(e) {
+        return(NULL)
+      })
+    })
+
+    output$mostrar.mapa.zoom = DT::renderDataTable({
+      tryCatch({
+        dimensiones <- as.data.frame(pca.modelo$ind$coord)
+        return(brushedPoints(df = dimensiones[, c(input$slider.ejes)], brush = input$zoom.mapa,
+                             xvar = names(dimensiones)[input$slider.ejes[1]], yvar = names(dimensiones)[input$slider.ejes[2]]))
+      }, error = function(e) {
+        print(e)
+        return(NULL)
+      })
+    }, options = list(dom = 't', scrollX = TRUE, scrollY = "20vh", pageLength = nrow(datos)))
+
+  })
+
+  observe({
+    brush <- input$zoom.mapa
+    if (!is.null(brush)) {
+      mapa.ranges$x <- c(brush$xmin, brush$xmax)
+      mapa.ranges$y <- c(brush$ymin, brush$ymax)
+
+    } else {
+      mapa.ranges$x <- NULL
+      mapa.ranges$y <- NULL
+    }
   })
 
   observeEvent(input$run.hc.mapa, {
@@ -957,7 +1084,7 @@ shinyServer(function(input, output, session) {
 
     nuevos.colores <- sapply(1:input$cant.kmeans.cluster, function(i) paste0("'", input[[paste0("kColor", i)]], "'"))
     color <- ifelse(input$sel.kmeans.cluster %in% c("", "Todos"), "red", nuevos.colores[as.numeric(input$sel.kmeans.cluster)])
-    updatePlot$jambu <<- def.code.jambu()
+    updatePlot$jambu <<- def.code.jambu(k = input$iteracionesK)
     updatePlot$kmapa <<- cluster.kmapa(colores = nuevos.colores)
     updatePlot$khoriz <<- cluster.khoriz(sel = paste0("'", input$sel.kmeans.cluster, "'"), colores = nuevos.colores, color = color)
     updatePlot$kvert <<- cluster.kvert(sel = paste0("'", input$sel.kmeans.verticales, "'"), colores = nuevos.colores)
@@ -995,6 +1122,7 @@ shinyServer(function(input, output, session) {
       tryCatch({
         code.jambu <<- updatePlot$jambu
         isolate(eval(parse(text = code.jambu)))
+        updateAceEditor(session, "fieldCodeJambu", value = code.jambu)
         res <- isolate(eval(parse(text = code.jambu)))
         codigo.reporte[["jambu"]] <<-
           paste0("## Codo de Jambu \n```{r}\n", code.jambu, "\n```")
@@ -1010,12 +1138,17 @@ shinyServer(function(input, output, session) {
     updatePlot$jambu <- input$fieldCodeJambu
   })
 
+  observeEvent(input$iteracionesK, {
+    updatePlot$jambu <- def.code.jambu(k = input$iteracionesK)
+  })
+
   #' Gráfico de K-medias (Mapa)
   #' @author Diego
   #' @return plot
   #' @export
   #'
   observeEvent(c(input$loadButton, input$transButton, input$fieldCodeKModelo), {
+
     output$plot.kmapa = renderPlot({
       tryCatch({
         code.kmapa <<- updatePlot$kmapa
@@ -1028,6 +1161,47 @@ shinyServer(function(input, output, session) {
         return(NULL)
       })
     })
+
+    output$plot.kmapa.zoom <- renderPlot({
+      tryCatch({
+        ejex <- kmapa.ranges$x
+        ejey <- kmapa.ranges$y
+        if(is.null(ejex) & is.null(ejey)){
+          return(NULL)
+        } else {
+          cod.kmapa <<- updatePlot$kmapa
+          res <- isolate(eval(parse(text = cod.kmapa)))
+          res <- res + coord_cartesian(xlim = ejex, ylim = ejey, expand = FALSE) + theme(legend.position="none")
+          return(res)
+        }
+      }, error = function(e) {
+        return(NULL)
+      })
+    })
+
+    output$mostrar.kmapa.zoom = DT::renderDataTable({
+      tryCatch({
+        dimensiones <- as.data.frame(pca.modelo$ind$coord)
+        return(brushedPoints(df = dimensiones[, c(input$slider.ejes)], brush = input$zoom.kmapa,
+                             xvar = names(dimensiones)[input$slider.ejes[1]], yvar = names(dimensiones)[input$slider.ejes[2]]))
+      }, error = function(e) {
+        print(e)
+        return(NULL)
+      })
+    }, options = list(dom = 't', scrollX = TRUE, scrollY = "20vh", pageLength = nrow(datos)))
+
+  })
+
+  observe({
+    brush <- input$zoom.kmapa
+    if (!is.null(brush)) {
+      kmapa.ranges$x <- c(brush$xmin, brush$xmax)
+      kmapa.ranges$y <- c(brush$ymin, brush$ymax)
+
+    } else {
+      kmapa.ranges$x <- NULL
+      kmapa.ranges$y <- NULL
+    }
   })
 
   observeEvent(input$run.k.mapa, {
@@ -1214,7 +1388,7 @@ shinyServer(function(input, output, session) {
   })
 
   observeEvent(input$HCbutton, {
-    C.Jerarquica <- cutree(hc.modelo, k=input$cant.cluster)
+    C.Jerarquica <- hc.clusters
     datos <<- cbind(datos, C.Jerarquica)
     datos$C.Jerarquica <<- paste0("CJ", datos$C.Jerarquica)
     datos$C.Jerarquica <<- as.factor(datos$C.Jerarquica)
