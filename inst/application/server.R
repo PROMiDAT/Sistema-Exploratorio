@@ -13,7 +13,7 @@ shinyServer(function(input, output, session) {
   options(DT.options = list(aLengthMenu = c(10, 30, 50), iDisplayLength = 10, scrollX = TRUE))
 
   session$onSessionEnded(function() {
-  #  rm(envir = .GlobalEnv, list = ls(envir = .GlobalEnv))
+    rm(envir = .GlobalEnv, list = ls(envir = .GlobalEnv))
     stopApp()
   })
 
