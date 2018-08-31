@@ -10,12 +10,10 @@
 library(shiny)
 library(shinyAce)
 library(shinydashboard)
-library(shinycssloaders)
 library(shinyWidgets)
 library(colourpicker)
 library(shinyjs)
 library(knitr)
-library(stringr)
 library(DT)
 library(future)
 library(promises)
@@ -29,6 +27,8 @@ library(scatterplot3d)
 library(ggdendro)
 library(modeest)
 library(stringr)
+library(rgdal)
+library(raster)
 
 cod.deshabilitar <-
   'shinyjs.init = function() {
@@ -40,7 +40,7 @@ return false;
 
 # Define UI for application that draws a histogram
 shinyUI(dashboardPage(title="PROMiDAT - ExploreR",
-  dashboardHeader(title = tags$a(href="http://promidat.com",
+  dashboardHeader(title = tags$a(href="http://promidat.com", target = "_blank",
                                  img(src="Logo2.png", height=55, width="100%", style="padding-top:2px; padding-bottom:6px;"))),
   dashboardSidebar(
     sidebarMenu(id = "principal",
@@ -69,7 +69,7 @@ shinyUI(dashboardPage(title="PROMiDAT - ExploreR",
     ),
     tags$script(HTML(
       '$(document).ready(function() {
-          $("header").find("nav").append(\'<span class="header-title"> ExploreR </span>\');
+          $("header").find("nav").append(\'<span class="header-title"> <i>Explore</i>R </span>\');
        })')),
     conditionalPanel(
       condition="($('html').hasClass('shiny-busy'))",
@@ -105,8 +105,8 @@ shinyUI(dashboardPage(title="PROMiDAT - ExploreR",
               )),
               column(width = 7,
                      box(title = "Datos", status = "primary", width = 12, solidHeader = TRUE, collapsible = TRUE,
-                         DT::DTOutput('contents'), type = 7, color = "#CBB051"
-              ))
+                         DT::DTOutput('contents'), hr(),
+                         downloadButton("downloaDatos", "Descargar Datos", width = "100%")))
       ),
 
       #Resumen Numérico
@@ -538,24 +538,22 @@ shinyUI(dashboardPage(title="PROMiDAT - ExploreR",
 
       #Generar Reporte
       tabItem(tabName = "reporte",
-              column(width = 5,
-                     tabBox(width = 12, id = "tabReporte",
-                            tabPanel(title = "Reporte", width = 12,
-                                     textInput("textTitulo", value = "Sin Titulo", width = "100%", label = "Digite el Titulo:"),
-                                     textInput("textNombre", value = "PROMiDAT", width = "100%", label = "Digite su Nombre:")),
-                            tabPanel(title = "Código", width = 12, aceEditor("fieldCodeReport", mode="markdown", value=''))),
-                     column(width = 8, actionButton("btnReporte", "Actualizar Reporte")),
-                     column(width = 4, downloadButton("descargar", "Descargar"))),
+              column(width = 5, box(title = "Reporte", width = 12,
+                                    textInput("textTitulo", value = "Sin Titulo", width = "100%", label = "Digite el Titulo:"),
+                                    textInput("textNombre", value = "PROMiDAT", width = "100%", label = "Digite su Nombre:"),
+                                    downloadButton("descargar", "Descargar", class = "center-button"))),
               column(width = 7,
-                     box(title = "Vista Previa", width = 12, height = "90vh", status = "primary", solidHeader = TRUE,
-                         collapsible = TRUE, div(style = 'overflow-x: scroll; overflow-y: scroll; height: 80vh;',
-                                                 htmlOutput("knitDoc"), type = 7, color = "#CBB051")))
+                     box(title = "Código Reporte", width = 12, height = "50vh", status = "primary", solidHeader = TRUE,
+                         collapsible = TRUE, aceEditor("fieldCodeReport", mode="markdown", value='', height = "43vh"))),
+              fluidRow(column(width = 12,
+                              box(title = "Salida R", width = 12, height = "35vh",
+                                  verbatimTextOutput("txtreport"))))
       ),
 
       tabItem(tabName = "acercaDe",
               img(src="Logo.png", style="padding-bottom:20px;margin-left: auto;margin-right: auto;display: block;width: 50%;"),
               infoBoxPROMiDAT("Todos los derechos reservados a", "PROMiDAT S.A.", icono = icon("copyright")),
-              infoBoxPROMiDAT("Versión del Sistema", "1.3.0", icono = icon("file-code-o"))
+              infoBoxPROMiDAT("Versión del Sistema", "1.3.1", icono = icon("file-code-o"))
       )
     ) #tabItems
   ) #dashboardBody

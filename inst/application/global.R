@@ -52,18 +52,17 @@ WP2 <- function(suma, i, DF, clusters, centros.cluster){
   WP2(suma + calc.inercia(DF[i, ], centros.cluster[[clusters[i]]]),
       i+1, DF, clusters, centros.cluster)
 }
+createLog <- function(titulo = "", code = ""){
+  paste0("\n\n#### Interpretación\n\n## ", titulo, "\n```{r}\n", code, "\n```")
+}
 
 contador <<- 0
 datos <<- NULL
 datos.originales <<- NULL
-centros <<- NULL
-hc.modelo <<- NULL
-hc.clusters <<- NULL
-pca.modelo <<- NULL
-k.modelo <<- NULL
-correlacion <<- NULL
-codigo.reporte <<- list()
+datos.reporte <<- list()
 def.colores <<- gg_color_hue(10)
+env.report <<- new.env()
+env.report$codigo.reporte <- list()
 
 campo.codigo <- function(runid, refid, fieldid, ...){
   tags$div(class = "box box-solid bg-black",
@@ -152,7 +151,7 @@ code.trans <- function(variable, nuevo.tipo) {
   if(nuevo.tipo == "categorico"){
       return(paste0("datos[, '", variable, "'] <<- as.factor(datos[, '", variable, "'])"))
   } else if(nuevo.tipo == "numerico") {
-    return(paste0("datos[, '", variable, "'] <<- as.numeric(datos[, '", variable, "'])"))
+    return(paste0("datos[, '", variable, "'] <<- as.numeric(sub(',', '.', datos[, '", variable, "'], fixed = TRUE))"))
   } else {
     es.factor <- ifelse(class(datos.originales[, variable]) %in% c('numeric', 'integer'),
            paste0("datos[, '", variable, "'] <<- as.factor(datos[, '", variable, "']) \n"), "")
@@ -200,7 +199,8 @@ resumen.numerico <- function(data, variable){
 
 resumen.categorico <- function(data, variable){
   salida <- ""
-  color <- c("red","yellow","aqua","navy","teal","olive","purple","maroon","black","blue","lime","orange","light-blue","green","fuchsia")
+  color <- c("red","yellow","aqua","navy","teal","olive","purple","maroon",
+             "black","blue","lime","orange","light-blue","green","fuchsia")
   datos.categoricos <- summary(data[, variable])
   for (i in 1:length(datos.categoricos)) {
     salida <- paste0(salida, "<div class='shiny-html-output col-sm-6 shiny-bound-output' id='", variable, i,
@@ -211,12 +211,12 @@ resumen.categorico <- function(data, variable){
   return(salida)
 }
 
-inercia.cj <- function(cj, cant.clusters){
+inercia.cj <- function(modelo, cant.clusters){
   salida <- ""
   datos.numericos <- list(WP = list(id = "WP", Label = "Inercia Intra-Clases",
-                                    Value = format(WP(var.numericas(datos), hc.modelo, cant.clusters), scientific = FALSE), color = "red"),
+                                    Value = format(WP(var.numericas(datos), modelo, cant.clusters), scientific = FALSE), color = "red"),
                           BP = list(id = "BP", Label = "Inercia Inter-Clases",
-                                    Value = format(BP(var.numericas(datos), hc.modelo, cant.clusters), scientific = FALSE), color = "green"),
+                                    Value = format(BP(var.numericas(datos), modelo, cant.clusters), scientific = FALSE), color = "green"),
                           total = list(id = "total", Label = "Inercia Total",
                                        Value = format(inercia.total(var.numericas(datos)), scientific = FALSE), color = "blue"))
 
@@ -285,23 +285,26 @@ return(paste0("scatterplot3d(", data, "[, '", vars[1], "'], ", data, "[, '",
   }
 }
 
-def.pca.model <- function(data = "datos", scale.unit = T, npc = 5){
-  return(paste0("pca.modelo <<- PCA(var.numericas(", data, "), scale.unit = ", scale.unit, ", ncp = ", npc, ", graph = FALSE)"))
+def.pca.model <- function(data = "datos", scale.unit = T, npc = 5) {
+  return(paste0("pca.modelo <- PCA(var.numericas(", data, "), scale.unit = ", scale.unit, ", ncp = ", npc, ", graph = FALSE)"))
 }
 
 def.model <- function(data = "datos", cant = "as.numeric(input$cant.cluster)", dist.method = "euclidean", hc.method = "complete"){
-  return(paste0("hc.modelo <<- hclust(dist(var.numericas(", data, "), method = '", dist.method, "'), method = '", hc.method, "')\n",
-                "hc.clusters <<- as.factor(cutree(hc.modelo, k = ", cant, "))\n",
-                "centros <<- calc.centros(var.numericas(", data, "), hc.clusters)"))
+  return(paste0("modelo <- hclust(dist(var.numericas(", data, "), method = '", dist.method, "'), method = '", hc.method, "')\n",
+                "clusters <- as.factor(cutree(modelo, k = ", cant, "))\n",
+                "centros <- calc.centros(var.numericas(", data, "), clusters)\n",
+                "hc.modelo <- list(modelo = modelo, clusters = clusters, centros = centros)"))
 }
 
-def.k.model <- function(data = "datos", cant = "as.numeric(input$cant.kmeans.cluster)", iter.max = 200, nstart = 300, algorithm = "Hartigan-Wong"){
-  return(paste0("k.modelo <<- kmeans(var.numericas(", data, "), centers = ", cant,
+def.k.model <- function(data = "datos", cant = "as.numeric(input$cant.kmeans.cluster)",
+                        iter.max = 200, nstart = 300, algorithm = "Hartigan-Wong"){
+  return(paste0("k.modelo <- kmeans(var.numericas(", data, "), centers = ", cant,
                 ", iter.max = ", iter.max,", nstart = ", nstart,", algorithm = '", algorithm ,"')"))
 }
 
 pca.individuos <- function(ind.cos = 0, color = '#696969', ejes = c(1, 2)){
-  return(paste0("plot(fviz_pca_ind(pca.modelo, pointsize = 2, pointshape = 16, axes = c(", paste(ejes, collapse = ","), "),\n",
+  return(paste0("plot(fviz_pca_ind(pca.modelo, pointsize = 2, pointshape = 16, axes = c(",
+                paste(ejes, collapse = ","), "),\n",
                 "     col.ind = '", color, "', select.ind = list(cos2 = ", ind.cos, ")))"))
 }
 
@@ -325,7 +328,7 @@ code.pca.vee <- function(){
 
 code.pca.cci <- function(){
   # Cosenos cuadrados de los individuos
-  return("plot(fviz_cos2(pca.modelo, choice = 'ind', axes = 1:2) +
+  return("plot(fviz_cos2(pca.modelo, choice = 'ind', axes = 1:2, top = 20) +
          labs(y = 'Cos2 - Calidad de la Representación',
          title = 'Cosenos cuadrados de los individuos'))")
 }
@@ -346,14 +349,14 @@ code.pca.cvp <- function(metodo = "circle"){
 
 code.pca.pc1 <- function(){
   # Contributions of variables to PC1
-  return("plot(fviz_contrib(pca.modelo, choice = 'var', axes = 1, top = 10) +
+  return("plot(fviz_contrib(pca.modelo, choice = 'var', axes = 1, top = 20) +
          labs(y = 'Contribuciones (%)',
               title = 'Contribuciones de las variables para Dim-1'))")
 }
 
 code.pca.pc2 <- function(){
   # Contributions of variables to PC2
-  return("plot(fviz_contrib(pca.modelo, choice = 'var', axes = 2, top = 10) +
+  return("plot(fviz_contrib(pca.modelo, choice = 'var', axes = 2, top = 20) +
          labs(y = 'Contribuciones (%)',
               title = 'Contribuciones de las variables para Dim-2'))")
 }
@@ -371,8 +374,8 @@ def.code.num <- function(data = "datos", variable = "input$sel.distribucion", co
   return(paste0("distribucion.numerico(", data, "[, ", variable, "], ", variable, ", color = ", color,")"))
 }
 
-def.code.cat <- function(data = "datos", variable = "input$sel.distribucion", color = 'input$col.dist'){
-  return(paste0("distribucion.categorico(", data, "[, ", variable,"], color = ", color, ")"))
+def.code.cat <- function(data = "datos", variable = "input$sel.distribucion"){
+  return(paste0("distribucion.categorico(", data, "[, ", variable,"])"))
 }
 
 default.func.num <- function(){
@@ -390,33 +393,29 @@ default.func.num <- function(){
 }
 
 default.func.cat <- function(){
-  return(paste0("distribucion.categorico <<- function(var, color = 'input$col.dist'){
-  colores <- sapply(c(1:length(levels(var))), function(i) rgb(sample(0:255, 1), sample(0:255, 1), sample(0:255, 1), 180, maxColorValue = 255))
-  data <- data.frame(label = levels(var), value = summary(var))
-  plot(ggplot(data, aes(label, value)) +
-  geom_bar(stat = 'identity', fill = colores) +
-      geom_text(aes(label = value, y = value), vjust = -0.5, size = 4) +
-      theme_minimal() +
-      labs(title = 'Distribución', y = 'Cantidad de casos', x = 'Categorias'))
-}"))
+  return(
+    paste0("distribucion.categorico <<- function(var){\n",
+           "colores <- sapply(levels(var),\n",
+           "            function(i) rgb(runif(1), runif(1), runif(1), 0.8))\n",
+           "data <- data.frame(label = levels(var), value = summary(var))\n",
+           "plot(ggplot(data, aes(label, value)) +\n",
+           "geom_bar(stat = 'identity', fill = colores) +\n",
+           "    geom_text(aes(label = value, y = value), vjust = -0.5, size = 4) +\n",
+           "    theme_minimal() +\n",
+           "    labs(title = 'Distribución', y = 'Cantidad de casos', x = 'Categorias'))\n}"))
 }
 
 diagrama <- function(cant = "as.numeric(input$cant.cluster)", colores = "'steelblue'"){
-  return(paste0("dendograma <- dendro_data(hc.modelo, type='rectangle')\n",
-                "order.labels <- data.frame(label=names(hc.clusters), hc.clusters)\n",
+  return(paste0("dendograma <- dendro_data(hc.modelo$modelo, type='rectangle')\n",
+                "order.labels <- data.frame(label=names(hc.modelo$clusters), clusters = hc.modelo$clusters)\n",
                 "dendograma[['labels']] <- merge(dendograma[['labels']], order.labels, by='label')\n",
                 "ggplot() + geom_segment(data=segment(dendograma), aes(x=x, y=y, xend=xend, yend=yend)) +\n",
-                "  geom_text(data=label(dendograma), aes(x, y, label = label, hjust=1.1, color = hc.clusters), size = 4, angle = 90) +\n",
+                "  geom_text(data=label(dendograma), aes(x, y, label = label, hjust=1.1, color = clusters), size = 4, angle = 90) +\n",
                 "  scale_color_manual(values = c(", paste(colores, collapse = ","), ")) + expand_limits(y=-2)"))
 }
 
 calc.maxK <- function(data){
-  n <- nrow(datos)
-  if(n < 40){
-    return(as.integer(n/2))
-  } else {
-    return(20)
-  }
+  ifelse(nrow(datos) < 40, return(as.integer(n/2)), return(20))
 }
 
 def.code.jambu <- function(data = "datos", k = 20){
@@ -424,52 +423,51 @@ def.code.jambu <- function(data = "datos", k = 20){
 }
 
 def.func.jambu <- function(){
-  return(paste0("lead <- function(x){
-  out <- c(x[-seq_len(1)], rep(NA, 1))
-  return(out)
-}
-codo.jambu <<- function(data. = NULL, k. = NA_integer_, nstart. = 200, iter.max. = 5000, h. = 1.5){
-  params <- list(k = k., data = list(data.))
-  params <- purrr::cross(params)
-  models <- purrr::map(params, ~future::future(kmeans(x = .$data, centers = .$k, iter.max = iter.max., nstart = nstart.)))
-  models <- future::values(models)
-  tot_withinss <- purrr::map_dbl(models, 'tot.withinss')
-  model_index <- head(which(!tot_withinss/lead(tot_withinss) > h.), 1)
-  if(length(model_index) == 0)
-     model_index <- which.min(tot_withinss)
-
-  best_model <- models[[model_index]]
-  res.plot <- ggplot() + geom_point(aes(x = k., y = tot_withinss), size = 2) +
-    geom_line(aes(x = k., y = tot_withinss), size = 1) +
-    #geom_vline(xintercept = k.[model_index], linetype='dashed', color = 'blue', size=0.8) +
-    theme_minimal() + labs(x = 'k', y = 'Inercia Intra-Clase') +
-    scale_x_continuous(breaks = seq(1, length(k.), 1)) + scale_y_continuous(labels = scales::comma)
-  return(plot(res.plot))
-}"))
+  return(paste0(
+    "lead <- function(x){\n",
+    "  out <- c(x[-seq_len(1)], rep(NA, 1))\n",
+    "  return(out)\n}\n\n",
+    "codo.jambu <<- function(data. = NULL, k. = NA_integer_,\n",
+    "                        nstart. = 200, iter.max. = 5000, h. = 1.5){\n",
+    "  params <- list(k = k., data = list(data.))\n",
+    "  params <- purrr::cross(params)\n",
+    "  models <- purrr::map(params, ~future::future(kmeans(x = .$data, \n",
+    "              centers = .$k, iter.max = iter.max., nstart = nstart.)))\n",
+    "  models <- future::values(models)\n",
+    "  tot_withinss <- purrr::map_dbl(models, 'tot.withinss')\n",
+    "  model_index <- head(which(!tot_withinss/lead(tot_withinss) > h.), 1)\n",
+    "  if(length(model_index) == 0)\n",
+    "    model_index <- which.min(tot_withinss)\n",
+    "  best_model <- models[[model_index]]\n",
+    "  res.plot <- ggplot() + geom_point(aes(x = k., y = tot_withinss), size = 2) +\n",
+    "    geom_line(aes(x = k., y = tot_withinss), size = 1) +\n",
+    "    theme_minimal() + labs(x = 'k', y = 'Inercia Intra-Clase') +\n",
+    "    scale_x_continuous(breaks = seq(1, length(k.), 1)) + \n",
+    "    scale_y_continuous(labels = scales::comma)\n",
+    "  return(plot(res.plot))\n}"))
 }
 
 cluster.mapa <- function(cant = "as.numeric(input$cant.cluster)", colores = "'steelblue'"){
-  return(paste0("plot(fviz_pca_biplot(pca.modelo, col.ind = hc.clusters,\n",
+  return(paste0("plot(fviz_pca_biplot(pca.modelo, col.ind = hc.modelo$clusters,\n",
                 "                     palette = c(", paste(colores, collapse = ","), "),\n",
-                "                     addEllipses = T, col.var = 'steelblue', legend.title = 'Clúster'))"))
+                "                     col.var = 'steelblue', legend.title = 'Clúster'))"))
 }
 
 cluster.kmapa <- function(colores = "'steelblue'"){
   return(paste0("plot(fviz_pca_biplot(pca.modelo, col.ind = as.factor(k.modelo$cluster),\n",
                 "                     palette = c(", paste(colores, collapse = ","), "),\n",
-                "                     addEllipses = T, col.var = 'steelblue', legend.title = 'Clúster'))"))
+                "                     col.var = 'steelblue', legend.title = 'Clúster'))"))
 }
 
 default.centros <- function(){
-  return(paste0("calc.centros <<- function(data, clusteres) {
-  if(is.null(clusteres)) return(NULL)
-  real <- lapply(unique(clusteres), function(i) colMeans(data[clusteres == i, ]))
-  real <- as.data.frame(do.call('rbind', real))
-
-  porcentual <- apply(real, 2, function(i) scales::rescale(i, to = c(0, 100)))
-  porcentual <- as.data.frame(porcentual)
-  return(list(real = real, porcentual = porcentual))
-}"))
+  return(paste0(
+    "calc.centros <<- function(data, clusteres) {\n",
+    "  if(is.null(clusteres)) return(NULL)\n",
+    "  real <- lapply(unique(clusteres), function(i) colMeans(data[clusteres == i, ]))\n",
+    "  real <- as.data.frame(do.call('rbind', real))\n",
+    "  porcentual <- apply(real, 2, function(i) scales::rescale(i, to = c(0, 100)))\n",
+    "  porcentual <- as.data.frame(porcentual)\n",
+    "  return(list(real = real, porcentual = porcentual))\n}"))
 }
 
 default.horiz <- function(){
@@ -495,7 +493,7 @@ default.vert <- function(){
 }
 
 cluster.horiz <- function(sel = "1", colores = "'steelblue'", color = "red"){
-  return(paste0("t.centros <- as.data.frame(t(centros$real))
+  return(paste0("t.centros <- as.data.frame(t(hc.modelo$centros$real))
 if(", sel, " == 'Todos'){
     plot(centros.horizontal.todos(t.centros) + scale_fill_manual(values = c(", paste(colores, collapse = ","), ")))
 } else {
@@ -507,18 +505,18 @@ if(", sel, " == 'Todos'){
 }
 
 cluster.khoriz <- function(sel = "1", colores = "'steelblue'", color = "red"){
-  return(paste0("centros <- as.data.frame(t(k.modelo$centers))
+  return(paste0("k.centros <- as.data.frame(t(k.modelo$centers))
 if(", sel, " == 'Todos'){
-   plot(centros.horizontal.todos(centros) + scale_fill_manual(values = c(", paste(colores, collapse = ","), ")))
+   plot(centros.horizontal.todos(k.centros) + scale_fill_manual(values = c(", paste(colores, collapse = ","), ")))
 } else{
-   plot(ggplot(data = centros, aes(x = row.names(centros), y = centros[, as.numeric(", sel, ")])) +
+   plot(ggplot(data = k.centros, aes(x = row.names(k.centros), y = k.centros[, as.numeric(", sel, ")])) +
        geom_bar(stat = 'identity', fill = ", color, ") + scale_y_continuous(expand = c(.01,0,0,0)) + labs(x = '', y = '') +
        coord_flip() + theme_minimal())
 }"))
 }
 
 cluster.vert <- function(sel = "input$sel.verticales", colores = "'steelblue'"){
-  return(paste0("real <- centros$real
+  return(paste0("real <- hc.modelo$centros$real
 if(", sel, " == 'Todos'){
   plot(centros.vertical.todos(real) + scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), ")))
 } else{
@@ -529,31 +527,30 @@ if(", sel, " == 'Todos'){
 }
 
 cluster.kvert <- function(sel = "input$sel.kmeans.verticales", colores = "'steelblue'"){
-  return(paste0("centros <- as.data.frame(k.modelo$centers)
+  return(paste0("k.centros <- as.data.frame(k.modelo$centers)
 if(", sel, " == 'Todos'){
-    plot(centros.vertical.todos(centros) + scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), ")))
+    plot(centros.vertical.todos(k.centros) + scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), ")))
 } else{
-    plot(ggplot(data = centros, aes(x = row.names(centros), y = centros[, ", sel, "], fill = row.names(centros))) +
+    plot(ggplot(data = k.centros, aes(x = row.names(k.centros), y = k.centros[, ", sel, "], fill = row.names(k.centros))) +
          geom_bar(stat = 'identity') + labs(x = '', y = '') +
          scale_fill_manual('Clúster', values = c(", paste(colores, collapse = ","), ")))
 }"))
 }
 
-cluster.cat <- function(var = "input$sel.kcat.var", cant = "input$cant.cluster"){
-  return(paste0("hc.clusters <- cutree(hc.modelo, k=", cant, ") \n",
-                "NDatos <- cbind(datos, Cluster = hc.clusters) \n",
+cluster.cat <- function(var = "input$sel.kcat.var") {
+  return(paste0("NDatos <- cbind(datos, Cluster = hc.modelo$clusters) \n",
                 "plot(ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + \n",
                 "  facet_wrap(~Cluster, labeller = label_both) + \n",
                 "  theme(text = element_text(size = 10), axis.text.x = element_blank()) + \n",
-                "  scale_fill_discrete(name='Variable') + labs(x = '', y = ''))"))
+                "  labs(x = '', y = ''))"))
 }
 
-cluster.kcat <- function(var = "input$sel.kcat.var"){
+cluster.kcat <- function(var = "input$sel.kcat.var") {
   return(paste0("NDatos <- cbind(datos, Cluster = k.modelo$cluster)\n",
                 "plot(ggplot(NDatos, aes(", var, ")) + geom_bar(aes(fill = ", var, ")) + \n",
                 "  facet_wrap(~Cluster, labeller = label_both) + \n",
                 "  theme(text = element_text(size = 10), axis.text.x = element_blank()) +\n",
-                "  scale_fill_discrete(name='Variable') + labs(x = '', y = ''))"))
+                "  labs(x = '', y = ''))"))
   }
 
 cluster.radar <- function(){
@@ -588,124 +585,136 @@ centros.radar <<- function(centros){
 }
 
 def.radar <- function(colores = "'steelblue'"){
-  return(paste0("centros.radar(centros$porcentual) + \n",
+  return(paste0("centros.radar(hc.modelo$centros$porcentual) + \n",
                 "  scale_color_manual('Clústeres', values = c(", paste(colores, collapse = ","), ")) + \n",
                 "  scale_fill_manual('Clústeres', values = c(", paste(colores, collapse = ","), "))"))
 }
 
 def.kradar <- function(colores = "'steelblue'"){
-  return(paste0("centros <- as.data.frame(apply(k.modelo$centers, 2, function(i) scales::rescale(i, to = c(0, 100))))\n",
-                "centros.radar(centros) + \n",
+  return(paste0("k.centros <- as.data.frame(apply(k.modelo$centers, 2, function(i) scales::rescale(i, to = c(0, 100))))\n",
+                "centros.radar(k.centros) + \n",
                 "  scale_color_manual('Clústeres', values = c(", paste(colores, collapse = ","), ")) + \n",
                 "  scale_fill_manual('Clústeres', values = c(", paste(colores, collapse = ","), "))"))
 }
 
 def.reporte <- function(titulo = "Sin Titulo", nombre = "PROMiDAT", entradas){
   codigo.usuario <- ""
-  for (codigo in codigo.reporte) {
-    codigo.usuario <- paste0(codigo.usuario, "\n\n#### Interpretación\n\n", codigo)
+  for (ejercicio in names(env.report$codigo.reporte)) {
+    codigo.usuario <- paste0(codigo.usuario, "\n\n## DATOS - ", ejercicio, "\n\n")
+    codigo.usuario <- paste0(codigo.usuario, "```{r echo=FALSE}\n",
+                             "datos.originales <<- datos.reporte[['", ejercicio, "']]\n",
+                             "datos <<- datos.originales\n",
+                             "```\n", env.report$codigo.reporte[[ejercicio]])
   }
-  return(paste0("---
-title: '", titulo, "'
-author: '", nombre, "'
-date: ", Sys.Date(), "
-output:
-  html_document:
-    df_print: paged
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE,  fig.height = 10, fig.width = 15)
-```
-
-```{r message=FALSE, warning=FALSE}
-library(promises)
-library(ggplot2)
-library(FactoMineR)
-library(factoextra)
-library(reshape)
-library(corrplot)
-library(dendextend)
-library(scatterplot3d)
-library(stringr)
-```
-
-```{r}
-var.numericas <- function(data){
-  if(is.null(data)) return(NULL)
-  res <- base::subset(data, select = sapply(data, class) %in% c('numeric', 'integer'))
-  return(res)
+  return(paste0("---\n",
+                "title: '", titulo, "'\n",
+                "author: '", nombre, "'\n",
+                "date: ", Sys.Date(), "\n",
+                "output:\n",
+                "  word_document:\n",
+                "    df_print: paged\n",
+                "---\n\n",
+                "```{r setup, include=FALSE}\n",
+                "knitr::opts_chunk$set(echo = FALSE,  fig.height = 10, fig.width = 15)\n",
+                "```\n\n",
+                "```{r message=FALSE, warning=FALSE}\n",
+                "library(promises)\nlibrary(ggplot2)\nlibrary(FactoMineR)\n",
+                "library(FactoMineR)\nlibrary(factoextra)\nlibrary(reshape)\n",
+                "library(corrplot)\nlibrary(dendextend)\nlibrary(scatterplot3d)\n",
+                "library(stringr)\nlibrary(ggdendro)\nlibrary(modeest)\n",
+                "```\n\n",
+                "```{r}\n",
+                "  var.numericas <- function(data){\n",
+                "    if(is.null(data)) return(NULL)\n",
+                "    res <- base::subset(data, select = sapply(data, class) %in% c('numeric', 'integer'))\n",
+                "    return(res)\n",
+                "  }\n\n",
+                "  var.categoricas <- function(data){\n",
+                "    if(is.null(data)) return(NULL)\n",
+                "    res <- base::subset(data, select = !sapply(data, class) %in% c('numeric', 'integer'))\n",
+                "    return(res)\n",
+                "  }\n\n",
+                "  datos.disyuntivos <- function(data, vars){\n",
+                "    if(is.null(data)) return(NULL)\n",
+                "    cualitativas <- base::subset(data, select = colnames(data) %in% c(vars))\n",
+                "    data <- data[, !colnames(data) %in% vars]\n",
+                "    for (variable in colnames(cualitativas)) {\n",
+                "      for (categoria in unique(cualitativas[, variable])) {\n",
+                "        nueva.var <- as.numeric(cualitativas[, variable] == categoria)\n",
+                "        data <- cbind(data, nueva.var)\n",
+                "        colnames(data)[length(colnames(data))] <- paste0(variable, '.', categoria)\n",
+                "      }\n",
+                "    }\n",
+                "    return(data)\n",
+                "}\n\n", default.func.num(), "\n\n", default.func.cat(),
+                "\n\n", def.func.jambu(), "\n\n", default.centros(),
+                "\n\n", default.horiz(), "\n\n", default.vert(),
+                "\n\n", cluster.radar(), "\n```\n\n", codigo.usuario, "\n\n"))
 }
 
-var.categoricas <- function(data){
-  if(is.null(data)) return(NULL)
-  res <- base::subset(data, select = !sapply(data, class) %in% c('numeric', 'integer'))
-  return(res)
+overwrite.cat <- function(){
+  unlockBinding("cat", .BaseNamespaceEnv)
+
+  .BaseNamespaceEnv$cat <- function(..., file = "", sep = " ", fill = FALSE, labels = NULL, append = FALSE){
+    file <- stderr()
+    sep <- ""
+
+    msg <- .makeMessage(..., domain = NULL, appendLF = TRUE)
+    call <- sys.call()
+    cond <- simpleMessage(msg, call)
+
+    if (is.character(file))
+      if (file == "")
+        file <- stdout()
+    else if (substring(file, 1L, 1L) == "|") {
+      file <- pipe(substring(file, 2L), "w")
+      on.exit(close(file))
+    }
+    else {
+      file <- file(file, ifelse(append, "a", "w"))
+      on.exit(close(file))
+    }
+    defaultHandler <- function(c) {
+      base:::.Internal(cat(as.list(conditionMessage(c)), file, sep, fill, labels, append))
+    }
+    withRestarts({
+      signalCondition(cond)
+      defaultHandler(cond)
+    }, muffleMessage = function() NULL)
+    invisible()
+  }
+
+  lockBinding("cat",.BaseNamespaceEnv)
 }
 
-datos.disyuntivos <- function(data, vars){
-  if(is.null(data)) return(NULL)
-     cualitativas <- base::subset(data, select = colnames(data) %in% c(vars))
-     data <- data[, !colnames(data) %in% vars]
-     for (variable in colnames(cualitativas)) {
-       for (categoria in unique(cualitativas[, variable])) {
-          nueva.var <- as.numeric(cualitativas[, variable] == categoria)
-          data <- cbind(data, nueva.var)
-          colnames(data)[length(colnames(data))] <- paste0(variable, '.', categoria)
-       }
-     }
-  return(data)
+recover.cat <- function(){
+  unlockBinding("cat", .BaseNamespaceEnv)
+
+  .BaseNamespaceEnv$cat <- function (..., file = "", sep = " ", fill = FALSE, labels = NULL,
+                                     append = FALSE)
+  {
+    if (is.character(file))
+      if (file == "")
+        file <- stdout()
+      else if (substring(file, 1L, 1L) == "|") {
+        file <- pipe(substring(file, 2L), "w")
+        on.exit(close(file))
+      }
+      else {
+        file <- file(file, ifelse(append, "a", "w"))
+        on.exit(close(file))
+      }
+      .Internal(cat(list(...), file, sep, fill, labels, append))
+  }
+
+  lockBinding("cat",.BaseNamespaceEnv)
 }
 
-", default.func.num(), "
-
-", default.func.cat(), "
-
-", def.func.jambu(), "
-
-", default.centros(), "
-
-", default.horiz(), "
-
-", default.vert(), "
-
-", cluster.radar(), "
-```
-
-# Carga de Datos
-```{r}
-head(datos)
-```", codigo.usuario, ""))
+error.variables <- function(num = T){
+  if(num){
+    img <- raster::stack("www/errorNumericas.png")
+  }else{
+    img <- raster::stack("www/errorCategoricas.png")
+  }
+  raster::plotRGB(img)
 }
-
-cod.resum <- function(data = "datos") {return(paste0("summary(", data, ")"))}
-cod.disp <- default.disp()
-cod.pca <- list("variables" = pca.variables(), "individuos" = pca.individuos(), "sobreposicion" = pca.sobreposicion())
-
-cod.cor <- correlaciones()
-
-cod.dya.cat <- def.code.cat()
-cod.dya.num <- def.code.num()
-func.dya.num <- default.func.num()
-func.dya.cat <- default.func.cat()
-
-func.centros <- default.centros()
-func.horiz <- default.horiz()
-func.vert <- default.vert()
-code.diagrama <- diagrama()
-code.mapa <- cluster.mapa()
-code.horiz <- cluster.horiz()
-code.vert <- cluster.vert()
-func.radar <- cluster.radar()
-code.radar <- def.radar()
-code.cat <- cluster.cat()
-
-code.kmapa <- cluster.kmapa()
-code.khoriz <- cluster.khoriz()
-code.kvert <- cluster.kvert()
-func.khoriz <- default.horiz()
-func.kvert <- default.vert()
-func.kradar <- cluster.radar()
-code.kradar <- def.kradar()
-code.kcat <- cluster.kcat()
-
