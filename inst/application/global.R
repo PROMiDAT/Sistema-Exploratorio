@@ -53,7 +53,7 @@ WP2 <- function(suma, i, DF, clusters, centros.cluster){
       i+1, DF, clusters, centros.cluster)
 }
 createLog <- function(titulo = "", code = ""){
-  paste0("\n\n#### Interpretación\n\n## ", titulo, "\n```{r}\n", code, "\n```")
+  paste0("\n\n## ", titulo, "\n\n#### Interpretación\n```{r}\n", code, "\n```")
 }
 
 contador <<- 0
@@ -415,7 +415,7 @@ diagrama <- function(cant = "as.numeric(input$cant.cluster)", colores = "'steelb
 }
 
 calc.maxK <- function(data){
-  ifelse(nrow(datos) < 40, return(as.integer(n/2)), return(20))
+  ifelse(nrow(datos) < 40, return(as.integer(nrow(datos)/2)), return(20))
 }
 
 def.code.jambu <- function(data = "datos", k = 20){
