@@ -52,8 +52,119 @@ WP2 <- function(suma, i, DF, clusters, centros.cluster){
   WP2(suma + calc.inercia(DF[i, ], centros.cluster[[clusters[i]]]),
       i+1, DF, clusters, centros.cluster)
 }
+
 createLog <- function(titulo = "", code = ""){
   paste0("\n\n## ", titulo, "\n\n#### Interpretación\n```{r}\n", code, "\n```")
+}
+
+extract.code <- function(funcion) {
+  code <- paste(head(eval(parse(text = funcion)), 100), collapse = "\n")
+  code <- paste(funcion, "<-", code)
+  return(code)
+}
+
+distribucion.numerico <- function(var, nombre.var, color){
+  nf <- graphics::layout(mat = matrix(c(1, 2), 2, 1, byrow=TRUE),  height = c(3,1))
+  par(mar=c(3.1, 3.1, 1.1, 2.1))
+  hist(var, col = color, border=F, main = paste0('Distribución y atipicidad de la variable ', nombre.var), axes=F)
+  axis(1, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
+  axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
+  boxplot(var, col = color, boxcol = color, boxlty = 1, boxlwd = 3, boxwex = 1.5,
+          edcol = color, medlty = 1, medlwd = 8, medcol = color, whiskcol = color, whisklty = 3,
+          staplecol = color, staplelty = 1, staplelwd = 3, horizontal=TRUE, outline=TRUE,
+          frame=F, whisklwd = 2.5, outpch = 20, outcex = 1.5, outcol = 'red', axes=F)
+}
+
+distribucion.categorico <- function(var){
+  colores <- sapply(levels(var),
+                    function(i) rgb(runif(1), runif(1), runif(1), 0.8))
+  data <- data.frame(label = levels(var), value = summary(var))
+  plot(ggplot(data, aes(label, value)) +
+         geom_bar(stat = 'identity', fill = colores) +
+         geom_text(aes(label = value, y = value), vjust = -0.5, size = 4) +
+         theme_minimal() +
+         labs(title = 'Distribución', y = 'Cantidad de casos', x = 'Categorias'))
+}
+
+calc.centros <- function(data, clusteres) {
+  if(is.null(clusteres)) return(NULL)
+  real <- lapply(unique(clusteres), function(i) colMeans(data[clusteres == i, ]))
+  real <- as.data.frame(do.call('rbind', real))
+  porcentual <- apply(real, 2, function(i) scales::rescale(i, to = c(0, 100)))
+  porcentual <- as.data.frame(porcentual)
+  return(list(real = real, porcentual = porcentual))
+}
+
+centros.horizontal.todos <- function(centros){
+  colnames(centros) <- sapply(c(1:ncol(centros)), function(i) paste0('Cluster ', i))
+  var <- row.names(centros)
+  centros <- cbind(centros, var)
+  centros <- melt(centros, id.vars = 'var')
+  ggplot(centros, aes(x=var, y=value)) + geom_bar(stat='identity', position='dodge', show.legend = F) +
+    labs(x = '', y = '') + facet_wrap(~variable) + coord_flip() +
+    theme(text = element_text(size = 20)) + aes(fill = variable)
+}
+
+centros.vertical.todos <- function(centros){
+  cluster <- c(1:nrow(centros))
+  centros <- cbind(centros, cluster)
+  centros <- melt(centros, id.vars = 'cluster')
+  ggplot(centros, aes(x=variable, y=value, fill=factor(cluster))) +
+    geom_bar(stat='identity', position='dodge') + labs(x = '', y = '')
+}
+
+lead <- function(x){
+  out <- c(x[-seq_len(1)], rep(NA, 1))
+  return(out)
+}
+
+codo.jambu <- function(data. = NULL, k. = NA_integer_,
+                       nstart. = 200, iter.max. = 5000, h. = 1.5){
+  params <- list(k = k., data = list(data.))
+  params <- purrr::cross(params)
+  models <- purrr::map(params, ~future::future(kmeans(x = .$data,
+                                                      centers = .$k, iter.max = iter.max., nstart = nstart.)))
+  models <- future::values(models)
+  tot_withinss <- purrr::map_dbl(models, 'tot.withinss')
+  model_index <- head(which(!tot_withinss/lead(tot_withinss) > h.), 1)
+  if(length(model_index) == 0)
+    model_index <- which.min(tot_withinss)
+  best_model <- models[[model_index]]
+  res.plot <- ggplot() + geom_point(aes(x = k., y = tot_withinss), size = 2) +
+    geom_line(aes(x = k., y = tot_withinss), size = 1) +
+    theme_minimal() + labs(x = 'k', y = 'Inercia Intra-Clase') +
+    scale_x_continuous(breaks = seq(1, length(k.), 1)) +
+    scale_y_continuous(labels = scales::comma)
+  return(plot(res.plot))
+}
+
+coord_radar <- function (theta = 'x', start = 0, direction = 1) {
+  theta <- match.arg(theta, c('x', 'y'))
+  r <- if (theta == 'x') 'y' else 'x'
+  ggproto('CordRadar', CoordPolar, theta = theta, r = r, start = start, direction = sign(direction), is_linear = function(coord) TRUE)
+}
+
+centros.radar <- function(centros){
+  res <- melt(t(centros), varnames = c('variables', 'clusteres'))
+  res <- res[order(res$variables, decreasing = F), ]
+  res$clusteres <- as.character(res$clusteres)
+  ggplot(res, aes(x = variables, y = value)) +
+    geom_polygon(aes(group = clusteres, color = clusteres, fill = clusteres), alpha=0.3, size = 1, show.legend = FALSE) +
+    geom_point(aes(group = clusteres, color = clusteres), size = 3) +
+    theme( panel.background = element_rect(fill = 'transparent'),
+           plot.background = element_rect(fill = 'transparent'),
+           panel.grid.major = element_line(size = 0.5, linetype = 'solid', colour = '#dddddd'),
+           axis.text.x = element_text(size = rel(1.2)),
+           axis.text.y = element_blank(),
+           axis.ticks = element_blank()) +
+    scale_y_continuous(limits=c(-10, 100), breaks=c(0, 25, 50, 75, 100)) +
+    ggtitle('Comparación de Clustéres') + xlab('') + ylab('') +
+    geom_text(aes(x = 0.5, y = 0, label = '0%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
+    geom_text(aes(x = 0.5, y = 25, label = '25%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
+    geom_text(aes(x = 0.5, y = 50, label = '50%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
+    geom_text(aes(x = 0.5, y = 75, label = '75%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
+    geom_text(aes(x = 0.5, y = 100, label = '100%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
+    coord_radar()
 }
 
 contador <<- 0
@@ -378,33 +489,6 @@ def.code.cat <- function(data = "datos", variable = "input$sel.distribucion"){
   return(paste0("distribucion.categorico(", data, "[, ", variable,"])"))
 }
 
-default.func.num <- function(){
-  return(paste0("distribucion.numerico <<- function(var, nombre.var, color){
-  nf <- graphics::layout(mat = matrix(c(1, 2), 2, 1, byrow=TRUE),  height = c(3,1))
-  par(mar=c(3.1, 3.1, 1.1, 2.1))
-  hist(var, col = color, border=F, main = paste0('Distribución y atipicidad de la variable ', nombre.var), axes=F)
-  axis(1, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
-  axis(2, col=par('bg'), col.ticks='grey81', lwd.ticks=1, tck=-0.025)
-  boxplot(var, col = color, boxcol = color, boxlty = 1, boxlwd = 3, boxwex = 1.5,
-          edcol = color, medlty = 1, medlwd = 8, medcol = color, whiskcol = color, whisklty = 3,
-          staplecol = color, staplelty = 1, staplelwd = 3, horizontal=TRUE, outline=TRUE,
-          frame=F, whisklwd = 2.5, outpch = 20, outcex = 1.5, outcol = 'red', axes=F)
-}"))
-}
-
-default.func.cat <- function(){
-  return(
-    paste0("distribucion.categorico <<- function(var){\n",
-           "colores <- sapply(levels(var),\n",
-           "            function(i) rgb(runif(1), runif(1), runif(1), 0.8))\n",
-           "data <- data.frame(label = levels(var), value = summary(var))\n",
-           "plot(ggplot(data, aes(label, value)) +\n",
-           "geom_bar(stat = 'identity', fill = colores) +\n",
-           "    geom_text(aes(label = value, y = value), vjust = -0.5, size = 4) +\n",
-           "    theme_minimal() +\n",
-           "    labs(title = 'Distribución', y = 'Cantidad de casos', x = 'Categorias'))\n}"))
-}
-
 diagrama <- function(cant = "as.numeric(input$cant.cluster)", colores = "'steelblue'"){
   return(paste0("dendograma <- dendro_data(hc.modelo$modelo, type='rectangle')\n",
                 "order.labels <- data.frame(label=names(hc.modelo$clusters), clusters = hc.modelo$clusters)\n",
@@ -422,31 +506,6 @@ def.code.jambu <- function(data = "datos", k = 20){
   return(paste0("codo.jambu(data. = var.numericas(", data, "), k. = 2:", k, ")"))
 }
 
-def.func.jambu <- function(){
-  return(paste0(
-    "lead <- function(x){\n",
-    "  out <- c(x[-seq_len(1)], rep(NA, 1))\n",
-    "  return(out)\n}\n\n",
-    "codo.jambu <<- function(data. = NULL, k. = NA_integer_,\n",
-    "                        nstart. = 200, iter.max. = 5000, h. = 1.5){\n",
-    "  params <- list(k = k., data = list(data.))\n",
-    "  params <- purrr::cross(params)\n",
-    "  models <- purrr::map(params, ~future::future(kmeans(x = .$data, \n",
-    "              centers = .$k, iter.max = iter.max., nstart = nstart.)))\n",
-    "  models <- future::values(models)\n",
-    "  tot_withinss <- purrr::map_dbl(models, 'tot.withinss')\n",
-    "  model_index <- head(which(!tot_withinss/lead(tot_withinss) > h.), 1)\n",
-    "  if(length(model_index) == 0)\n",
-    "    model_index <- which.min(tot_withinss)\n",
-    "  best_model <- models[[model_index]]\n",
-    "  res.plot <- ggplot() + geom_point(aes(x = k., y = tot_withinss), size = 2) +\n",
-    "    geom_line(aes(x = k., y = tot_withinss), size = 1) +\n",
-    "    theme_minimal() + labs(x = 'k', y = 'Inercia Intra-Clase') +\n",
-    "    scale_x_continuous(breaks = seq(1, length(k.), 1)) + \n",
-    "    scale_y_continuous(labels = scales::comma)\n",
-    "  return(plot(res.plot))\n}"))
-}
-
 cluster.mapa <- function(cant = "as.numeric(input$cant.cluster)", colores = "'steelblue'"){
   return(paste0("plot(fviz_pca_biplot(pca.modelo, col.ind = hc.modelo$clusters,\n",
                 "                     palette = c(", paste(colores, collapse = ","), "),\n",
@@ -457,39 +516,6 @@ cluster.kmapa <- function(colores = "'steelblue'"){
   return(paste0("plot(fviz_pca_biplot(pca.modelo, col.ind = as.factor(k.modelo$cluster),\n",
                 "                     palette = c(", paste(colores, collapse = ","), "),\n",
                 "                     col.var = 'steelblue', legend.title = 'Clúster'))"))
-}
-
-default.centros <- function(){
-  return(paste0(
-    "calc.centros <<- function(data, clusteres) {\n",
-    "  if(is.null(clusteres)) return(NULL)\n",
-    "  real <- lapply(unique(clusteres), function(i) colMeans(data[clusteres == i, ]))\n",
-    "  real <- as.data.frame(do.call('rbind', real))\n",
-    "  porcentual <- apply(real, 2, function(i) scales::rescale(i, to = c(0, 100)))\n",
-    "  porcentual <- as.data.frame(porcentual)\n",
-    "  return(list(real = real, porcentual = porcentual))\n}"))
-}
-
-default.horiz <- function(){
-  return(paste0("centros.horizontal.todos <<- function(centros){
-  colnames(centros) <- sapply(c(1:ncol(centros)), function(i) paste0('Cluster ', i))
-  var <- row.names(centros)
-  centros <- cbind(centros, var)
-  centros <- melt(centros, id.vars = 'var')
-  ggplot(centros, aes(x=var, y=value)) + geom_bar(stat='identity', position='dodge', show.legend = F) +
-     labs(x = '', y = '') + facet_wrap(~variable) + coord_flip() +
-     theme(text = element_text(size = 20)) + aes(fill = variable)
-}"))
-}
-
-default.vert <- function(){
-  return(paste0("centros.vertical.todos <<- function(centros){
-  cluster <- c(1:nrow(centros))
-  centros <- cbind(centros, cluster)
-  centros <- melt(centros, id.vars = 'cluster')
-  ggplot(centros, aes(x=variable, y=value, fill=factor(cluster))) +
-    geom_bar(stat='identity', position='dodge') + labs(x = '', y = '')
-}"))
 }
 
 cluster.horiz <- function(sel = "1", colores = "'steelblue'", color = "red"){
@@ -551,37 +577,6 @@ cluster.kcat <- function(var = "input$sel.kcat.var") {
                 "  facet_wrap(~Cluster, labeller = label_both) + \n",
                 "  theme(text = element_text(size = 10), axis.text.x = element_blank()) +\n",
                 "  labs(x = '', y = ''))"))
-  }
-
-cluster.radar <- function(){
-  return(paste0("coord_radar <<- function (theta = 'x', start = 0, direction = 1) {
-  theta <- match.arg(theta, c('x', 'y'))
-  r <- if (theta == 'x') 'y' else 'x'
-  ggproto('CordRadar', CoordPolar, theta = theta, r = r, start = start, direction = sign(direction), is_linear = function(coord) TRUE)
-}
-
-centros.radar <<- function(centros){
-  res <- melt(t(centros), varnames = c('variables', 'clusteres'))
-  res <- res[order(res$variables, decreasing = F), ]
-  res$clusteres <- as.character(res$clusteres)
-  ggplot(res, aes(x = variables, y = value)) +
-    geom_polygon(aes(group = clusteres, color = clusteres, fill = clusteres), alpha=0.3, size = 1, show.legend = FALSE) +
-    geom_point(aes(group = clusteres, color = clusteres), size = 3) +
-    theme( panel.background = element_rect(fill = 'transparent'),
-           plot.background = element_rect(fill = 'transparent'),
-           panel.grid.major = element_line(size = 0.5, linetype = 'solid', colour = '#dddddd'),
-          axis.text.x = element_text(size = rel(1.2)),
-          axis.text.y = element_blank(),
-          axis.ticks = element_blank()) +
-    scale_y_continuous(limits=c(-10, 100), breaks=c(0, 25, 50, 75, 100)) +
-    ggtitle('Comparación de Clustéres') + xlab('') + ylab('') +
-    geom_text(aes(x = 0.5, y = 0, label = '0%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
-    geom_text(aes(x = 0.5, y = 25, label = '25%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
-    geom_text(aes(x = 0.5, y = 50, label = '50%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
-    geom_text(aes(x = 0.5, y = 75, label = '75%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
-    geom_text(aes(x = 0.5, y = 100, label = '100%'), size = 3.5, colour = '#dddddd', family = 'Arial') +
-    coord_radar()
-}"))
 }
 
 def.radar <- function(colores = "'steelblue'"){
@@ -646,10 +641,14 @@ def.reporte <- function(titulo = "Sin Titulo", nombre = "PROMiDAT", entradas){
                 "      }\n",
                 "    }\n",
                 "    return(data)\n",
-                "}\n\n", default.func.num(), "\n\n", default.func.cat(),
-                "\n\n", def.func.jambu(), "\n\n", default.centros(),
-                "\n\n", default.horiz(), "\n\n", default.vert(),
-                "\n\n", cluster.radar(), "\n```\n\n", codigo.usuario, "\n\n"))
+                "}\n\n", extract.code("distribucion.numerico"),
+                "\n\n", extract.code("distribucion.categorico"),
+                "\n\n", extract.code("codo.jambu"),
+                "\n\n", extract.code("calc.centros"),
+                "\n\n", extract.code("centros.horizontal.todos"),
+                "\n\n", extract.code("centros.vertical.todos"),
+                "\n\n", extract.code("centros.radar"),
+                "\n```\n\n", codigo.usuario, "\n\n"))
 }
 
 overwrite.cat <- function(){

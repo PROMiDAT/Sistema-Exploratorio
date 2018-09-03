@@ -23,29 +23,23 @@ shinyServer(function(input, output, session) {
   #' @return functions
   #' @export
   #'
-  isolate(eval(parse(text = def.func.jambu())))
-  isolate(eval(parse(text = default.func.num())))
-  isolate(eval(parse(text = default.func.cat())))
-
-  isolate(eval(parse(text = default.centros())))
-  isolate(eval(parse(text = default.horiz())))
-  isolate(eval(parse(text = default.vert())))
-  isolate(eval(parse(text = cluster.radar())))
-
   updateAceEditor(session, "fieldCodeResum", value = "summary(datos)")
   updateAceEditor(session, "fieldModelCor", value = modelo.cor())
-  updateAceEditor(session, "fieldFuncJambu", value = def.func.jambu())
-  updateAceEditor(session, "fieldFuncNum", value = default.func.num())
-  updateAceEditor(session, "fieldFuncCat", value = default.func.cat())
+  updateAceEditor(session, "fieldFuncJambu",
+                  value = paste0(extract.code("lead"), "\n", extract.code("codo.jambu")))
+  updateAceEditor(session, "fieldFuncNum", value = extract.code("distribucion.numerico"))
+  updateAceEditor(session, "fieldFuncCat", value = extract.code("distribucion.categorico"))
 
-  updateAceEditor(session, "fieldCodeCentr", value = default.centros())
-  updateAceEditor(session, "fieldFuncHoriz", value = default.horiz())
-  updateAceEditor(session, "fieldFuncVert", value = default.vert())
-  updateAceEditor(session, "fieldFuncRadar", value = cluster.radar())
+  updateAceEditor(session, "fieldCodeCentr", value = extract.code("calc.centros"))
+  updateAceEditor(session, "fieldFuncHoriz", value = extract.code("centros.horizontal.todos"))
+  updateAceEditor(session, "fieldFuncVert", value = extract.code("centros.vertical.todos"))
+  updateAceEditor(session, "fieldFuncRadar",
+                  value = paste0(extract.code("coord_radar"), "\n", extract.code("centros.radar")))
 
-  updateAceEditor(session, "fieldFuncKhoriz", value = default.horiz())
-  updateAceEditor(session, "fieldFuncKvert", value = default.vert())
-  updateAceEditor(session, "fieldFuncKradar", value = cluster.radar())
+  updateAceEditor(session, "fieldFuncKhoriz", value = extract.code("centros.horizontal.todos"))
+  updateAceEditor(session, "fieldFuncKvert", value = extract.code("centros.vertical.todos"))
+  updateAceEditor(session, "fieldFuncKradar",
+                  value = paste0(extract.code("coord_radar"), "\n", extract.code("centros.radar")))
 
 
   updateData <- reactiveValues(datos = NULL, pca.modelo = NULL,
@@ -1138,10 +1132,10 @@ shinyServer(function(input, output, session) {
   #' @export
   #'
   #'
-  observeEvent(c(input$loadButton, input$transButton, input$cant.kmeans.cluster, input$num.iter, input$slider.nstart, input$sel.algoritmo), {
+  observeEvent(c(input$loadButton, input$transButton, input$cant.kmeans.cluster, input$num.iter, input$num.nstart, input$sel.algoritmo), {
     tryCatch ({
       codigo <- def.k.model(data = "datos", cant = input$cant.kmeans.cluster, iter.max = input$num.iter,
-                            nstart = input$slider.nstart, algorithm = input$sel.algoritmo)
+                            nstart = input$num.nstart, algorithm = input$sel.algoritmo)
       isolate(eval(parse(text = codigo)))
       updateData$k.modelo <- k.modelo
       updateAceEditor(session, "fieldCodeKModelo", value = codigo)
@@ -1149,7 +1143,7 @@ shinyServer(function(input, output, session) {
       env.report$codigo.reporte[[nombre.datos]] <<-
         paste0(env.report$codigo.reporte[[nombre.datos]],
                "\n\n## K-medias (Clusters = ", input$cant.kmeans.cluster,
-               ", Formas Fuertes = ", input$slider.nstart,
+               ", Formas Fuertes = ", input$num.nstart,
                ", Iteraciones = ", input$num.iter, ", Algoritmo = ", input$sel.algoritmo,
                ")\n\n```{r}\n", codigo, "\n```")
     }, error = function(e) {
@@ -1478,7 +1472,7 @@ shinyServer(function(input, output, session) {
   })
 
   observeEvent(input$HCbutton, {
-    C.Jerarquica <- hc.clusters
+    C.Jerarquica <- hc.modelo$clusters
     datos <<- cbind(datos, C.Jerarquica)
     datos$C.Jerarquica <<- paste0("CJ", datos$C.Jerarquica)
     datos$C.Jerarquica <<- as.factor(datos$C.Jerarquica)

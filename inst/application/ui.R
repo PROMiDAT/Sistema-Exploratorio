@@ -467,9 +467,9 @@ shinyUI(dashboardPage(title="PROMiDAT - ExploreR",
                                                                       label = "Cantidad de iteraciones para K")),
                                                         sliderInput(inputId = "cant.kmeans.cluster", min = 2, value = 2,
                                                                     label = "Cantidad de Clusters", max = 10),
-                                                        sliderInput("slider.nstart", "Ejecuciones en Formas Fuertes (nstart)",
-                                                                    value = 100, step = 1, min = 1, max = 100),
-                                                        numericInput("num.iter", label = "Número de Iteraciones", step = 100, value = 100),
+                                                        numericInput("num.nstart", label = "Ejecuciones en Formas Fuertes (nstart)",
+                                                                     step = 10, value = 1),
+                                                        numericInput("num.iter", label = "Número de Iteraciones", step = 100, value = 10),
                                                         selectInput(inputId = "sel.algoritmo", label = "Algoritmo", selectize = T,
                                                                     choices =  c("Hartigan-Wong", "Lloyd", "Forgy", "MacQueen")),
                                                         HTML("<label class='control-label'>Seleccionar Colores: </label>"),
@@ -553,7 +553,7 @@ shinyUI(dashboardPage(title="PROMiDAT - ExploreR",
       tabItem(tabName = "acercaDe",
               img(src="Logo.png", style="padding-bottom:20px;margin-left: auto;margin-right: auto;display: block;width: 50%;"),
               infoBoxPROMiDAT("Todos los derechos reservados a", "PROMiDAT S.A.", icono = icon("copyright")),
-              infoBoxPROMiDAT("Versión del Sistema", "1.3.1", icono = icon("file-code-o"))
+              infoBoxPROMiDAT("Versión del Sistema", "1.3.2", icono = icon("file-code-o"))
       )
     ) #tabItems
   ) #dashboardBody
