@@ -25,7 +25,6 @@ library(corrplot)
 library(dendextend)
 library(scatterplot3d)
 library(ggdendro)
-library(modeest)
 library(stringr)
 library(rgdal)
 library(raster)
@@ -75,96 +74,81 @@ shinyUI(dashboardPage(title="PROMiDAT - ExploreR",
     tabItems(
 
       #Carga de Datos
-      tabItem(tabName = "cargar",
-              column(width = 5,
-                     tabBox(title = NULL, width = 12,
-                       tabPanel(title = "Cargar", width = 12, solidHeader = FALSE,
-                                collapsible = FALSE, collapsed = FALSE,
-                       checkboxInput('header', 'Encabezado (Header)', TRUE),
-                       checkboxInput('rowname', 'Incluir nombre de filas', TRUE),
-                       radioButtons('sep', 'Separador', c(
-                         Coma=',', 'Punto y Coma'=';', Tab='\t'),
-                         selected = 'Coma'),
-                       radioButtons('dec', 'Separador Decimal',
-                                    c('Punto'='.', 'Coma'=","),
-                                    selected = 'Punto'),
-                       switchInput(inputId = "deleteNA", onStatus = "success",
-                                   offStatus = "danger", value = T, width = "100%",
-                                   label = "Eliminar NA", onLabel = "SI",
-                                   offLabel = "NO", labelWidth = "100%"),
-                       fileInput('file1', label = 'Cargar Archivo', width = "100%",
-                                 placeholder = "", buttonLabel = "Subir",
-                                 accept = c('text/csv', 'text/comma-separated-values, text/plain', '.csv')),
-                       actionButton("loadButton", "Cargar", width = "100%"),
-                       hr(),
-                       aceEditor("fieldCodeData", mode = "r", theme = "monokai",
-                                 value = "", height = "15vh", readOnly = T)
-                     ),
-                     tabPanel(title = "Transformar", width = 12, solidHeader = FALSE,
-                              collapsible = FALSE, collapsed = FALSE,
-                              DT::dataTableOutput('transData'), hr(),
-                              actionButton("transButton", "Aplicar", width = "100%"),
-                              hr(),
-                              aceEditor("fieldCodeTrans", mode = "r", theme = "monokai",
-                                        value = "", height = "10vh", readOnly = T)
-                     )
-              )),
-              column(width = 7,
-                     box(title = "Datos", status = "primary", width = 12,
-                         solidHeader = TRUE, collapsible = TRUE,
-                         DT::DTOutput('contents'), hr(),
-                         downloadButton("downloaDatos", "Descargar Datos",
-                                        width = "100%")))
+      tabItem(tabName = "cargar", column(width = 5, tabBox(
+        title = NULL, width = 12,
+        tabPanel(title = "Cargar", width = 12, solidHeader = FALSE,
+                 collapsible = FALSE, collapsed = FALSE,
+                 checkboxInput('header', 'Encabezado (Header)', TRUE),
+                 checkboxInput('rowname', 'Incluir nombre de filas', TRUE),
+                 radioButtons('sep', 'Separador', c(
+                   Coma=',', 'Punto y Coma'=';', Tab='\t'), selected = 'Coma'),
+                 radioButtons('dec', 'Separador Decimal', selected = 'Punto',
+                              c('Punto'='.', 'Coma'=",")),
+                 switchInput(inputId = "deleteNA", onStatus = "success",
+                             offStatus = "danger", value = T, width = "100%",
+                             label = "Eliminar NA", onLabel = "SI",
+                             offLabel = "NO", labelWidth = "100%"),
+                 fileInput('file1', label = 'Cargar Archivo', width = "100%",
+                           placeholder = "", buttonLabel = "Subir",
+                           accept = c('text/csv', '.csv',
+                                      'text/comma-separated-values, text/plain')),
+                 actionButton("loadButton", "Cargar", width = "100%"), hr(),
+                 aceEditor("fieldCodeData", mode = "r", theme = "monokai",
+                           value = "", height = "15vh", readOnly = T)),
+        tabPanel(title = "Transformar", width = 12, solidHeader = FALSE,
+                 collapsible = FALSE, collapsed = FALSE,
+                 DT::dataTableOutput('transData'), hr(),
+                 actionButton("transButton", "Aplicar", width = "100%"), hr(),
+                 aceEditor("fieldCodeTrans", mode = "r", theme = "monokai",
+                           value = "", height = "10vh", readOnly = T))
+        )),
+        column(
+          width = 7,
+          box(title = "Datos", status = "primary", width = 12,
+              solidHeader = TRUE, collapsible = TRUE, DT::DTOutput('contents'), hr(),
+              downloadButton("downloaDatos", "Descargar Datos", width = "100%")))
       ),
 
       #Resumen Numérico
-      tabItem(tabName = "resumen",
-              column(width = 7,
-                     box(title = "Resumen Numérico", status = "primary",
-                         width = 12, solidHeader = TRUE, collapsible = TRUE,
-                         DT::dataTableOutput("resumen.completo"), hr(),
-                         aceEditor("fieldCodeResum", mode = "r", theme = "monokai",
-                                   value = "", height = "8vh", readOnly = T)
-                     )
-              ),
-              column(width = 5,
-                     box(title = "Resumen Numérico por Variable", status = "primary",
-                         width = 12, solidHeader = TRUE, collapsible = TRUE,
-                         selectInput(inputId = "sel.resumen",
-                                     label = h4("Seleccionar Variable:"),
-                                     choices =  ""),
-                         fluidRow(uiOutput("resumen"))
-                     )
-              )
+      tabItem(tabName = "resumen", column(
+        box(title = "Resumen Numérico", status = "primary", width = 12,
+            solidHeader = TRUE, collapsible = TRUE,
+            DT::dataTableOutput("resumen.completo"), hr(),
+            aceEditor("fieldCodeResum", mode = "r", theme = "monokai",
+                      value = "", height = "8vh", readOnly = T)), width = 7),
+        column(
+          box(title = "Resumen Numérico por Variable", status = "primary",
+              width = 12, solidHeader = TRUE, collapsible = TRUE,
+              selectInput(inputId = "sel.resumen",
+                          label = h4("Seleccionar Variable:"), choices =  ""),
+              fluidRow(uiOutput("resumen"))),  width = 5)
       ),
 
       #test de Normalidad
-      tabItem(tabName = "normalidad",
-              tabBox(id = "BoxNormal", width = NULL,
-                     title = tags$div(class = "multiple-select-var",
-                                selectInput(inputId = "sel.normal",
-                                            label = NULL, choices =  "")),
-                     tabPanel(title = "Gráfico Normalidad", value = "tabNormalPlot",
-                              plotOutput('plot.normal', height = "70vh")),
-                     tabPanel(title = "Test de Normalidad", value = "tabNormalCalc",
-                              DT::dataTableOutput('calculo.normal')),
-                     tabsOptions(heights = c(50, 50, 100), tabs.content = list(
-                       list(h4("Opciones"), hr(),
-                            colourpicker::colourInput(
-                              "col.normal", "Seleccionar Color:",
-                              value = "#00FF22AA", allowTransparent = T)),
-                       list(
-                         conditionalPanel(
-                           "input.BoxNormal == 'tabNormalPlot'",
-                           campo.codigo("run.normal", "ref.normal",
-                                        "fieldCodeNormal", height = "25vh")),
-                         conditionalPanel(
-                           "input.BoxNormal == 'tabNormalCalc'",
-                           campo.codigo("run.calc.normal", "ref.calc.normal",
-                                        "fieldCalcNormal", height = "20vh"))
-                       )
-                     ))
-              )
+      tabItem(tabName = "normalidad", tabBox(
+        id = "BoxNormal", width = NULL, title =
+          tags$div(class = "multiple-select-var",
+                   selectInput(inputId = "sel.normal", label = NULL, choices =  "")),
+        tabPanel(title = "Gráfico Normalidad", value = "tabNormalPlot",
+                 plotOutput('plot.normal', height = "70vh")),
+        tabPanel(title = "Test de Normalidad", value = "tabNormalCalc",
+                 DT::dataTableOutput('calculo.normal')),
+        tabsOptions(heights = c(50, 50, 100), tabs.content = list(
+          list(h4("Opciones"), hr(),
+               colourpicker::colourInput(
+                 "col.normal", "Seleccionar Color:",
+                 value = "#00FF22AA", allowTransparent = T)),
+          list(
+            conditionalPanel(
+              "input.BoxNormal == 'tabNormalPlot'",
+              campo.codigo("run.normal", "ref.normal", "fieldCodeNormal",
+                           height = "25vh")),
+            conditionalPanel(
+              "input.BoxNormal == 'tabNormalCalc'",
+              campo.codigo("run.calc.normal", "ref.calc.normal", "fieldCalcNormal",
+                           height = "20vh")))
+          ))
+        )
       ),
 
       #Dispersión
@@ -600,12 +584,9 @@ shinyUI(dashboardPage(title="PROMiDAT - ExploreR",
                               tags$a(href="https://www.promidat.com/", style = "color:white;",
                                      target = "_blank", "https://www.promidat.com"),
                               icono = icon("info")),
-              infoBoxPROMiDAT("Versión del Sistema", "2.0.0",
+              infoBoxPROMiDAT("Versión del Sistema", "2.0.1",
                               icono = icon("file-code-o"))
       )
     ) #tabItems
   ) #dashboardBody
 )) #UI
-
-
-
